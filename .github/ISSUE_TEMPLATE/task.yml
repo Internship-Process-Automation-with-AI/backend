@@ -1,0 +1,39 @@
+name: Task
+description: Create a new task or feature request
+labels: [task]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## New Task
+        Please provide details for the new task or feature request.
+  - type: input
+    id: summary
+    attributes:
+      label: Task summary
+      description: A concise summary of the task.
+      placeholder: e.g. Add user authentication
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Task description
+      description: Describe the task or feature in detail.
+      placeholder: What needs to be done? Why is it needed?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: What are the requirements for this task to be considered complete?
+      placeholder: List clear, testable criteria.
+    validations:
+      required: false
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context or relevant information.
+      placeholder: Any other information?
