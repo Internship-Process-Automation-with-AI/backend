@@ -1,4 +1,4 @@
-name: Task
+name: Task
 description: Create a new task or feature request
 labels: [task]
 body:
