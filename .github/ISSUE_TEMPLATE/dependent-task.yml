@@ -1,4 +1,4 @@
-name: Dependent Task
+name: Dependent Task
 description: Create a task that depends on the completion of another issue or task
 labels: [dependent-task]
 body:
