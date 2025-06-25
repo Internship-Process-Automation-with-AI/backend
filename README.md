@@ -56,19 +56,7 @@ backend/
 
 ## Configuration
 
-Create `.env` file (optional):
-```env
-TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
-GOOGLE_CLOUD_CREDENTIALS=path/to/credentials.json
-UPLOAD_DIR=uploads
-MAX_FILE_SIZE=10485760
-```
-
-## Troubleshooting
-
-- **Tesseract not found**: Install Tesseract and set `TESSERACT_CMD` in `.env`
-- **Import errors**: Make sure virtual environment is activated
-- **Low confidence**: Enable preprocessing with `use_preprocessing=true`
+TO BE IMPLEMENTED LATER
 
 ## Development
 
