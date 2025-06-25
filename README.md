@@ -18,7 +18,7 @@ pip install -r requirements.txt
 - **macOS**: `brew install tesseract`
 - **Linux**: `sudo apt-get install tesseract-ocr`
 
-### 3. Run Tests
+### 3. Run Tests with locally saved test files
 ```bash
 python test_ocr.py
 ```
@@ -52,26 +52,6 @@ backend/
 ├── main.py                    # FastAPI server
 ├── test_ocr.py               # Test script
 └── requirements.txt
-```
-
-## API Usage
-
-### Extract Text
-```bash
-curl -X POST "http://localhost:8000/api/v1/ocr/extract-text" \
-     -F "file=@certificate.pdf"
-```
-
-### Python Client
-```python
-import requests
-
-with open('certificate.pdf', 'rb') as f:
-    response = requests.post('http://localhost:8000/api/v1/ocr/extract-text', 
-                           files={'file': f})
-    result = response.json()
-    print(f"Text: {result['extracted_text']}")
-    print(f"Confidence: {result['confidence']}%")
 ```
 
 ## Configuration
