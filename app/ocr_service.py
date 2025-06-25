@@ -1,12 +1,10 @@
 import os
 import logging
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional
 import numpy as np
-from PIL import Image
 import pytesseract
 from google.cloud import vision
 from google.cloud.vision_v1 import types
-import io
 import cv2
 import time
 

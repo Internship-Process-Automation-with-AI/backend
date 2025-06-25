@@ -5,11 +5,9 @@ This script helps with installation and configuration.
 Updated for PyMuPDF-based processing (no Poppler required).
 """
 
-import os
 import sys
 import subprocess
 import platform
-import shutil
 from pathlib import Path
 
 
@@ -132,13 +130,22 @@ DEBUG=false
 
 
 def create_upload_directory():
-    """Create upload directory if it doesn't exist."""
+    """Create upload and output directories if they don't exist."""
+    # Create uploads directory
     upload_dir = Path("uploads")
     if not upload_dir.exists():
         upload_dir.mkdir()
         print("✅ Created uploads directory")
     else:
         print("✅ Uploads directory already exists")
+    
+    # Create output directory
+    output_dir = Path("output")
+    if not output_dir.exists():
+        output_dir.mkdir()
+        print("✅ Created output directory")
+    else:
+        print("✅ Output directory already exists")
 
 
 def run_tests():
@@ -190,7 +197,7 @@ def main():
     print(f"✅ PyMuPDF: {'Found' if pymupdf_ok else 'Not found'}")
     print(f"{'✅' if tesseract_ok else '❌'} Tesseract: {'Found' if tesseract_ok else 'Not found'}")
     print("✅ Configuration: .env file created")
-    print("✅ Directories: Created")
+    print("✅ Directories: uploads/ and output/ created")
     
     if not tesseract_ok:
         print("\n⚠️  IMPORTANT: Install Tesseract to use OCR fallback functionality")
@@ -199,13 +206,15 @@ def main():
     print("\n📝 Next steps:")
     print("1. Install Tesseract (if not already installed) - for OCR fallback")
     print("2. Edit .env file with your configuration")
-    print("3. Run: python main.py")
-    print("4. Open: http://localhost:8000/docs")
-    print("\n💡 Benefits of PyMuPDF:")
-    print("   - No external dependencies (no Poppler needed)")
-    print("   - Faster text extraction from PDFs")
-    print("   - Better performance and reliability")
-    print("   - Automatic fallback to OCR when needed")
+    print("3. Run: python test_ocr.py (to test OCR functionality)")
+    print("4. Run: python main.py (to start the API server)")
+    print("5. Open: http://localhost:8000/docs")
+    print("\n💡 Smart OCR Features:")
+    print("   - Raw image processing first (fastest)")
+    print("   - Conditional preprocessing (only when needed)")
+    print("   - Multiple Tesseract configurations")
+    print("   - PyMuPDF for PDF text extraction")
+    print("   - Google Vision API fallback")
     
     # Ask if user wants to run tests
     if tesseract_ok and pymupdf_ok:
