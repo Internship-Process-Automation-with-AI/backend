@@ -222,7 +222,7 @@ class PDFConverter:
             if doc:
                 try:
                     doc.close()
-                except:
+                except Exception:
                     pass
     
     def is_pdf_text_based(self, pdf_bytes: bytes) -> bool:
