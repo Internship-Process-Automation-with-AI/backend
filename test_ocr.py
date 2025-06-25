@@ -13,7 +13,7 @@ from pathlib import Path
 # Add the app directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
 
-from app.ocr_service import OCRService
+from backend.app.ocr_model import OCRService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')

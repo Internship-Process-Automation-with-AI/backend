@@ -8,7 +8,7 @@ from typing import Optional
 import tempfile
 
 from app.config import settings
-from app.ocr_service import OCRService, OCRResult
+from backend.app.ocr_model import OCRService, OCRResult
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
