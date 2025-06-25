@@ -1,6 +1,4 @@
-import os
-import tempfile
-from typing import List, Optional, Tuple, Union
+from typing import List,  Tuple
 import fitz  # PyMuPDF
 from PIL import Image
 import io

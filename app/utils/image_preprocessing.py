@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 from PIL import Image, ImageEnhance
-from typing import Tuple, Optional
 import logging
 
 logger = logging.getLogger(__name__)
