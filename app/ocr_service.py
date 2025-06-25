@@ -259,6 +259,7 @@ class OCRService:
                                 start_time: Optional[float] = None) -> OCRResult:
         """
         Extract text from image using Tesseract with Google Vision fallback.
+        Smart approach: try raw image first, only preprocess if needed.
         
         Args:
             image: Image as numpy array
@@ -272,15 +273,63 @@ class OCRService:
             start_time = time.time()
         
         try:
-            # Apply preprocessing if enabled
-            if use_preprocessing and settings.IMAGE_PREPROCESSING_ENABLED:
-                image = self.preprocessor.preprocess_image(image)
+            # First, try with raw image (no preprocessing)
+            raw_result = self._extract_text_with_tesseract(image)
             
-            # Try Tesseract first
-            tesseract_result = self._extract_text_with_tesseract(image)
+            # Check if raw image gives good results
+            raw_text_length = len(raw_result.text.strip().replace(' ', '').replace('\n', ''))
+            raw_is_good = (raw_text_length > 50 and raw_result.confidence > 40.0)
+            
+            logger.info(f"Raw image result: {raw_text_length} chars, {raw_result.confidence:.1f}% confidence")
+            
+            # If raw image is good enough, use it
+            if raw_is_good:
+                logger.info("Raw image gives good results, skipping preprocessing")
+                best_result = raw_result
+            else:
+                logger.info("Raw image not good enough, trying preprocessing")
+                
+                # Try with preprocessing if enabled
+                if use_preprocessing and settings.IMAGE_PREPROCESSING_ENABLED:
+                    processed_image = self.preprocessor.preprocess_image(image)
+                    processed_result = self._extract_text_with_tesseract(processed_image)
+                    
+                    # Compare raw vs processed results
+                    processed_text_length = len(processed_result.text.strip().replace(' ', '').replace('\n', ''))
+                    
+                    logger.info(f"Processed image result: {processed_text_length} chars, {processed_result.confidence:.1f}% confidence")
+                    
+                    # Choose the better result based on quality score
+                    def text_quality_score(result):
+                        clean_text = result.text.strip().replace(' ', '').replace('\n', '')
+                        text_length = len(clean_text)
+                        
+                        # Prefer results with higher confidence
+                        confidence_bonus = result.confidence / 100.0
+                        
+                        # Penalize very low confidence results even if they have more text
+                        if result.confidence < 30.0:
+                            text_length *= 0.5  # Reduce score for low confidence
+                        
+                        # Calculate final score
+                        return text_length * (1 + confidence_bonus)
+                    
+                    raw_score = text_quality_score(raw_result)
+                    processed_score = text_quality_score(processed_result)
+                    
+                    logger.info(f"Raw score: {raw_score:.1f}, Processed score: {processed_score:.1f}")
+                    
+                    if processed_score > raw_score * 1.2:  # Processed must be significantly better
+                        best_result = processed_result
+                        logger.info("Using processed image result")
+                    else:
+                        best_result = raw_result
+                        logger.info("Using raw image result (preprocessing didn't help)")
+                else:
+                    best_result = raw_result
             
             # If Tesseract fails or has low confidence, try Google Vision
-            if not tesseract_result.success and self.google_vision_client:
+            if not best_result.success and self.google_vision_client:
                 logger.info("Tesseract failed, trying Google Vision API")
                 google_result = self._extract_text_with_google_vision(image)
                 
@@ -288,9 +337,9 @@ class OCRService:
                     return google_result
                 else:
                     logger.warning("Both Tesseract and Google Vision failed")
-                    return tesseract_result
+                    return best_result
             else:
-                return tesseract_result
+                return best_result
                 
         except Exception as e:
             logger.error(f"Error in text extraction: {e}")
@@ -298,32 +347,67 @@ class OCRService:
             return OCRResult("", 0.0, "error", processing_time)
     
     def _extract_text_with_tesseract(self, image: np.ndarray) -> OCRResult:
-        """Extract text using Tesseract OCR."""
+        """Extract text using Tesseract OCR with multiple strategies."""
         start_time = time.time()
         
         try:
-            # Use simpler Tesseract configuration for better compatibility
-            custom_config = r'--oem 3 --psm 6'
+            # Try multiple Tesseract configurations for better accuracy
+            configs = [
+                r'--oem 3 --psm 6',  # Default: Assume uniform block of text
+                r'--oem 3 --psm 3',  # Fully automatic page segmentation
+                r'--oem 3 --psm 4',  # Assume single column of text
+                r'--oem 3 --psm 8',  # Single word
+                r'--oem 3 --psm 13'  # Raw line
+            ]
             
-            # Extract text and confidence
-            text = pytesseract.image_to_string(image, config=custom_config)
+            best_result = None
+            best_confidence = 0.0
             
-            # Get confidence data
-            data = pytesseract.image_to_data(image, config=custom_config, output_type=pytesseract.Output.DICT)
+            for i, config in enumerate(configs):
+                try:
+                    # Extract text with this configuration
+                    text = pytesseract.image_to_string(image, config=config)
+                    
+                    # Get confidence data
+                    data = pytesseract.image_to_data(image, config=config, output_type=pytesseract.Output.DICT)
+                    
+                    # Calculate average confidence
+                    confidences = [int(conf) for conf in data['conf']]
+                    avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+                    
+                    # If we got meaningful text, use this result
+                    if text.strip() and len(text.strip()) > 10:
+                        # If we got text but confidence is very low, give it a minimum confidence
+                        if avg_confidence < 10.0:
+                            avg_confidence = 30.0
+                        
+                        # Keep the best result
+                        if avg_confidence > best_confidence:
+                            best_confidence = avg_confidence
+                            best_result = {
+                                'text': text.strip(),
+                                'confidence': avg_confidence,
+                                'config': config
+                            }
+                            
+                except Exception as e:
+                    logger.debug(f"Tesseract config {i} failed: {e}")
+                    continue
             
-            # Calculate average confidence - include all confidence values, not just > 0
-            confidences = [int(conf) for conf in data['conf']]
-            avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-            
-            # If we got text but confidence is very low, give it a minimum confidence
-            if text.strip() and avg_confidence < 10.0:
-                avg_confidence = 30.0  # Minimum confidence for extracted text
+            # If no good result found, try with default config
+            if not best_result:
+                text = pytesseract.image_to_string(image, config=r'--oem 3 --psm 6')
+                best_result = {
+                    'text': text.strip(),
+                    'confidence': 20.0,  # Default confidence for extracted text
+                    'config': r'--oem 3 --psm 6'
+                }
             
             processing_time = time.time() - start_time
             
             return OCRResult(
-                text=text.strip(),
-                confidence=avg_confidence,
+                text=best_result['text'],
+                confidence=best_result['confidence'],
                 engine="tesseract",
                 processing_time=processing_time
             )

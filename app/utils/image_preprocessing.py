@@ -30,48 +30,104 @@ class ImagePreprocessor:
             else:
                 gray = image.copy()
             
-            # Apply preprocessing steps
-            processed = self._apply_preprocessing_pipeline(gray)
+            # Try multiple preprocessing strategies and return the best one
+            strategies = [
+                self._strategy_adaptive_threshold,
+                self._strategy_otsu_threshold,
+                self._strategy_enhanced_contrast,
+                self._strategy_morphological_cleanup
+            ]
+            
+            best_result = None
+            best_score = 0
+            
+            for strategy in strategies:
+                try:
+                    processed = strategy(gray)
+                    # Simple quality score based on edge density
+                    score = self._calculate_image_quality(processed)
+                    if score > best_score:
+                        best_score = score
+                        best_result = processed
+                except Exception as e:
+                    logger.debug(f"Preprocessing strategy failed: {e}")
+                    continue
+            
+            # If all strategies fail, use the original
+            if best_result is None:
+                best_result = gray
             
             logger.info("Image preprocessing completed successfully")
-            return processed
+            return best_result
             
         except Exception as e:
             logger.error(f"Error during image preprocessing: {e}")
             # Return original image if preprocessing fails
             return image
     
-    def _apply_preprocessing_pipeline(self, gray_image: np.ndarray) -> np.ndarray:
-        """
-        Apply a series of preprocessing steps to enhance OCR accuracy.
+    def _strategy_adaptive_threshold(self, gray_image: np.ndarray) -> np.ndarray:
+        """Strategy 1: Adaptive thresholding for varying lighting conditions."""
+        # Enhance contrast
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+        enhanced = clahe.apply(gray_image)
         
-        Args:
-            gray_image: Grayscale image
-            
-        Returns:
-            Preprocessed image
-        """
-        # 1. Noise reduction
-        denoised = cv2.medianBlur(gray_image, 3)
-        
-        # 2. Enhance contrast using CLAHE (Contrast Limited Adaptive Histogram Equalization)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        enhanced = clahe.apply(denoised)
-        
-        # 3. Apply morphological operations to clean up the image
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
-        cleaned = cv2.morphologyEx(enhanced, cv2.MORPH_CLOSE, kernel)
-        
-        # 4. Binarization using adaptive thresholding
+        # Apply adaptive threshold
         binary = cv2.adaptiveThreshold(
-            cleaned, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
+            enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 2
         )
         
-        # 5. Remove small noise
+        return binary
+    
+    def _strategy_otsu_threshold(self, gray_image: np.ndarray) -> np.ndarray:
+        """Strategy 2: Otsu thresholding for bimodal histograms."""
+        # Denoise
+        denoised = cv2.medianBlur(gray_image, 3)
+        
+        # Apply Otsu thresholding
+        _, binary = cv2.threshold(denoised, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        
+        return binary
+    
+    def _strategy_enhanced_contrast(self, gray_image: np.ndarray) -> np.ndarray:
+        """Strategy 3: Enhanced contrast and sharpening."""
+        # Enhance contrast
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        enhanced = clahe.apply(gray_image)
+        
+        # Sharpen
+        kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+        sharpened = cv2.filter2D(enhanced, -1, kernel)
+        
+        # Apply threshold
+        _, binary = cv2.threshold(sharpened, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        
+        return binary
+    
+    def _strategy_morphological_cleanup(self, gray_image: np.ndarray) -> np.ndarray:
+        """Strategy 4: Morphological operations for cleanup."""
+        # Enhance contrast
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        enhanced = clahe.apply(gray_image)
+        
+        # Apply threshold
+        _, binary = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        
+        # Morphological cleanup
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+        cleaned = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+        
+        # Remove small noise
         kernel = np.ones((1, 1), np.uint8)
-        final = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
+        final = cv2.morphologyEx(cleaned, cv2.MORPH_OPEN, kernel)
         
         return final
+    
+    def _calculate_image_quality(self, image: np.ndarray) -> float:
+        """Calculate a simple quality score for the image."""
+        # Calculate edge density as a quality measure
+        edges = cv2.Canny(image, 50, 150)
+        edge_density = np.sum(edges > 0) / (edges.shape[0] * edges.shape[1])
+        return edge_density
     
     def enhance_image_quality(self, image: np.ndarray) -> np.ndarray:
         """
