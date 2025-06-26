@@ -184,7 +184,7 @@ class OCRService:
                     quality_score,
                 ) = self.pdf_converter.extract_text_with_quality_check(pdf_bytes)
 
-                if quality_score > 30.0 and len(extracted_text.strip()) > 50:
+                if quality_score > 30.0 and len(extracted_text.strip()) > 25:
                     logger.info(
                         f"Using PyMuPDF text extraction (quality: {quality_score:.1f})"
                     )
@@ -375,7 +375,7 @@ class OCRService:
             raw_text_length = len(
                 raw_result.text.strip().replace(" ", "").replace("\n", "")
             )
-            raw_is_good = raw_text_length > 50 and raw_result.confidence > 40.0
+            raw_is_good = raw_text_length > 25 and raw_result.confidence > 40.0
 
             logger.info(
                 f"Raw image result: {raw_text_length} chars, {raw_result.confidence:.1f}% confidence"
