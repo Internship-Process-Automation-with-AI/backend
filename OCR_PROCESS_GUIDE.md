@@ -6,13 +6,14 @@ Our OCR system extracts text from PDFs and images using a smart, multi-engine ap
 
 ## Supported Formats
 - **PDFs**: .pdf
+- **DOCX Documents**: .docx
 - **Images**: .png, .jpg, .jpeg, .tiff, .bmp
 
 ## Process Flow
 
 ### 1. File Input & Routing
 ```
-File Upload → Check Extension → Route to PDF or Image Processor
+File Upload → Check Extension → Route to PDF, DOCX, or Image Processor
 ```
 
 ### 2. PDF Processing (Two-Tier Approach)
@@ -28,7 +29,21 @@ File Upload → Check Extension → Route to PDF or Image Processor
 - Process each page with OCR
 - Combine results from all pages
 
-### 3. Image Processing (Smart Preprocessing)
+### 3. DOCX Processing (Direct Text Extraction)
+
+#### Native Text Extraction
+- Uses **python-docx** for direct text extraction
+- Extracts text from paragraphs and tables
+- **High confidence** (80%+) since DOCX contains native text
+- **Fast processing** - no OCR required
+
+**Extraction Process:**
+1. Load DOCX document from bytes
+2. Extract text from all paragraphs
+3. Extract text from all table cells
+4. Combine and return with high confidence score
+
+### 4. Image Processing (Smart Preprocessing)
 
 #### Raw Image First Strategy
 ```
@@ -45,14 +60,6 @@ Raw Image → Quality Check → Good? → Use Raw Result
 - Raw images often work perfectly for good scans
 - Preprocessing can create artifacts
 - Saves processing time
-
-### 4. Preprocessing (When Needed)
-
-#### 4 Strategies (tries all, picks best):
-1. **Adaptive Thresholding** - Uneven lighting
-2. **Otsu Thresholding** - Clear black/white images  
-3. **Enhanced Contrast** - Faded text
-4. **Morphological Cleanup** - Noisy images
 
 ### 5. OCR Engine (Tesseract)
 
@@ -92,7 +99,7 @@ def quality_score(text, confidence):
 OCRResult {
     text: str,              # Extracted text
     confidence: float,      # 0-100%
-    engine: str,           # "pymupdf", "tesseract", "google_vision"
+    engine: str,           # "pymupdf", "python-docx", "tesseract", "google_vision"
     processing_time: float, # Seconds
     success: bool          # Meets confidence threshold
 }
@@ -108,8 +115,9 @@ OCRResult {
 
 ### Processing Engines
 1. **PyMuPDF** - Fast PDF text extraction
-2. **Tesseract** - Primary OCR (local, free)
-3. **Google Vision** - Backup OCR (cloud, accurate)
+2. **python-docx** - Native DOCX text extraction
+3. **Tesseract** - Primary OCR (local, free)
+4. **Google Vision** - Backup OCR (cloud, accurate)
 
 ### Performance Benefits
 - **50-70% faster** for good quality images
@@ -133,6 +141,7 @@ extract_text_from_bytes(file_bytes: bytes, extension: str) -> OCRResult
 - `OCRResult` - Result container
 - `ImagePreprocessor` - Preprocessing utilities
 - `PDFConverter` - PDF handling
+- `DOCXProcessor` - DOCX handling
 
 ### Configuration
 - `settings.OCR_CONFIDENCE_THRESHOLD` - Minimum confidence

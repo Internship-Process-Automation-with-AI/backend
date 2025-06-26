@@ -40,3 +40,6 @@ logs/
 
 #debug files
 debug/
+
+#outputs
+output/
