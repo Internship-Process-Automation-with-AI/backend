@@ -1,6 +1,6 @@
 # OAMK Internship Certificate OCR System
 
-A smart OCR service for extracting text from internship certificates using PyMuPDF for fast text extraction with Tesseract OCR fallback.
+A smart OCR (Optical Character Recognition) service for extracting text from internship certificates using PyMuPDF for fast text extraction with Tesseract OCR fallback.
 
 ## Quick Start
 
