@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     }
 
     # Processing Configuration
-    OCR_CONFIDENCE_THRESHOLD: float = 60.0  # Minimum confidence for OCR results
+    OCR_CONFIDENCE_THRESHOLD: float = 50.0  # Minimum confidence for OCR results
     IMAGE_PREPROCESSING_ENABLED: bool = True
 
     class Config:

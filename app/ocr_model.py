@@ -27,7 +27,16 @@ class OCRResult:
         self.confidence = confidence
         self.engine = engine
         self.processing_time = processing_time
-        self.success = confidence >= settings.OCR_CONFIDENCE_THRESHOLD
+        # Success if we have meaningful text and reasonable confidence
+        text_length = len(text.strip())
+        self.success = (
+            text_length > 10 and confidence >= settings.OCR_CONFIDENCE_THRESHOLD
+        )
+
+        # Log success criteria for debugging
+        logger.debug(
+            f"OCR Success criteria: text_length={text_length}, confidence={confidence:.1f}%, threshold={settings.OCR_CONFIDENCE_THRESHOLD}, success={self.success}"
+        )
 
     def to_dict(self) -> Dict:
         """Convert result to dictionary."""
@@ -171,7 +180,11 @@ class OCRService:
             return OCRResult("", 0.0, "error", processing_time)
 
     def _process_pdf_bytes_smart(
-        self, pdf_bytes: bytes, use_preprocessing: bool, start_time: float
+        self,
+        pdf_bytes: bytes,
+        use_preprocessing: bool,
+        start_time: float,
+        force_direct_extraction: bool = False,
     ) -> OCRResult:
         """Smart PDF processing: try text extraction first, then OCR if needed."""
         try:
@@ -206,7 +219,12 @@ class OCRService:
                     f"PyMuPDF text extraction failed: {e}, falling back to OCR"
                 )
 
-            # Step 2: Fallback to OCR processing
+            # Step 2: Fallback to OCR processing (unless forced to skip)
+            if force_direct_extraction:
+                logger.warning("Direct extraction failed and OCR is disabled")
+                processing_time = time.time() - start_time
+                return OCRResult("", 0.0, "direct_extraction_failed", processing_time)
+
             return self._process_pdf_with_ocr(pdf_bytes, use_preprocessing, start_time)
 
         except Exception as e:
@@ -466,6 +484,10 @@ class OCRService:
         try:
             # Try multiple Tesseract configurations for better accuracy
             configs = [
+                r"--oem 3 --psm 6 -l fin+eng",  # Finnish + English (best for mixed content)
+                r"--oem 3 --psm 6 -l fin",  # Finnish language only
+                r"--oem 3 --psm 3 -l fin+eng",  # Finnish + English with auto segmentation
+                r"--oem 3 --psm 4 -l fin+eng",  # Finnish + English single column
                 r"--oem 3 --psm 6",  # Default: Assume uniform block of text
                 r"--oem 3 --psm 3",  # Fully automatic page segmentation
                 r"--oem 3 --psm 4",  # Assume single column of text
@@ -523,7 +545,7 @@ class OCRService:
             processing_time = time.time() - start_time
 
             return OCRResult(
-                text=best_result["text"],
+                text=self._correct_finnish_ocr_errors(best_result["text"]),
                 confidence=best_result["confidence"],
                 engine="tesseract",
                 processing_time=processing_time,
@@ -602,3 +624,98 @@ class OCRService:
                 "google_vision",
             ],
         }
+
+    def _correct_finnish_ocr_errors(self, text: str) -> str:
+        """
+        Correct common OCR errors for Finnish text.
+
+        Args:
+            text: Raw OCR text
+
+        Returns:
+            Corrected text
+        """
+        # Specific Finnish word corrections (most reliable)
+        finnish_corrections = {
+            # Main headers
+            "TYONANTAJA": "TYÖNANTAJA",
+            "TYONTEKIJA": "TYÖNTEKIJÄ",
+            "TYOTODISTUS": "TYÖTODISTUS",
+            # Common work certificate terms
+            "Ty6nantaja": "Työnantaja",
+            "Tyéntekija": "Työntekijä",
+            "Tydésuhde": "Työsuhde",
+            "Tyésuhteen": "Työsuhteen",
+            "Ty6taito": "Työtaito",
+            "Ty6n suorittamispaikka": "Työn suorittamispaikka",
+            # Job-related terms
+            "ty6ntekija": "työntekija",
+            "ty6nantaja": "työnantaja",
+            "ty6todistus": "työtodistus",
+            "ty6suhte": "työsuhte",
+            "ty6ntehtavat": "työntehtävät",
+            "ty6suhteen": "työsuhteen",
+            "tyékohde": "työkohde",
+            "työtehtavat": "työtehtävät",
+            "ty6ntekijan": "työntekijan",
+            "kassaty6skentely": "kassatyöskentely",
+            # Evaluation terms
+            "paattymisen": "päättymisen",
+            "pyynnosta": "pyynnöstä",
+            "pyynnésta": "pyynnöstä",
+            "vuosilomasijai": "vuosilomasijai",
+            "kayttos": "käyttös",
+            "Kaytés": "Käyttös",
+            "kiitettava": "kiitettävä",
+            "allekirjoitus": "allekirjoitus",
+            "kauppias": "kauppias",
+            # Personal information
+            "Henkilétunnus": "Henkilötunnus",
+            "henkilétunnus": "henkilötunnus",
+        }
+
+        # Apply specific word corrections first
+        corrected_text = text
+        for wrong, correct in finnish_corrections.items():
+            corrected_text = corrected_text.replace(wrong, correct)
+
+        # Context-aware character corrections (more conservative)
+        lines = corrected_text.split("\n")
+        corrected_lines = []
+
+        for line in lines:
+            # Look for patterns that suggest Finnish words
+            if any(
+                finnish_word in line.upper()
+                for finnish_word in ["TYÖ", "TYÖN", "TYÖNT", "TYÖNA", "TYÖS", "TYÖT"]
+            ):
+                # This line likely contains Finnish words, apply character corrections
+                line = line.replace("6", "ö").replace("é", "ö")
+                line = line.replace("TYON", "TYÖN").replace("tyon", "työn")
+                line = line.replace("TYONTEKIJA", "TYÖNTEKIJÄ").replace(
+                    "tyontekija", "työntekijä"
+                )
+                line = line.replace("TYONANTAJA", "TYÖNANTAJA").replace(
+                    "tyonantaja", "työnantaja"
+                )
+                line = line.replace("TYOSUHTE", "TYÖSUHTE").replace(
+                    "tyosuhte", "työsuhte"
+                )
+                line = line.replace("TYOTODISTUS", "TYÖTODISTUS").replace(
+                    "tyotodistus", "työtodistus"
+                )
+
+            # Look for words ending with 'avat' (should be 'ävät')
+            if "avat" in line.lower():
+                line = line.replace("avat", "ävät").replace("AVAT", "ÄVÄT")
+
+            # Look for words with 'é' that should be 'ö' in Finnish context
+            if "é" in line and any(
+                finnish_word in line.lower()
+                for finnish_word in ["työ", "työn", "työs", "pyynn"]
+            ):
+                line = line.replace("é", "ö")
+
+            corrected_lines.append(line)
+
+        return "\n".join(corrected_lines)
