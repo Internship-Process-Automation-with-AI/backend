@@ -43,6 +43,7 @@ ENGLISH_KEYWORDS = {
             "certificate of employment",
             "work reference",
             "employment reference",
+            "experience certificate",
         ],
         "employment_letter": [
             "employment letter",
@@ -91,6 +92,8 @@ DATE_PATTERNS = {
         r"(\d{1,2})/(\d{1,2})/(\d{4})",  # MM/DD/YYYY
         r"(\d{1,2})-(\d{1,2})-(\d{4})",  # MM-DD-YYYY
         r"(\d{4})-(\d{1,2})-(\d{1,2})",  # YYYY-MM-DD
+        r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2}),?\s+(\d{4})",  # Month DD, YYYY
+        r"(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})",  # DD Month YYYY
     ],
 }
 

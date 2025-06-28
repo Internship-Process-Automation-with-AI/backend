@@ -76,6 +76,32 @@ class DateExtractor:
                     full_year = 2000 + int(year) if int(year) < 50 else 1900 + int(year)
                     return date(full_year, int(month), int(day))
 
+            # Handle English month names (e.g., "Oct 10, 2012")
+            if language == "english":
+                # Month name to number mapping
+                month_map = {
+                    "jan": 1,
+                    "feb": 2,
+                    "mar": 3,
+                    "apr": 4,
+                    "may": 5,
+                    "jun": 6,
+                    "jul": 7,
+                    "aug": 8,
+                    "sep": 9,
+                    "oct": 10,
+                    "nov": 11,
+                    "dec": 12,
+                }
+
+                # Pattern for "Month DD, YYYY" or "Month DD YYYY"
+                month_pattern = r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2}),?\s+(\d{4})"
+                match = re.match(month_pattern, date_str, re.IGNORECASE)
+                if match:
+                    month_name, day, year = match.groups()
+                    month_num = month_map[month_name.lower()]
+                    return date(int(year), month_num, int(day))
+
             # Use dateutil for other formats
             parsed = parser.parse(date_str, dayfirst=(language == "finnish"))
             return parsed.date()

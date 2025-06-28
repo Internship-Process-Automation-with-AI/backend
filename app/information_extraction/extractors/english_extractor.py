@@ -45,13 +45,26 @@ class EnglishExtractor(BaseExtractor):
             r"([A-Z][a-z]+\s+[A-Z][a-z]+)\s+was\s+employed",
             r"([A-Z][a-z]+\s+[A-Z][a-z]+)\s+served\s+as",
             r"name[:\s]+([A-Z][a-z]+\s+[A-Z][a-z]+)",
+            # New patterns for uppercase names and specific document format
+            r"Mr\.\s+([A-Z]+\s+[A-Z]+)",  # Mr. ARUNRAJ J
+            r"([A-Z]+\s+[A-Z]+)\s+\[",  # ARUNRAJ J [51437597]
+            r"([A-Z]+\s+[A-Z]+)\s+was\s+employed",  # ARUNRAJ J was employed
         ]
 
         for pattern in patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 name = match.group(1).strip()
-                return name, 0.8
+                # Additional validation to avoid false matches
+                if (
+                    name
+                    and len(name.split()) >= 2
+                    and not any(
+                        word in name.upper()
+                        for word in ["EMPLOYEE", "SERVICES", "AUTHORIZED", "SIGNATORY"]
+                    )
+                ):
+                    return name, 0.8
 
         return None, 0.0
 
@@ -81,6 +94,23 @@ class EnglishExtractor(BaseExtractor):
                         position = re.sub(r"[^\w\s]", "", position).strip()
                         if len(position) > 3:  # Minimum length check
                             return position, 0.7
+
+        # Direct patterns for common formats
+        direct_patterns = [
+            r"designated\s+as\s+([A-Z\s]+)",  # designated as MEMBER TECHNICAL STAFF
+            r"position[:\s]+([A-Z\s]+)",  # position: SOFTWARE DEVELOPER
+            r"role[:\s]+([A-Z\s]+)",  # role: SENIOR ENGINEER
+            r"job\s+title[:\s]+([A-Z\s]+)",  # job title: MANAGER
+        ]
+
+        for pattern in direct_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                position = match.group(1).strip()
+                # Clean up the position
+                position = re.sub(r"[^\w\s]", "", position).strip()
+                if len(position) > 3:  # Minimum length check
+                    return position, 0.7
 
         return None, 0.0
 

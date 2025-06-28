@@ -20,13 +20,7 @@ pip install -r requirements.txt
 
 ### 3. Run Tests with locally saved test files
 ```bash
-python test_ocr.py
-```
-
-### 4. Start API Server (NOT YET IMPLEMENTED)
-```bash
-python main.py
-# Open http://localhost:8000/docs
+python tests/test_ocr.py
 ```
 
 ## Features
@@ -34,25 +28,10 @@ python main.py
 - **Multi-format Support**: PDF, PNG, JPG, JPEG, TIFF, BMP
 - **Smart Processing**: PyMuPDF text extraction + OCR fallback
 - **Image Preprocessing**: Grayscale, noise removal, deskewing
-- **Dual OCR Engines**: Tesseract + Google Vision API
-- **RESTful API**: FastAPI endpoints for integration
+- **Dual OCR Engines**: Tesseract + Google Vision API (optional)
+- **RESTful API**: FastAPI endpoints for integration (not yet implemented)
 
 ## File Structure
-
-```
-backend/
-├── app/
-│   ├── config.py              # Configuration
-│   ├── ocr_service.py         # Main OCR service
-│   └── utils/
-│       ├── image_preprocessing.py
-│       └── pdf_converter.py
-├── file samples/              # Test files
-├── output/                    # OCR results
-├── main.py                    # FastAPI server
-├── test_ocr.py               # Test script
-└── requirements.txt
-```
 
 ## Configuration
 
@@ -66,10 +45,9 @@ pip install new-package
 pip freeze > requirements.txt
 
 # Run tests
-python test_ocr.py
+python tests/test_ocr.py
 
-# Start development server
-python main.py
+
 ```
 
 ## Code Quality & Best Practices

@@ -14,13 +14,17 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-# Add the app directory to the Python path and import
-sys.path.append(os.path.join(os.path.dirname(__file__), "app"))
+# Add the parent directory (backend) to the Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
 
 try:
     from app.ocr_model import OCRService
-except ImportError:
-    logger.error("Failed to import OCRService")
+except ImportError as e:
+    logger.error(f"Failed to import OCRService: {e}")
+    logger.error(f"Current directory: {os.getcwd()}")
+    logger.error(f"Python path: {sys.path}")
     sys.exit(1)
 
 
