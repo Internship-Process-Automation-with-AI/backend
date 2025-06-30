@@ -62,12 +62,40 @@ class LLMOrchestrator:
                 "evaluation_results": None,
             }
 
+        # Validate input text
+        if not text or not isinstance(text, str):
+            return {
+                "success": False,
+                "error": f"Invalid text input: {type(text)} - {repr(text)[:100]}",
+                "extraction_results": None,
+                "evaluation_results": None,
+            }
+
+        # Check for suspicious content that might indicate corruption
+        if len(text) < 10 or text.strip() == "":
+            return {
+                "success": False,
+                "error": f"Text too short or empty: {repr(text)}",
+                "extraction_results": None,
+                "evaluation_results": None,
+            }
+
+        # Check for JSON-like content that shouldn't be in input text
+        if text.strip().startswith('"') or text.strip().startswith("{"):
+            return {
+                "success": False,
+                "error": f"Text appears to be JSON, not document content: {repr(text)[:100]}",
+                "extraction_results": None,
+                "evaluation_results": None,
+            }
+
         start_time = time.time()
 
         try:
             # Stage 1: Information Extraction
             logger.info("Starting Stage 1: Information Extraction")
-            extraction_result = self._extract_information(text)
+            sanitized_text = self._sanitize_text_for_llm(text)
+            extraction_result = self._extract_information(sanitized_text)
 
             if not extraction_result.get("success", False):
                 return {
@@ -81,7 +109,7 @@ class LLMOrchestrator:
             # Stage 2: Academic Evaluation
             logger.info("Starting Stage 2: Academic Evaluation")
             evaluation_result = self._evaluate_academically(
-                text, extraction_result["results"]
+                sanitized_text, extraction_result["results"]
             )
 
             total_time = time.time() - start_time
@@ -109,16 +137,74 @@ class LLMOrchestrator:
                 "model_used": self.model_name,
             }
 
+    def _sanitize_text_for_llm(self, text: str) -> str:
+        """
+        Sanitize and clean text before sending to LLM.
+
+        Args:
+            text: Raw text from OCR
+
+        Returns:
+            Cleaned and sanitized text
+        """
+        if not text:
+            return ""
+
+        # Remove excessive whitespace and normalize
+        import re
+
+        # Remove control characters except newlines and tabs
+        text = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "", text)
+
+        # Normalize line endings
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+        # Remove excessive newlines (more than 2 consecutive)
+        text = re.sub(r"\n{3,}", "\n\n", text)
+
+        # Remove excessive spaces
+        text = re.sub(r" +", " ", text)
+
+        # Remove leading/trailing whitespace from each line
+        lines = text.split("\n")
+        cleaned_lines = []
+        for line in lines:
+            line = line.strip()
+            if line:  # Only keep non-empty lines
+                cleaned_lines.append(line)
+
+        # Join lines back together
+        text = "\n".join(cleaned_lines)
+
+        # Limit text length to prevent token overflow
+        max_length = 8000  # Conservative limit
+        if len(text) > max_length:
+            text = text[:max_length] + "\n\n[Text truncated due to length]"
+
+        return text.strip()
+
     def _extract_information(self, text: str) -> Dict[str, Any]:
         """Stage 1: Extract basic information from the certificate."""
         stage_start = time.time()
 
         try:
+            # Log text length for debugging
+            logger.info(f"Processing text of length: {len(text)} characters")
+            logger.info(f"Text parameter at start: {repr(text[:100])}")
+            logger.debug(f"Text preview: {text[:200]}...")
+
             # Create extraction prompt
-            prompt = EXTRACTION_PROMPT.format(text=text)
+            logger.info("Creating extraction prompt...")
+            prompt = EXTRACTION_PROMPT.format(document_text=text)
+            logger.info(f"Prompt created successfully, length: {len(prompt)}")
 
             # Generate response
+            logger.info("Generating LLM response...")
             response = self.model.generate_content(prompt)
+
+            # Log raw response for debugging
+            logger.info(f"Raw LLM response length: {len(response.text)} characters")
+            logger.info(f"Raw LLM response: {repr(response.text)}")
 
             # Parse response
             results = self._parse_llm_response(response.text)
@@ -134,6 +220,11 @@ class LLMOrchestrator:
 
         except Exception as e:
             logger.error(f"Error in extraction stage: {e}")
+            logger.error(f"Exception type: {type(e)}")
+            logger.error(f"Text parameter at error: {repr(text[:100])}")
+            import traceback
+
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": str(e),
@@ -155,7 +246,7 @@ class LLMOrchestrator:
 
             # Create evaluation prompt
             prompt = EVALUATION_PROMPT.format(
-                extracted_info=extracted_info_str, text=text
+                extracted_info=extracted_info_str, document_text=text
             )
 
             # Generate response
@@ -185,26 +276,129 @@ class LLMOrchestrator:
     def _parse_llm_response(self, response_text: str) -> Dict[str, Any]:
         """Parse the LLM response and extract JSON."""
         try:
+            # Clean the response text first
+            response_text = response_text.strip()
+            logger.info(f"Cleaned response text: {repr(response_text)}")
+
             # Try to find JSON in the response
             start_idx = response_text.find("{")
             end_idx = response_text.rfind("}") + 1
 
             if start_idx == -1 or end_idx == 0:
+                logger.error(
+                    f"No JSON brackets found in response: {response_text[:200]}..."
+                )
                 raise ValueError("No JSON found in response")
 
             json_str = response_text[start_idx:end_idx]
-            return json.loads(json_str)
+            logger.info(f"Extracted JSON string: {repr(json_str)}")
 
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON from LLM response: {e}")
-            logger.error(f"Response text: {response_text}")
+            # Try to parse the JSON
+            try:
+                parsed_json = json.loads(json_str)
+                logger.info(f"Successfully parsed JSON: {parsed_json}")
+                return parsed_json
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON decode error: {e}")
+                logger.error(f"Attempted to parse: {json_str}")
+
+                # Try to fix common JSON issues
+                fixed_json = self._fix_common_json_issues(json_str)
+                logger.info(f"Fixed JSON: {repr(fixed_json)}")
+                try:
+                    parsed_json = json.loads(fixed_json)
+                    logger.info(f"Successfully parsed fixed JSON: {parsed_json}")
+                    return parsed_json
+                except json.JSONDecodeError as e2:
+                    logger.error(f"Failed to fix JSON: {e2}")
+                    logger.error(f"Fixed JSON was: {fixed_json}")
+
+                    # If we have a partial JSON like '\n    "employee_name"', try to construct a basic response
+                    if '"employee_name"' in json_str:
+                        logger.info(
+                            "Detected partial JSON with employee_name, creating fallback response"
+                        )
+                        return self._create_fallback_response(json_str)
+                    else:
+                        raise
+
+        except Exception as e:
+            logger.error(f"Failed to parse LLM response: {e}")
+            logger.error(f"Response text: {response_text[:500]}...")
 
             # Return a structured error response
             return {
                 "error": "Failed to parse LLM response",
-                "raw_response": response_text,
+                "raw_response": response_text[:500],
                 "confidence_level": "low",
+                "employee_name": "Unknown",
+                "position": "Unknown",
+                "employer": "Unknown",
+                "start_date": None,
+                "end_date": None,
+                "employment_period": "Unknown",
+                "document_language": "en",
             }
+
+    def _fix_common_json_issues(self, json_str: str) -> str:
+        """Fix common JSON formatting issues."""
+        import re
+
+        # Remove any text before the first {
+        json_str = json_str[json_str.find("{") :]
+
+        # Remove any text after the last }
+        json_str = json_str[: json_str.rfind("}") + 1]
+
+        # Fix missing quotes around keys
+        json_str = re.sub(r"(\s*)(\w+)(\s*):", r'\1"\2"\3:', json_str)
+
+        # Fix single quotes to double quotes
+        json_str = json_str.replace("'", '"')
+
+        # Fix trailing commas
+        json_str = re.sub(r",(\s*[}\]])", r"\1", json_str)
+
+        # Fix null values
+        json_str = re.sub(r":\s*null\s*([,}])", r": null\1", json_str)
+
+        return json_str
+
+    def _create_fallback_response(self, partial_json: str) -> Dict[str, Any]:
+        """Create a fallback response when we have partial JSON."""
+        import re
+
+        # Try to extract any available information from the partial JSON
+        employee_name = "Unknown"
+        position = "Unknown"
+        employer = "Unknown"
+
+        # Extract employee_name if present
+        name_match = re.search(r'"employee_name"\s*:\s*"([^"]+)"', partial_json)
+        if name_match:
+            employee_name = name_match.group(1)
+
+        # Extract position if present
+        position_match = re.search(r'"position"\s*:\s*"([^"]+)"', partial_json)
+        if position_match:
+            position = position_match.group(1)
+
+        # Extract employer if present
+        employer_match = re.search(r'"employer"\s*:\s*"([^"]+)"', partial_json)
+        if employer_match:
+            employer = employer_match.group(1)
+
+        return {
+            "employee_name": employee_name,
+            "position": position,
+            "employer": employer,
+            "start_date": None,
+            "end_date": None,
+            "employment_period": "Unknown",
+            "document_language": "en",
+            "confidence_level": "low",
+            "extraction_notes": "Partial JSON parsed, some fields may be missing",
+        }
 
     def is_available(self) -> bool:
         """Check if the LLM orchestrator is available."""

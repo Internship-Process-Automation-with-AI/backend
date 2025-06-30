@@ -218,11 +218,13 @@ def main():
         return
 
     print("📊 Original text length: {} characters".format(len(ocr_text)))
+    print(f"🔍 DEBUG: ocr_text preview: {repr(ocr_text[:100])}")
 
     # Clean text for LLM
     print("🧹 Cleaning text for LLM processing...")
     cleaned_text = clean_ocr_text_conservative(ocr_text)
     print("📊 Cleaned text length: {} characters".format(len(cleaned_text)))
+    print(f"🔍 DEBUG: cleaned_text preview: {repr(cleaned_text[:100])}")
 
     # Show preview of cleaned text
     print("\n📄 TEXT PREVIEW (first 300 characters):")
@@ -245,6 +247,21 @@ def main():
     )
     print("   Stage 1: Information Extraction")
     print("   Stage 2: Academic Evaluation")
+
+    # Debug: Check what we're about to send
+    print(f"\n🔍 DEBUG: cleaned_text type: {type(cleaned_text)}")
+    print(f"🔍 DEBUG: cleaned_text length: {len(cleaned_text)}")
+    print(f"🔍 DEBUG: cleaned_text preview: {repr(cleaned_text[:100])}")
+
+    # Safety check: Make sure we're not passing corrupted text
+    if not cleaned_text or len(cleaned_text) < 10:
+        print("❌ ERROR: cleaned_text is too short or empty!")
+        return
+
+    if cleaned_text.startswith('"') or cleaned_text.startswith("{"):
+        print("❌ ERROR: cleaned_text appears to be JSON, not document text!")
+        print(f"❌ ERROR: cleaned_text = {repr(cleaned_text)}")
+        return
 
     try:
         results = orchestrator.process_work_certificate(cleaned_text)

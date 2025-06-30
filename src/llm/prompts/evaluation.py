@@ -42,7 +42,7 @@ CREDIT CALCULATION:
 CRITICAL: You must respond with ONLY a complete, valid JSON object. Do not include any text before or after the JSON.
 
 Example response format:
-{
+{{
     "total_working_hours": 1040,
     "nature_of_tasks": "Marketing management including campaign planning, team leadership, and strategic decision-making",
     "training_type": "professional",
@@ -52,10 +52,10 @@ Example response format:
     "summary_justification": "Professional marketing role with significant responsibility and skill development",
     "confidence_level": "high",
     "evaluation_notes": "Clear professional training with measurable outcomes"
-}
+}}
 
 Extracted Information: {extracted_info}
 
-Original Certificate Text: {text}
+Original Certificate Text: {document_text}
 
 Respond with ONLY the JSON object, no additional text, no explanations, no markdown formatting."""
