@@ -14,13 +14,13 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-# Add the parent directory (backend) to the Python path
+# Add the current directory to Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir)
+sys.path.insert(0, current_dir)
+sys.path.insert(0, os.path.join(current_dir, "src"))
 
 try:
-    from app.ocr_model import OCRService
+    from ocr.ocr_model import OCRService
 except ImportError as e:
     logger.error(f"Failed to import OCRService: {e}")
     logger.error(f"Current directory: {os.getcwd()}")
@@ -30,7 +30,7 @@ except ImportError as e:
 
 def list_sample_files():
     """List all available sample files."""
-    sample_dir = Path("file samples")
+    sample_dir = Path("samples")
     files = []
 
     if sample_dir.exists():
@@ -49,7 +49,7 @@ def list_sample_files():
     return sorted(files)
 
 
-def save_results_to_file(text: str, filename: str, output_dir: str = "output"):
+def save_results_to_file(text: str, filename: str, output_dir: str = "OCRoutput"):
     """Save OCR results to a text file."""
     os.makedirs(output_dir, exist_ok=True)
 
@@ -74,7 +74,7 @@ def main():
     sample_files = list_sample_files()
 
     if not sample_files:
-        print("❌ No sample files found in 'file samples' directory")
+        print("❌ No sample files found in 'samples' directory")
         return
 
     print(f"📁 Found {len(sample_files)} sample files:")

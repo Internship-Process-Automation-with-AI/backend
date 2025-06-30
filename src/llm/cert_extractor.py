@@ -10,8 +10,8 @@ from typing import Any, Dict
 
 import google.generativeai as genai
 
-from app.config import settings
-from app.prompts import EVALUATION_PROMPT, EXTRACTION_PROMPT
+from src.config import settings
+from src.llm.prompts import EVALUATION_PROMPT, EXTRACTION_PROMPT
 
 logger = logging.getLogger(__name__)
 

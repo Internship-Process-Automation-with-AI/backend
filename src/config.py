@@ -12,9 +12,9 @@ class Settings(BaseSettings):
 
     # OCR Configuration
     TESSERACT_CMD: Optional[str] = None  # Path to tesseract executable
-    GOOGLE_CLOUD_CREDENTIALS: Optional[
-        str
-    ] = None  # Path to Google Cloud credentials JSON
+    GOOGLE_CLOUD_CREDENTIALS: Optional[str] = (
+        None  # Path to Google Cloud credentials JSON
+    )
 
     # LLM Configuration
     GEMINI_API_KEY: Optional[str] = None  # Gemini API key for LLM evaluation

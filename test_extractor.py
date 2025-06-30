@@ -18,10 +18,11 @@ logger = logging.getLogger(__name__)
 # Add the current directory to Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
+sys.path.insert(0, os.path.join(current_dir, "src"))
 
 try:
-    from app.llm_orchestrator import LLMOrchestrator
-    from app.utils.finnish_ocr_corrector import clean_ocr_text_conservative
+    from llm.cert_extractor import LLMOrchestrator
+    from utils.finnish_ocr_corrector import clean_ocr_text_conservative
 except ImportError as e:
     logger.error(f"Failed to import required modules: {e}")
     logger.error(f"Current directory: {os.getcwd()}")
@@ -31,7 +32,7 @@ except ImportError as e:
 
 def list_ocr_outputs():
     """List all available OCR output files."""
-    output_dir = Path("output")
+    output_dir = Path("OCRoutput")
     files = []
 
     if output_dir.exists():
@@ -53,7 +54,7 @@ def load_ocr_text(file_path: str) -> str:
 
 
 def save_orchestrator_results(
-    results: dict, filename: str, output_dir: str = "orchestrator_results"
+    results: dict, filename: str, output_dir: str = "LLMoutput"
 ):
     """Save orchestrator results to a JSON file."""
     os.makedirs(output_dir, exist_ok=True)
@@ -176,7 +177,7 @@ def main():
     ocr_files = list_ocr_outputs()
 
     if not ocr_files:
-        print("❌ No OCR output files found in 'output' directory")
+        print("❌ No OCR output files found in 'OCRoutput' directory")
         print("   Please run test_ocr.py first to generate OCR outputs")
         return
 
@@ -238,7 +239,9 @@ def main():
 
     # Process with orchestrator
     print(
-        "\n🤖 Starting LLM orchestration with {}...".format(stats.get("model", "Gemini"))
+        "\n🤖 Starting LLM orchestration with {}...".format(
+            stats.get("model", "Gemini")
+        )
     )
     print("   Stage 1: Information Extraction")
     print("   Stage 2: Academic Evaluation")

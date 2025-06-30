@@ -9,11 +9,11 @@ import pytesseract
 from google.cloud import vision
 from google.cloud.vision_v1 import types
 
-from app.config import settings
-from app.utils.docx_processor import DOCXProcessor
-from app.utils.finnish_ocr_corrector import clean_ocr_text, correct_finnish_ocr_errors
-from app.utils.image_preprocessing import ImagePreprocessor
-from app.utils.pdf_converter import PDFConverter
+from src.config import settings
+from src.utils.docx_processor import DOCXProcessor
+from src.utils.finnish_ocr_corrector import clean_ocr_text, correct_finnish_ocr_errors
+from src.utils.image_preprocessing import ImagePreprocessor
+from src.utils.pdf_converter import PDFConverter
 
 logger = logging.getLogger(__name__)
 
@@ -73,9 +73,9 @@ class OCRService:
         """Initialize Google Vision API client if credentials are available."""
         try:
             if settings.GOOGLE_CLOUD_CREDENTIALS:
-                os.environ[
-                    "GOOGLE_APPLICATION_CREDENTIALS"
-                ] = settings.GOOGLE_CLOUD_CREDENTIALS
+                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = (
+                    settings.GOOGLE_CLOUD_CREDENTIALS
+                )
                 self.google_vision_client = vision.ImageAnnotatorClient()
                 logger.info("Google Vision API client initialized")
             else:
