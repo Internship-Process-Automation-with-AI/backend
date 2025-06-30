@@ -41,4 +41,6 @@ logs/
 #debug files
 debug/
 
-
+#output
+LLMoutput/
+OCRoutput/
