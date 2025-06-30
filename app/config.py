@@ -16,6 +16,12 @@ class Settings(BaseSettings):
         str
     ] = None  # Path to Google Cloud credentials JSON
 
+    # LLM Configuration
+    GEMINI_API_KEY: Optional[str] = None  # Gemini API key for LLM evaluation
+    GEMINI_MODEL: str = (
+        "gemini-1.5-flash"  # Gemini model to use (default: gemini-1.5-flash)
+    )
+
     # File Upload Configuration
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB

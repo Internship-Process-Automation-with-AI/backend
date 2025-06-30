@@ -11,6 +11,7 @@ from google.cloud.vision_v1 import types
 
 from app.config import settings
 from app.utils.docx_processor import DOCXProcessor
+from app.utils.finnish_ocr_corrector import clean_ocr_text, correct_finnish_ocr_errors
 from app.utils.image_preprocessing import ImagePreprocessor
 from app.utils.pdf_converter import PDFConverter
 
@@ -483,11 +484,18 @@ class OCRService:
 
         try:
             # Try multiple Tesseract configurations for better accuracy
+            # Prioritize Finnish language configurations first
             configs = [
                 r"--oem 3 --psm 6 -l fin+eng",  # Finnish + English (best for mixed content)
                 r"--oem 3 --psm 6 -l fin",  # Finnish language only
                 r"--oem 3 --psm 3 -l fin+eng",  # Finnish + English with auto segmentation
                 r"--oem 3 --psm 4 -l fin+eng",  # Finnish + English single column
+                r"--oem 3 --psm 8 -l fin+eng",  # Finnish + English single word
+                r"--oem 3 --psm 13 -l fin+eng",  # Finnish + English raw line
+                # Fallback to English-only if Finnish fails
+                r"--oem 3 --psm 6 -l eng",  # English only
+                r"--oem 3 --psm 3 -l eng",  # English with auto segmentation
+                r"--oem 3 --psm 4 -l eng",  # English single column
                 r"--oem 3 --psm 6",  # Default: Assume uniform block of text
                 r"--oem 3 --psm 3",  # Fully automatic page segmentation
                 r"--oem 3 --psm 4",  # Assume single column of text
@@ -520,6 +528,12 @@ class OCRService:
                         if avg_confidence < 10.0:
                             avg_confidence = 30.0
 
+                        # Boost confidence for Finnish language results
+                        if "fin" in config and avg_confidence > 0:
+                            avg_confidence = min(
+                                100.0, avg_confidence * 1.2
+                            )  # 20% boost
+
                         # Keep the best result
                         if avg_confidence > best_confidence:
                             best_confidence = avg_confidence
@@ -545,7 +559,7 @@ class OCRService:
             processing_time = time.time() - start_time
 
             return OCRResult(
-                text=self._correct_finnish_ocr_errors(best_result["text"]),
+                text=correct_finnish_ocr_errors(clean_ocr_text(best_result["text"])),
                 confidence=best_result["confidence"],
                 engine="tesseract",
                 processing_time=processing_time,
@@ -591,7 +605,7 @@ class OCRService:
             processing_time = time.time() - start_time
 
             return OCRResult(
-                text=full_text.strip(),
+                text=clean_ocr_text(full_text.strip()),
                 confidence=confidence,
                 engine="google_vision",
                 processing_time=processing_time,
@@ -626,96 +640,5 @@ class OCRService:
         }
 
     def _correct_finnish_ocr_errors(self, text: str) -> str:
-        """
-        Correct common OCR errors for Finnish text.
-
-        Args:
-            text: Raw OCR text
-
-        Returns:
-            Corrected text
-        """
-        # Specific Finnish word corrections (most reliable)
-        finnish_corrections = {
-            # Main headers
-            "TYONANTAJA": "TYÖNANTAJA",
-            "TYONTEKIJA": "TYÖNTEKIJÄ",
-            "TYOTODISTUS": "TYÖTODISTUS",
-            # Common work certificate terms
-            "Ty6nantaja": "Työnantaja",
-            "Tyéntekija": "Työntekijä",
-            "Tydésuhde": "Työsuhde",
-            "Tyésuhteen": "Työsuhteen",
-            "Ty6taito": "Työtaito",
-            "Ty6n suorittamispaikka": "Työn suorittamispaikka",
-            # Job-related terms
-            "ty6ntekija": "työntekija",
-            "ty6nantaja": "työnantaja",
-            "ty6todistus": "työtodistus",
-            "ty6suhte": "työsuhte",
-            "ty6ntehtavat": "työntehtävät",
-            "ty6suhteen": "työsuhteen",
-            "tyékohde": "työkohde",
-            "työtehtavat": "työtehtävät",
-            "ty6ntekijan": "työntekijan",
-            "kassaty6skentely": "kassatyöskentely",
-            # Evaluation terms
-            "paattymisen": "päättymisen",
-            "pyynnosta": "pyynnöstä",
-            "pyynnésta": "pyynnöstä",
-            "vuosilomasijai": "vuosilomasijai",
-            "kayttos": "käyttös",
-            "Kaytés": "Käyttös",
-            "kiitettava": "kiitettävä",
-            "allekirjoitus": "allekirjoitus",
-            "kauppias": "kauppias",
-            # Personal information
-            "Henkilétunnus": "Henkilötunnus",
-            "henkilétunnus": "henkilötunnus",
-        }
-
-        # Apply specific word corrections first
-        corrected_text = text
-        for wrong, correct in finnish_corrections.items():
-            corrected_text = corrected_text.replace(wrong, correct)
-
-        # Context-aware character corrections (more conservative)
-        lines = corrected_text.split("\n")
-        corrected_lines = []
-
-        for line in lines:
-            # Look for patterns that suggest Finnish words
-            if any(
-                finnish_word in line.upper()
-                for finnish_word in ["TYÖ", "TYÖN", "TYÖNT", "TYÖNA", "TYÖS", "TYÖT"]
-            ):
-                # This line likely contains Finnish words, apply character corrections
-                line = line.replace("6", "ö").replace("é", "ö")
-                line = line.replace("TYON", "TYÖN").replace("tyon", "työn")
-                line = line.replace("TYONTEKIJA", "TYÖNTEKIJÄ").replace(
-                    "tyontekija", "työntekijä"
-                )
-                line = line.replace("TYONANTAJA", "TYÖNANTAJA").replace(
-                    "tyonantaja", "työnantaja"
-                )
-                line = line.replace("TYOSUHTE", "TYÖSUHTE").replace(
-                    "tyosuhte", "työsuhte"
-                )
-                line = line.replace("TYOTODISTUS", "TYÖTODISTUS").replace(
-                    "tyotodistus", "työtodistus"
-                )
-
-            # Look for words ending with 'avat' (should be 'ävät')
-            if "avat" in line.lower():
-                line = line.replace("avat", "ävät").replace("AVAT", "ÄVÄT")
-
-            # Look for words with 'é' that should be 'ö' in Finnish context
-            if "é" in line and any(
-                finnish_word in line.lower()
-                for finnish_word in ["työ", "työn", "työs", "pyynn"]
-            ):
-                line = line.replace("é", "ö")
-
-            corrected_lines.append(line)
-
-        return "\n".join(corrected_lines)
+        """DEPRECATED: Use correct_finnish_ocr_errors from app.utils.finnish_ocr_corrector instead."""
+        pass
