@@ -6,9 +6,9 @@ This project uses pre-commit hooks to ensure code quality and consistency before
 
 Pre-commit automatically runs these checks before each commit:
 
-1. **Black** - Formats your Python code consistently
-2. **isort** - Sorts and organizes your imports
-3. **Flake8** - Checks for code style and potential errors
+1. **Ruff Lint** - Checks for code style and potential errors, automatically fixes issues
+2. **Ruff Import Sorting** - Sorts and organizes your imports automatically
+3. **Ruff Format** - Formats your Python code consistently
 4. **Trailing whitespace** - Removes trailing whitespace
 5. **End-of-file** - Ensures files end with a newline
 6. **YAML validation** - Checks YAML files for syntax errors
@@ -70,9 +70,13 @@ pre-commit autoupdate
 
 ## What Happens When You Commit
 
-1. Pre-commit runs all configured hooks
+1. Pre-commit runs all configured hooks in this order:
+   - **Ruff Lint**: Checks and fixes code style issues
+   - **Ruff Import Sorting**: Sorts and organizes imports
+   - **Ruff Format**: Formats code consistently
+   - Other checks (whitespace, file endings, etc.)
 2. If any hook fails, the commit is blocked
-3. Some hooks (like Black) automatically fix issues
+3. Ruff automatically fixes most issues
 4. You may need to stage the fixed files and commit again
 
 ## Troubleshooting
@@ -99,18 +103,28 @@ pre-commit install
 
 ## Configuration
 
-The pre-commit configuration is in `.pre-commit-config.yaml`. You can modify it to:
+The pre-commit configuration is in `.pre-commit-config.yaml`. The current setup uses:
+
+- **Ruff** for linting, import sorting, and formatting (replaces Black, isort, and Flake8)
+- **Ruff Lint**: Checks for code style and potential errors
+- **Ruff Import Sorting**: Automatically sorts imports
+- **Ruff Format**: Formats code consistently
+
+You can modify the configuration to:
 - Add new hooks
 - Remove hooks you don't need
 - Change hook settings
+- Adjust Ruff rules
 
 ## Benefits
 
+- **Faster execution** - Ruff is significantly faster than traditional tools
 - **Consistent code style** across the project
 - **Catches errors early** before they reach the repository
 - **Automated formatting** saves time
 - **Team collaboration** - everyone uses the same standards
 - **Professional codebase** with clean, readable code
+- **Unified tool** - Ruff replaces multiple tools (Black, isort, Flake8)
 
 ## Files Added
 
