@@ -18,35 +18,60 @@ CRITICAL REQUIREMENTS:
 REQUIRED JSON FIELDS:
 {{
     "employee_name": "Full name of the person employed",
-    "position": "Job title or role",
+    "positions": [
+        {{
+            "title": "Job title or role",
+            "start_date": "Start date in YYYY-MM-DD format (use null if not specified)",
+            "end_date": "End date in YYYY-MM-DD format (use null if not specified)",
+            "duration": "Duration description (e.g., '6 months', '1 year')",
+            "responsibilities": "Key responsibilities and tasks for this role"
+        }}
+    ],
     "employer": "Company or organization name", 
-    "start_date": "Start date in YYYY-MM-DD format",
-    "end_date": "End date in YYYY-MM-DD format (use null if not specified)",
-    "employment_period": "Duration description (e.g., '6 months', '1 year')",
+    "total_employment_period": "Total duration description (e.g., '2 years, 6 months')",
     "document_language": "en or fi",
-    "confidence_level": "high, medium, or low"
+    "confidence_level": "high(>75%), medium(50-75%), low(<50%), or null (if not specified)"
 }}
 
+IMPORTANT GUIDELINES:
+- Extract ALL positions/roles mentioned in the document
+- Each position should have its own entry with dates and responsibilities
+- If only one position is mentioned, still use the array format
+- Focus on extracting specific responsibilities and tasks for each role
+- If dates are missing for specific roles, use null but try to infer from context
+
 EXAMPLE DOCUMENT:
-October 7, 2012
-To: Ms. Dominick
-Dear Ms. Dominick,
-We are in receipt of your request for employment verification for Louis Peterson. As the coordinator of our firm's international internship program since 2009, I can gladly provide you with the information you seek.
-Louis Peterson recently graduated from college with a degree in International Business. He applied and was accepted to our Global Partners Program through our branch office in his hometown of Munich, Germany. The internship will commence on May 28, 2013 and end on July 20, 2013. His activities while employed in the internship program would involve training and entry-level functions in our Accounting, Finance, Investment, and Marketing departments.
-Sincerely,
-Jack Phillips
-Global Partners Internship Coordinator
+Työtodistus
+27.11.2009
+Insinööri Ari Tapani Valtamo (syntynyt 31.1. 1963) on toiminut yrityksessämme 13.2.1984 – 30.9.2009 välisenä aikana seuraavissa tehtävissä:
+Varaosavastaava (5.2.2007 - 30.9.2009)
+Varaosatietojen perustaminen, päivittäminen ja esittämistavan yhdenmukaistaminen
+Kunnossapitovastaava (13.2.1984 - 4.2.2007)
+Kunnossapitotoimenpiteiden suunnittelu ja toteutus
 
 EXAMPLE JSON RESPONSE:
 {{
-    "employee_name": "Louis Peterson",
-    "position": "Intern in Global Partners Program",
-    "employer": "Global Partners",
-    "start_date": "2013-05-28",
-    "end_date": "2013-07-20",
-    "employment_period": "12-week internship",
-    "document_language": "en",
-    "confidence_level": "high"
+    "employee_name": "Ari Tapani Valtamo",
+    "positions": [
+        {{
+            "title": "Varaosavastaava",
+            "start_date": "2007-02-05",
+            "end_date": "2009-09-30",
+            "duration": "2 years, 7 months",
+            "responsibilities": "Varaosatietojen perustaminen, päivittäminen ja esittämistavan yhdenmukaistaminen"
+        }},
+        {{
+            "title": "Kunnossapitovastaava",
+            "start_date": "1984-02-13",
+            "end_date": "2007-02-04",
+            "duration": "23 years",
+            "responsibilities": "Kunnossapitotoimenpiteiden suunnittelu ja toteutus"
+        }}
+    ],
+    "employer": "Yritys",
+    "total_employment_period": "25 years, 7 months",
+    "document_language": "fi",
+    "confidence_level": "high(>75%)"
 }}
 
 DOCUMENT TO ANALYZE:

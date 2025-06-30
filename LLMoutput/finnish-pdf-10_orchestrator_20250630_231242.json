@@ -1,0 +1,100 @@
+{
+  "success": true,
+  "processing_time": 13.485755205154419,
+  "extraction_results": {
+    "success": true,
+    "processing_time": 10.354746580123901,
+    "results": {
+      "employee_name": "Ari Tapani Valtamo",
+      "positions": [
+        {
+          "title": "Varaosavastaava",
+          "start_date": "2007-02-05",
+          "end_date": "2009-09-30",
+          "duration": "2 years, 7 months",
+          "responsibilities": "Varaosatietojen perustaminen, päivittäminen ja esittämistavan yhdenmukaistaminen Ylöjärven ja Tampereen tehtaiden järjestelmissä, liittyen hankitun ostojärjestelmän käytettävyyteen. Osallistuminen ostojärjestelmän asiakaskohtaisten raporttien määrittelyyn vastaamaan kunnossapidon tarpeita. Perehtyminen uuteen kalvonleikkuukoneeseen, sen varaosatietojen perustaminen, tekninen tuki kunnossapidossa ja tuotannon henkilöstölle. Varaosa-, kunnossapito- ja huoltosopimusasioissa yhdyshenkilönä kotimaisiin ja ulkomaisiin toimittajiin. Kehitystehtäviä, tavoitteena tuotteen laadunparannus ja edullisempi kunnossapito."
+        },
+        {
+          "title": "Vuorotteluvapaalla",
+          "start_date": "2006-02-09",
+          "end_date": "2007-02-02",
+          "duration": "1 year",
+          "responsibilities": "talon rakennustyöt"
+        },
+        {
+          "title": "Tekninen Ostaja",
+          "start_date": "2002-07-01",
+          "end_date": "2006-02-09",
+          "duration": "3 years, 7 months",
+          "responsibilities": "Uusia tuotantolaitteita: tasolasin palastelulinja, esikäsittelylinja, hiontalinja ja karkaisulaitos. Tampereen Tehdas Varaosien hankintaa em. laitteisiin, osallistumista operoinnin ja huollon koulutuksiin ja määräaikaishuoltoihin. Osallistuminen kunnossapidon töihin ja perehdyttämiseen erityisosaamisalueillani. Yhteydet kotimaisiin ja ulkomaisiin toimittajiin kunnossapitotöissä ja varaosa-asioissa. Suorat ostot osien valmistajilta ja osien valmistuttaminen parantavaan ja edullisempaan kunnossapitoon pyrkien."
+        },
+        {
+          "title": "Kunnossapidon Esimies",
+          "start_date": "2000-09-15",
+          "end_date": "2002-07-01",
+          "duration": "1 year, 9 months",
+          "responsibilities": "Kunnossapidon esimiestehtävät ja varaosahankinnat. Tampereen Tehdas Murskalinjan ja hionnan jäähdytysveden puhdistustekniikan hankinta uudelle esikäsittelylinjalle. Kaavionlevityslaitteen hankinta ja kaavionvalmistuksen tilojen suunnittelu. Karkaisulaitosten kunnossapito- ja varaosa-asiat."
+        },
+        {
+          "title": "Kehitysinsinööri",
+          "start_date": "1996-09-01",
+          "end_date": "2000-09-15",
+          "duration": "4 years, 0 months",
+          "responsibilities": "Esikäsittelykoneiden ja painokoneen teknisiä määrittelyjä sekä hankintasopimusten valmisteluja. Perehtyminen painovärin kuivaimiin (IR/UV). Tampereen Tehdas Tuotantolinjojen layout -suunnittelua ja rakennusteknisten lähtötietojen määrittelyä. Laitteiden asennusvalvontaa, esikäsittelykoneiden ja silkkipainokoneen hyväksyntätestien tekeminen, osallistuminen koulutuksiin ja kunnossapitotöihin perehdyttäen kunnossapidon ja tuotannon henkilöstöä osaamisalueillani. Esikäsittelylinjojen timanttityökalujen ja varaosien hankinta kotimaisilta ja ulkomaisilta toimittajilta."
+        },
+        {
+          "title": "Tuulilasitehtaan tasolasin esikäsittelylinjan käyttäjä",
+          "start_date": "1993-06-30",
+          "end_date": "1996-09-01",
+          "duration": "3 years, 2 months",
+          "responsibilities": "Ylöjärven Tehdas (muotoonleikkuu, hionta ja silkkipaino)"
+        },
+        {
+          "title": "Tuulilasitehtaan työn järjestelijä",
+          "start_date": "1985-03-06",
+          "end_date": "1985-08-02",
+          "duration": "5 months",
+          "responsibilities": "laminointiosastolla. Ylöjärven Tehdas"
+        },
+        {
+          "title": "Tuulilasitehtaan työn järjestelijä",
+          "start_date": "1984-02-13",
+          "end_date": "1984-09-11",
+          "duration": "7 months",
+          "responsibilities": "Ylöjärven Tehdas"
+        }
+      ],
+      "employer": "Yritys",
+      "total_employment_period": "25 years, 7 months",
+      "document_language": "fi",
+      "confidence_level": "high(>75%)"
+    },
+    "raw_response": "```json\n{\n  \"employee_name\": \"Ari Tapani Valtamo\",\n  \"positions\": [\n    {\n      \"title\": \"Varaosavastaava\",\n      \"start_date\": \"2007-02-05\",\n      \"end_date\": \"2009-09-30\",\n      \"duration\": \"2 years, 7 months\",\n      \"responsibilities\": \"Varaosatietojen perustaminen, päivittäminen ja esittämistavan yhdenmukaistaminen Ylöjärven ja Tampereen tehtaiden järjestelmissä, liittyen hankitun ostojärjestelmän käytettävyyteen. Osallistuminen ostojärjestelmän asiakaskohtaisten raporttien määrittelyyn vastaamaan kunnossapidon tarpeita. Perehtyminen uuteen kalvonleikkuukoneeseen, sen varaosatietojen perustaminen, tekninen tuki kunnossapidossa ja tuotannon henkilöstölle. Varaosa-, kunnossapito- ja huoltosopimusasioissa yhdyshenkilönä kotimaisiin ja ulkomaisiin toimittajiin. Kehitystehtäviä, tavoitteena tuotteen laadunparannus ja edullisempi kunnossapito.\"\n    },\n    {\n      \"title\": \"Vuorotteluvapaalla\",\n      \"start_date\": \"2006-02-09\",\n      \"end_date\": \"2007-02-02\",\n      \"duration\": \"1 year\",\n      \"responsibilities\": \"talon rakennustyöt\"\n    },\n    {\n      \"title\": \"Tekninen Ostaja\",\n      \"start_date\": \"2002-07-01\",\n      \"end_date\": \"2006-02-09\",\n      \"duration\": \"3 years, 7 months\",\n      \"responsibilities\": \"Uusia tuotantolaitteita: tasolasin palastelulinja, esikäsittelylinja, hiontalinja ja karkaisulaitos. Tampereen Tehdas Varaosien hankintaa em. laitteisiin, osallistumista operoinnin ja huollon koulutuksiin ja määräaikaishuoltoihin. Osallistuminen kunnossapidon töihin ja perehdyttämiseen erityisosaamisalueillani. Yhteydet kotimaisiin ja ulkomaisiin toimittajiin kunnossapitotöissä ja varaosa-asioissa. Suorat ostot osien valmistajilta ja osien valmistuttaminen parantavaan ja edullisempaan kunnossapitoon pyrkien.\"\n    },\n    {\n      \"title\": \"Kunnossapidon Esimies\",\n      \"start_date\": \"2000-09-15\",\n      \"end_date\": \"2002-07-01\",\n      \"duration\": \"1 year, 9 months\",\n      \"responsibilities\": \"Kunnossapidon esimiestehtävät ja varaosahankinnat. Tampereen Tehdas Murskalinjan ja hionnan jäähdytysveden puhdistustekniikan hankinta uudelle esikäsittelylinjalle. Kaavionlevityslaitteen hankinta ja kaavionvalmistuksen tilojen suunnittelu. Karkaisulaitosten kunnossapito- ja varaosa-asiat.\"\n    },\n    {\n      \"title\": \"Kehitysinsinööri\",\n      \"start_date\": \"1996-09-01\",\n      \"end_date\": \"2000-09-15\",\n      \"duration\": \"4 years, 0 months\",\n      \"responsibilities\": \"Esikäsittelykoneiden ja painokoneen teknisiä määrittelyjä sekä hankintasopimusten valmisteluja. Perehtyminen painovärin kuivaimiin (IR/UV). Tampereen Tehdas Tuotantolinjojen layout -suunnittelua ja rakennusteknisten lähtötietojen määrittelyä. Laitteiden asennusvalvontaa, esikäsittelykoneiden ja silkkipainokoneen hyväksyntätestien tekeminen, osallistuminen koulutuksiin ja kunnossapitotöihin perehdyttäen kunnossapidon ja tuotannon henkilöstöä osaamisalueillani. Esikäsittelylinjojen timanttityökalujen ja varaosien hankinta kotimaisilta ja ulkomaisilta toimittajilta.\"\n    },\n    {\n      \"title\": \"Tuulilasitehtaan tasolasin esikäsittelylinjan käyttäjä\",\n      \"start_date\": \"1993-06-30\",\n      \"end_date\": \"1996-09-01\",\n      \"duration\": \"3 years, 2 months\",\n      \"responsibilities\": \"Ylöjärven Tehdas (muotoonleikkuu, hionta ja silkkipaino)\"\n    },\n    {\n      \"title\": \"Tuulilasitehtaan työn järjestelijä\",\n      \"start_date\": \"1985-03-06\",\n      \"end_date\": \"1985-08-02\",\n      \"duration\": \"5 months\",\n      \"responsibilities\": \"laminointiosastolla. Ylöjärven Tehdas\"\n    },\n    {\n      \"title\": \"Tuulilasitehtaan työn järjestelijä\",\n      \"start_date\": \"1984-02-13\",\n      \"end_date\": \"1984-09-11\",\n      \"duration\": \"7 months\",\n      \"responsibilities\": \"Ylöjärven Tehdas\"\n    }\n  ],\n  \"employer\": \"Yritys\",\n  \"total_employment_period\": \"25 years, 7 months\",\n  \"document_language\": \"fi\",\n  \"confidence_level\": \"high(>75%)\"\n}\n```\n"
+  },
+  "evaluation_results": {
+    "success": true,
+    "processing_time": 3.1310086250305176,
+    "results": {
+      "total_working_hours": 7680,
+      "training_type": "general",
+      "credits_qualified": 10.0,
+      "quality_multiplier": 1.0,
+      "degree_relevance": "low",
+      "relevance_explanation": "While not directly related to Rakennusmestari (AMK), the roles involve technical skills, project management, procurement, and problem-solving relevant to construction management.",
+      "calculation_breakdown": "Total hours (7680) / 27 hours/ECTS = 284.44 ECTS. Capped at 20.0 ECTS for professional training.",
+      "summary_justification": "Multiple roles demonstrate significant technical skills, project management experience, and problem-solving in industrial settings, offering transferable skills relevant to construction management.",
+      "conclusion": "Student receives 10.0 ECTS credits as general training (capped at maximum limit)",
+      "confidence_level": "medium",
+      "degree_relevance_level": "low_relevance",
+      "calculated_quality_multiplier": 1.0,
+      "student_degree_program": "Rakennusmestari (AMK)"
+    },
+    "raw_response": "```json\n{\n  \"total_working_hours\": 7680,\n  \"training_type\": \"professional\",\n  \"credits_qualified\": 20.0,\n  \"quality_multiplier\": 1.0,\n  \"degree_relevance\": \"medium\",\n  \"relevance_explanation\": \"While not directly related to Rakennusmestari (AMK), the roles involve technical skills, project management, procurement, and problem-solving relevant to construction management.\",\n  \"calculation_breakdown\": \"Total hours (7680) / 27 hours/ECTS = 284.44 ECTS. Capped at 20.0 ECTS for professional training.\",\n  \"summary_justification\": \"Multiple roles demonstrate significant technical skills, project management experience, and problem-solving in industrial settings, offering transferable skills relevant to construction management.\",\n  \"conclusion\": \"Student receives 20.0 ECTS credits as professional training (capped at maximum limit).\",\n  \"confidence_level\": \"medium\"\n}\n```\n"
+  },
+  "student_degree": "Rakennusmestari (AMK)",
+  "model_used": "gemini-1.5-flash",
+  "stages_completed": {
+    "extraction": true,
+    "evaluation": true
+  }
+}

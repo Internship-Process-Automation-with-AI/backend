@@ -1,0 +1,46 @@
+{
+  "success": true,
+  "processing_time": 3.882789373397827,
+  "extraction_results": {
+    "success": true,
+    "processing_time": 1.3418583869934082,
+    "results": {
+      "employee_name": "ABIN ALEX",
+      "position": "TECHNICAL AUDITOR",
+      "employer": "Larsen & Toubro",
+      "start_date": "2013-07-01",
+      "end_date": "2014-03-31",
+      "employment_period": "9 months",
+      "document_language": "en",
+      "confidence_level": "high"
+    },
+    "raw_response": "{\n  \"employee_name\": \"ABIN ALEX\",\n  \"position\": \"TECHNICAL AUDITOR\",\n  \"employer\": \"Larsen & Toubro\",\n  \"start_date\": \"2013-07-01\",\n  \"end_date\": \"2014-03-31\",\n  \"employment_period\": \"9 months\",\n  \"document_language\": \"en\",\n  \"confidence_level\": \"high\"\n}\n"
+  },
+  "evaluation_results": {
+    "success": true,
+    "processing_time": 2.540930986404419,
+    "results": {
+      "total_working_hours": 1800,
+      "nature_of_tasks": "Dealer management of spares & service, warranty administration, coordination and monitoring of service activities.",
+      "training_type": "professional",
+      "credits_qualified": 66.67,
+      "quality_multiplier": 1.2,
+      "degree_relevance": "medium",
+      "relevance_explanation": "The role involves tasks related to healthcare equipment management, although not directly patient-facing.  The experience in coordination, monitoring, and administration is transferable to healthcare settings.",
+      "calculation_breakdown": "9 months * 20 days/month * 9 hours/day = 1620 hours;  1620 hours / 27 hours/ECTS * 1.2 = 72 ECTS. Rounded to 66.67",
+      "summary_justification": "The position provides professional training with relevant skills applicable to healthcare. While not directly clinical, the experience in administration, coordination, and management within a relevant industry offers valuable transferable skills.",
+      "confidence_level": "medium",
+      "evaluation_notes": "The certificate lacks specific details on tasks and responsibilities.  The relevance to healthcare is inferred based on the potential application of administrative and coordination skills.  Further information might increase the accuracy of the evaluation.",
+      "degree_relevance_level": "low_relevance",
+      "calculated_quality_multiplier": 1.0,
+      "student_degree_program": "Healthcare"
+    },
+    "raw_response": "```json\n{\n  \"total_working_hours\": 1800,\n  \"nature_of_tasks\": \"Dealer management of spares & service, warranty administration, coordination and monitoring of service activities.\",\n  \"training_type\": \"professional\",\n  \"credits_qualified\": 66.67,\n  \"quality_multiplier\": 1.2,\n  \"degree_relevance\": \"medium\",\n  \"relevance_explanation\": \"The role involves tasks related to healthcare equipment management, although not directly patient-facing.  The experience in coordination, monitoring, and administration is transferable to healthcare settings.\",\n  \"calculation_breakdown\": \"9 months * 20 days/month * 9 hours/day = 1620 hours;  1620 hours / 27 hours/ECTS * 1.2 = 72 ECTS. Rounded to 66.67\",\n  \"summary_justification\": \"The position provides professional training with relevant skills applicable to healthcare. While not directly clinical, the experience in administration, coordination, and management within a relevant industry offers valuable transferable skills.\",\n  \"confidence_level\": \"medium\",\n  \"evaluation_notes\": \"The certificate lacks specific details on tasks and responsibilities.  The relevance to healthcare is inferred based on the potential application of administrative and coordination skills.  Further information might increase the accuracy of the evaluation.\"\n}\n```\n"
+  },
+  "student_degree": "Healthcare",
+  "model_used": "gemini-1.5-flash",
+  "stages_completed": {
+    "extraction": true,
+    "evaluation": true
+  }
+}

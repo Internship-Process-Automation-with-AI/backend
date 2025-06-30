@@ -41,6 +41,4 @@ logs/
 #debug files
 debug/
 
-#outputs
-output/
-orchestrator_results/
+

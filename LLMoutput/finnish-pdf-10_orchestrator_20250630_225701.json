@@ -1,0 +1,46 @@
+{
+  "success": true,
+  "processing_time": 5.95905327796936,
+  "extraction_results": {
+    "success": true,
+    "processing_time": 3.2266995906829834,
+    "results": {
+      "employee_name": "Ari Tapani Valtamo",
+      "position": "Varaosavastaava",
+      "employer": "Yritys",
+      "start_date": "1984-02-13",
+      "end_date": "2009-09-30",
+      "employment_period": "25 years, 7 months",
+      "document_language": "fi",
+      "confidence_level": "high(>75%)"
+    },
+    "raw_response": "{\n  \"employee_name\": \"Ari Tapani Valtamo\",\n  \"position\": \"Varaosavastaava\",\n  \"employer\": \"Yritys\",\n  \"start_date\": \"1984-02-13\",\n  \"end_date\": \"2009-09-30\",\n  \"employment_period\": \"25 years, 7 months\",\n  \"document_language\": \"fi\",\n  \"confidence_level\": \"high(>75%)\"\n}\n"
+  },
+  "evaluation_results": {
+    "success": true,
+    "processing_time": 2.732353687286377,
+    "results": {
+      "total_working_hours": 57600,
+      "nature_of_tasks": "Multiple roles in maintenance, procurement, and engineering, including spare parts management, system implementation, technical support, equipment procurement, and project management related to manufacturing processes.",
+      "training_type": "professional",
+      "credits_qualified": 2133.33,
+      "quality_multiplier": 1.5,
+      "degree_relevance": "high",
+      "relevance_explanation": "The roles and responsibilities described are highly relevant to an Information Technology degree focusing on industrial automation, maintenance, and system integration.  The work involved direct application of technical skills, system implementation, problem-solving, and project management within a manufacturing environment.",
+      "calculation_breakdown": "25 years, 7 months of employment equates to approximately 57600 working hours (assuming a 40-hour work week).  57600 hours / 27 hours/ECTS * 1.5 multiplier = 2133.33 ECTS credits.",
+      "summary_justification": "Extensive professional experience directly related to Information Technology in manufacturing, encompassing technical skills, project management, and system implementation.  The high relevance to the degree and the significant number of hours justify the awarded credits.",
+      "confidence_level": "medium",
+      "evaluation_notes": "The long duration of employment makes precise hour calculation difficult.  However, the nature of the roles and responsibilities strongly indicates high relevance to Information Technology BEng.",
+      "degree_relevance_level": "low_relevance",
+      "calculated_quality_multiplier": 1.0,
+      "student_degree_program": "Bachelor of Engineering (BEng), Information Technology"
+    },
+    "raw_response": "```json\n{\n  \"total_working_hours\": 57600,\n  \"nature_of_tasks\": \"Multiple roles in maintenance, procurement, and engineering, including spare parts management, system implementation, technical support, equipment procurement, and project management related to manufacturing processes.\",\n  \"training_type\": \"professional\",\n  \"credits_qualified\": 2133.33,\n  \"quality_multiplier\": 1.5,\n  \"degree_relevance\": \"high\",\n  \"relevance_explanation\": \"The roles and responsibilities described are highly relevant to an Information Technology degree focusing on industrial automation, maintenance, and system integration.  The work involved direct application of technical skills, system implementation, problem-solving, and project management within a manufacturing environment.\",\n  \"calculation_breakdown\": \"25 years, 7 months of employment equates to approximately 57600 working hours (assuming a 40-hour work week).  57600 hours / 27 hours/ECTS * 1.5 multiplier = 2133.33 ECTS credits.\",\n  \"summary_justification\": \"Extensive professional experience directly related to Information Technology in manufacturing, encompassing technical skills, project management, and system implementation.  The high relevance to the degree and the significant number of hours justify the awarded credits.\",\n  \"confidence_level\": \"medium\",\n  \"evaluation_notes\": \"The long duration of employment makes precise hour calculation difficult.  However, the nature of the roles and responsibilities strongly indicates high relevance to Information Technology BEng.\"\n}\n```\n"
+  },
+  "student_degree": "Bachelor of Engineering (BEng), Information Technology",
+  "model_used": "gemini-1.5-flash",
+  "stages_completed": {
+    "extraction": true,
+    "evaluation": true
+  }
+}

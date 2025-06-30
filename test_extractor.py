@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Test script for the LLM Orchestrator
-Tests the two-stage process: extraction followed by evaluation.
+Test script for the LLM orchestrator with degree-specific evaluation.
+Allows testing of work certificate processing with different degree programs.
 """
 
 import json
@@ -10,24 +11,42 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-# Add the current directory to Python path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, current_dir)
-sys.path.insert(0, os.path.join(current_dir, "src"))
+# Add the backend directory to the Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 try:
-    from llm.cert_extractor import LLMOrchestrator
-    from utils.finnish_ocr_corrector import clean_ocr_text_conservative
+    from src.llm.cert_extractor import LLMOrchestrator
+    from src.llm.degree_evaluator import DegreeEvaluator
 except ImportError as e:
-    logger.error(f"Failed to import required modules: {e}")
-    logger.error(f"Current directory: {os.getcwd()}")
-    logger.error(f"Python path: {sys.path}")
+    print(f"❌ Import error: {e}")
+    print("   Make sure you're running from the backend directory")
     sys.exit(1)
+
+# Setup logging
+logger = logging.getLogger(__name__)
+
+
+def clean_ocr_text_conservative(text: str) -> str:
+    """Clean OCR text conservatively for LLM processing."""
+    if not text:
+        return ""
+
+    # Basic cleaning - preserve most content
+    lines = text.split("\n")
+    cleaned_lines = []
+
+    for line in lines:
+        line = line.strip()
+        if line and len(line) > 2:  # Keep lines with meaningful content
+            cleaned_lines.append(line)
+
+    return "\n".join(cleaned_lines)
 
 
 def list_ocr_outputs():
@@ -53,58 +72,83 @@ def load_ocr_text(file_path: str) -> str:
         return ""
 
 
-def save_orchestrator_results(
-    results: dict, filename: str, output_dir: str = "LLMoutput"
-):
-    """Save orchestrator results to a JSON file."""
-    os.makedirs(output_dir, exist_ok=True)
+def save_orchestrator_results(results: Dict[str, Any], input_file: str) -> str:
+    """Save orchestrator results to JSON file."""
+    try:
+        # Create output directory if it doesn't exist
+        output_dir = "LLMoutput"
+        os.makedirs(output_dir, exist_ok=True)
 
-    # Create output filename
-    base_name = os.path.splitext(os.path.basename(filename))[0]
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_filename = f"{base_name}_orchestrator_{timestamp}.json"
-    output_path = os.path.join(output_dir, output_filename)
+        # Generate output filename
+        base_name = os.path.splitext(os.path.basename(input_file))[0]
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"{base_name}_orchestrator_{timestamp}.json"
+        output_path = os.path.join(output_dir, output_filename)
 
-    # Save results to file
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
+        # Save results
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
 
-    return output_path
+        return output_path
+
+    except Exception as e:
+        logger.error(f"Error saving results: {e}")
+        return ""
 
 
 def display_orchestrator_results(results: dict, filename: str):
     """Display orchestrator results in a formatted way."""
-    print("=" * 80)
-    print(f"LLM ORCHESTRATOR RESULTS: {filename}")
-    print("=" * 80)
+    print(f"\n{'=' * 80}")
+    print("🤖 LLM ORCHESTRATOR RESULTS")
+    print(f"📄 Document: {filename}")
+    print(f"{'=' * 80}")
 
-    if not results.get("success", False):
-        print(f"❌ Processing failed: {results.get('error', 'Unknown error')}")
+    # Overall status
+    success = results.get("success", False)
+    if success:
+        print("✅ Processing completed successfully")
+    else:
+        print("❌ Processing failed")
+        error = results.get("error", "Unknown error")
+        print(f"   Error: {error}")
         return
 
-    print(f"⏱️  Total processing time: {results.get('processing_time', 0):.2f} seconds")
-    print(f"🤖 Model: {results.get('model_used', 'Unknown')}")
+    # Processing time
+    processing_time = results.get("processing_time", 0)
+    print(f"⏱️  Total processing time: {processing_time:.2f} seconds")
 
-    # Display stage completion
+    # Model used
+    model_used = results.get("model_used", "Unknown")
+    print(f"🤖 Model used: {model_used}")
+
+    # Student degree
+    student_degree = results.get("student_degree", "Not specified")
+    print(f"🎓 Student Degree: {student_degree}")
+
+    # Stages completed
     stages = results.get("stages_completed", {})
     print("📊 Stages completed:")
-    print("   • Extraction: {}".format("✅" if stages.get("extraction") else "❌"))
-    print("   • Evaluation: {}".format("✅" if stages.get("evaluation") else "❌"))
+    print(f"   • Extraction: {'✅' if stages.get('extraction') else '❌'}")
+    print(f"   • Evaluation: {'✅' if stages.get('evaluation') else '❌'}")
 
-    # Display extraction results
+    # Extraction results
     extraction_results = results.get("extraction_results", {})
     if extraction_results.get("success"):
         extraction_data = extraction_results.get("results", {})
         print("\n📋 EXTRACTION RESULTS:")
-        print(f"   • Employee: {extraction_data.get('employee_name', 'N/A')}")
-        print(f"   • Position: {extraction_data.get('position', 'N/A')}")
-        print(f"   • Employer: {extraction_data.get('employer', 'N/A')}")
+        print(f"   • Employee Name: {extraction_data.get('employee_name', 'N/A')}")
+        print(f"   • Job Title: {extraction_data.get('job_title', 'N/A')}")
+        print(f"   • Company: {extraction_data.get('company_name', 'N/A')}")
         print(f"   • Start Date: {extraction_data.get('start_date', 'N/A')}")
         print(f"   • End Date: {extraction_data.get('end_date', 'N/A')}")
-        print(f"   • Language: {extraction_data.get('document_language', 'N/A')}")
-        print(f"   • Confidence: {extraction_data.get('confidence_level', 'N/A')}")
+        print(
+            f"   • Employment Period: {extraction_data.get('employment_period', 'N/A')}"
+        )
+        print(
+            f"   • Document Language: {extraction_data.get('document_language', 'N/A')}"
+        )
 
-    # Display evaluation results
+    # Evaluation results
     evaluation_results = results.get("evaluation_results", {})
     if evaluation_results.get("success"):
         evaluation_data = evaluation_results.get("results", {})
@@ -115,12 +159,43 @@ def display_orchestrator_results(results: dict, filename: str):
         print(
             f"   • Quality Multiplier: {evaluation_data.get('quality_multiplier', 'N/A')}"
         )
+        print(
+            f"   • Degree Relevance: {evaluation_data.get('degree_relevance', 'N/A')}"
+        )
         print(f"   • Confidence: {evaluation_data.get('confidence_level', 'N/A')}")
+
+        # Degree-specific information
+        degree_relevance_level = evaluation_data.get("degree_relevance_level", "N/A")
+        calculated_multiplier = evaluation_data.get(
+            "calculated_quality_multiplier", "N/A"
+        )
+        print(f"   • Calculated Relevance Level: {degree_relevance_level}")
+        print(f"   • Calculated Quality Multiplier: {calculated_multiplier}")
 
         print("\n🔧 NATURE OF TASKS:")
         tasks = evaluation_data.get("nature_of_tasks", "Not specified")
         if tasks:
             print(f"   {tasks}")
+
+        print("\n📝 RELEVANCE EXPLANATION:")
+        relevance_explanation = evaluation_data.get(
+            "relevance_explanation", "No explanation provided"
+        )
+        if relevance_explanation:
+            # Wrap long text
+            words = relevance_explanation.split()
+            lines = []
+            current_line = "   "
+            for word in words:
+                if len(current_line + word) > 75:
+                    lines.append(current_line)
+                    current_line = f"   {word} "
+                else:
+                    current_line += word + " "
+            lines.append(current_line)
+
+            for line in lines:
+                print(line.strip())
 
         print("\n📝 JUSTIFICATION:")
         justification = evaluation_data.get(
@@ -145,32 +220,79 @@ def display_orchestrator_results(results: dict, filename: str):
     print("=" * 80)
 
 
+def select_degree_program() -> str:
+    """Let user select a degree program."""
+    degree_evaluator = DegreeEvaluator()
+    supported_degrees = degree_evaluator.get_supported_degree_programs()
+
+    print("\n🎓 SELECT OAMK DEGREE PROGRAM:")
+    print("Available OAMK degree programs:")
+
+    # Group degrees by category for better display
+    degree_categories = {
+        "Information Technology": ["Information Technology"],
+        "Culture": ["Culture"],
+        "Natural Resources": ["Natural Resources"],
+        "Business Administration": ["Business Administration"],
+        "Healthcare": ["Healthcare"],
+        "Engineering": ["Engineering"],
+        "General Studies": ["General Studies"],
+    }
+
+    degree_list = []
+    for category, degrees in degree_categories.items():
+        for degree in degrees:
+            if degree in supported_degrees:
+                degree_list.append(degree)
+
+    for i, degree in enumerate(degree_list, 1):
+        print(f"   {i}. {degree}")
+
+    print(f"   {len(degree_list) + 1}. Custom degree program")
+
+    while True:
+        try:
+            choice = input(f"\nEnter your choice (1-{len(degree_list) + 1}): ").strip()
+            choice_num = int(choice)
+
+            if 1 <= choice_num <= len(degree_list):
+                selected_degree = degree_list[choice_num - 1]
+                print(f"✅ Selected: {selected_degree}")
+                return selected_degree
+            elif choice_num == len(degree_list) + 1:
+                custom_degree = input("Enter custom degree program name: ").strip()
+                if custom_degree:
+                    print(f"✅ Selected: {custom_degree}")
+                    return custom_degree
+                else:
+                    print("❌ Please enter a valid degree program name")
+            else:
+                print(f"❌ Please enter a number between 1 and {len(degree_list) + 1}")
+        except ValueError:
+            print("❌ Please enter a valid number")
+
+
 def main():
-    """Main test function."""
-    print("🤖 LLM Orchestrator Test")
+    """Main function for testing the LLM orchestrator."""
+    print("🤖 LLM ORCHESTRATOR TEST")
     print("=" * 50)
 
     # Initialize orchestrator
-    print("🔄 Initializing LLM orchestrator...")
-    try:
-        orchestrator = LLMOrchestrator()
-    except Exception as e:
-        print(f"❌ Failed to initialize orchestrator: {e}")
-        return
+    print("🔧 Initializing LLM orchestrator...")
+    orchestrator = LLMOrchestrator()
 
     if not orchestrator.is_available():
-        print("❌ LLM orchestrator not available. Please check your Gemini API key.")
-        print("   Set GEMINI_API_KEY in your .env file or environment variables.")
+        print("❌ LLM orchestrator not available")
+        print("   Make sure GEMINI_API_KEY is set in your environment")
         return
 
-    # Get orchestrator stats
-    stats = orchestrator.get_stats()
-    prompt_info = orchestrator.get_prompt_info()
     print("✅ LLM orchestrator initialized successfully")
-    print(f"🤖 Using model: {stats.get('model', 'Unknown')}")
-    print(f"📊 Stages: {', '.join(stats.get('stages', []))}")
+
+    # Get model stats
+    stats = orchestrator.get_stats()
+    print(f"📊 Model: {stats.get('model', 'Unknown')}")
     print(
-        f"📝 Prompt info: {prompt_info.get('total_prompt_length', 0)} total characters"
+        f"📊 API Status: {'✅ Available' if stats.get('available') else '❌ Unavailable'}"
     )
 
     # List available OCR outputs
@@ -181,7 +303,7 @@ def main():
         print("   Please run test_ocr.py first to generate OCR outputs")
         return
 
-    print(f"\n📁 Found {len(ocr_files)} OCR output files:")
+    print(f"\n📄 Found {len(ocr_files)} OCR output files:")
     for i, file_path in enumerate(ocr_files, 1):
         print(f"   {i}. {os.path.basename(file_path)}")
 
@@ -205,8 +327,12 @@ def main():
         except ValueError:
             print("❌ Please enter a valid number")
 
+    # Select degree program
+    student_degree = select_degree_program()
+
     print(f"\n{'=' * 50}")
     print(f"Processing: {os.path.basename(selected_file)}")
+    print(f"Degree Program: {student_degree}")
     print(f"{'=' * 50}")
 
     # Load and clean OCR text
@@ -246,7 +372,7 @@ def main():
         )
     )
     print("   Stage 1: Information Extraction")
-    print("   Stage 2: Academic Evaluation")
+    print("   Stage 2: Academic Evaluation (Degree-specific)")
 
     # Debug: Check what we're about to send
     print(f"\n🔍 DEBUG: cleaned_text type: {type(cleaned_text)}")
@@ -264,7 +390,7 @@ def main():
         return
 
     try:
-        results = orchestrator.process_work_certificate(cleaned_text)
+        results = orchestrator.process_work_certificate(cleaned_text, student_degree)
 
         # Display results
         display_orchestrator_results(results, os.path.basename(selected_file))
@@ -276,6 +402,9 @@ def main():
 
     except Exception as e:
         print(f"❌ Error during LLM orchestration: {e}")
+        import traceback
+
+        traceback.print_exc()
 
 
 if __name__ == "__main__":

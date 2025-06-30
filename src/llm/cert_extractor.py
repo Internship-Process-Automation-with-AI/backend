@@ -11,6 +11,7 @@ from typing import Any, Dict
 import google.generativeai as genai
 
 from src.config import settings
+from src.llm.degree_evaluator import DegreeEvaluator
 from src.llm.prompts import EVALUATION_PROMPT, EXTRACTION_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ class LLMOrchestrator:
         """Initialize the LLM orchestrator with Gemini."""
         self.model = None
         self.model_name = settings.GEMINI_MODEL
+        self.degree_evaluator = DegreeEvaluator()
         self._initialize_gemini()
 
     def _initialize_gemini(self):
@@ -44,12 +46,15 @@ class LLMOrchestrator:
             )
             self.model = None
 
-    def process_work_certificate(self, text: str) -> Dict[str, Any]:
+    def process_work_certificate(
+        self, text: str, student_degree: str = "Business Administration"
+    ) -> Dict[str, Any]:
         """
         Process a work certificate using the two-stage LLM approach.
 
         Args:
             text: Cleaned OCR text from the work certificate
+            student_degree: Student's degree program (e.g., "Business Administration", "Engineering")
 
         Returns:
             Dictionary with both extraction and evaluation results
@@ -89,6 +94,12 @@ class LLMOrchestrator:
                 "evaluation_results": None,
             }
 
+        # Validate degree program
+        if not self.degree_evaluator.validate_degree_program(student_degree):
+            logger.warning(
+                f"Unsupported degree program: {student_degree}, using general criteria"
+            )
+
         start_time = time.time()
 
         try:
@@ -106,10 +117,10 @@ class LLMOrchestrator:
                     "processing_time": time.time() - start_time,
                 }
 
-            # Stage 2: Academic Evaluation
+            # Stage 2: Academic Evaluation with degree-specific criteria
             logger.info("Starting Stage 2: Academic Evaluation")
             evaluation_result = self._evaluate_academically(
-                sanitized_text, extraction_result["results"]
+                sanitized_text, extraction_result["results"], student_degree
             )
 
             total_time = time.time() - start_time
@@ -119,6 +130,7 @@ class LLMOrchestrator:
                 "processing_time": total_time,
                 "extraction_results": extraction_result,
                 "evaluation_results": evaluation_result,
+                "student_degree": student_degree,
                 "model_used": self.model_name,
                 "stages_completed": {
                     "extraction": extraction_result.get("success", False),
@@ -233,9 +245,9 @@ class LLMOrchestrator:
             }
 
     def _evaluate_academically(
-        self, text: str, extracted_info: Dict[str, Any]
+        self, text: str, extracted_info: Dict[str, Any], student_degree: str
     ) -> Dict[str, Any]:
-        """Stage 2: Evaluate the certificate for academic credits."""
+        """Stage 2: Evaluate the certificate for academic credits with degree-specific criteria."""
         stage_start = time.time()
 
         try:
@@ -244,9 +256,17 @@ class LLMOrchestrator:
                 extracted_info, indent=2, ensure_ascii=False
             )
 
-            # Create evaluation prompt
+            # Get degree-specific guidelines
+            degree_guidelines = self.degree_evaluator.get_degree_specific_guidelines(
+                student_degree
+            )
+
+            # Create evaluation prompt with degree-specific information
             prompt = EVALUATION_PROMPT.format(
-                extracted_info=extracted_info_str, document_text=text
+                extracted_info=extracted_info_str,
+                document_text=text,
+                student_degree=student_degree,
+                degree_specific_guidelines=degree_guidelines,
             )
 
             # Generate response
@@ -254,6 +274,102 @@ class LLMOrchestrator:
 
             # Parse response
             results = self._parse_llm_response(response.text)
+
+            # Add degree-specific relevance analysis for each position
+            if results and extracted_info:
+                positions = extracted_info.get("positions", [])
+                total_relevance_score = 0
+                position_count = len(positions)
+
+                # Analyze each position for degree relevance
+                for position in positions:
+                    job_title = position.get("title", "")
+                    job_description = position.get("responsibilities", "")
+
+                    relevance_level, calculated_multiplier = (
+                        self.degree_evaluator.calculate_relevance_score(
+                            student_degree, job_title, job_description, ""
+                        )
+                    )
+
+                    # Convert relevance level to score for averaging
+                    if relevance_level == "high_relevance":
+                        total_relevance_score += 1.0
+                    elif relevance_level == "medium_relevance":
+                        total_relevance_score += 0.5
+                    else:
+                        total_relevance_score += 0.0
+
+                # Calculate average relevance
+                avg_relevance_score = total_relevance_score / max(1, position_count)
+
+                # Determine overall relevance level
+                if avg_relevance_score >= 0.6:
+                    overall_relevance_level = "high_relevance"
+                elif avg_relevance_score >= 0.3:
+                    overall_relevance_level = "medium_relevance"
+                else:
+                    overall_relevance_level = "low_relevance"
+
+                # CRITICAL: If overall relevance is low, force general training
+                if overall_relevance_level == "low_relevance":
+                    results["training_type"] = "general"
+                    results["quality_multiplier"] = 1.0
+                    results["degree_relevance"] = "low"
+                    # Recalculate credits with general training limits
+                    if results.get("credits_qualified", 0) > 10:
+                        results["credits_qualified"] = 10.0
+                        results["conclusion"] = (
+                            "Student receives 10.0 ECTS credits as general training (capped at maximum limit)"
+                        )
+                    # Update justification to match general training classification
+                    results["summary_justification"] = (
+                        "Work experience provides valuable general skills and transferable competencies, but does not directly align with the specific requirements of the degree program."
+                    )
+                    results["relevance_explanation"] = (
+                        "The roles and responsibilities do not sufficiently match the degree-specific criteria for professional training classification."
+                    )
+                    # Fix calculation breakdown for general training
+                    total_hours = results.get("total_working_hours", 0)
+                    base_credits = total_hours / 27
+                    results["calculation_breakdown"] = (
+                        f"{total_hours} hours / 27 hours per ECTS = {base_credits:.2f} credits, capped at 10.0 maximum for general training"
+                    )
+                else:
+                    # For professional training, ensure justification is consistent
+                    if results.get("training_type") == "professional":
+                        results["summary_justification"] = (
+                            f"Professional experience directly related to {student_degree} with significant skill development and industry-specific knowledge relevant to the degree program."
+                        )
+                        # Fix calculation breakdown for professional training
+                        total_hours = results.get("total_working_hours", 0)
+                        quality_multiplier = results.get("quality_multiplier", 1.0)
+                        base_credits = (total_hours * quality_multiplier) / 27
+                        if base_credits > 20:
+                            results["credits_qualified"] = 20.0
+                            results["calculation_breakdown"] = (
+                                f"{total_hours} hours * {quality_multiplier} multiplier / 27 hours per ECTS = {base_credits:.2f} credits, capped at 20.0 maximum for professional training"
+                            )
+                        else:
+                            results["calculation_breakdown"] = (
+                                f"{total_hours} hours * {quality_multiplier} multiplier / 27 hours per ECTS = {base_credits:.2f} credits"
+                            )
+                    else:
+                        # If LLM classified as general but relevance is high, force professional
+                        results["training_type"] = "professional"
+                        results["summary_justification"] = (
+                            f"Professional experience directly related to {student_degree} with significant skill development and industry-specific knowledge relevant to the degree program."
+                        )
+
+                # Add relevance information to results
+                results["degree_relevance_level"] = overall_relevance_level
+                results["calculated_quality_multiplier"] = (
+                    self.degree_evaluator.degree_programs.get(
+                        student_degree.lower().replace(" ", "_"),
+                        self.degree_evaluator.degree_programs["general"],
+                    )["quality_multipliers"][overall_relevance_level]
+                )
+                results["student_degree_program"] = student_degree
 
             stage_time = time.time() - stage_start
 
