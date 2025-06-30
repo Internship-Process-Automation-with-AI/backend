@@ -1,30 +1,20 @@
 repos:
-  # Black - Code formatter
-  - repo: local
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.0
     hooks:
-      - id: black
-        name: black
-        entry: black
-        language: system
-        types: [python]
-        args: [--line-length=88]
+      # Step 1: Run the linter with fixes (excluding import sorting)
+      - id: ruff
+        name: "ruff-lint"
+        args: [--fix, --exit-non-zero-on-fix]
+        # Ignores I rules to separate linting from import sorting
 
-  # isort - Import sorter
-  - repo: local
-    hooks:
-      - id: isort
-        name: isort
-        entry: isort
-        language: system
-        types: [python]
-        args: [--profile=black, --line-length=88]
+      # Step 2: Sort imports (matches `ruff check --select I --fix`)
+      - id: ruff
+        name: "ruff-sort-imports"
+        args: [--select, "I", --fix, --exit-non-zero-on-fix]
+        # Selects only I (import sorting) rules and fixes them
 
-  # Flake8 - Linter
-  - repo: local
-    hooks:
-      - id: flake8
-        name: flake8
-        entry: flake8
-        language: system
-        types: [python]
-        args: [--max-line-length=200, --extend-ignore=E203] 
+      # Step 3: Format (matches `ruff format`)
+      - id: ruff-format
+        name: "ruff-format"
+        # No args needed unless overriding defaults
