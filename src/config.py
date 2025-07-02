@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from pydantic_settings import BaseSettings
 
@@ -18,9 +18,11 @@ class Settings(BaseSettings):
 
     # LLM Configuration
     GEMINI_API_KEY: Optional[str] = None  # Gemini API key for LLM evaluation
-    GEMINI_MODEL: str = (
-        "gemini-1.5-flash"  # Gemini model to use (default: gemini-1.5-flash)
-    )
+    GEMINI_MODEL: str = "gemini-2.0-flash"  # Primary Gemini model to use
+    GEMINI_FALLBACK_MODELS: List[str] = [
+        "gemini-2.5-flash-lite-preview-06-17",
+        "gemini-2.5-flash",
+    ]
 
     # File Upload Configuration
     UPLOAD_DIR: str = "uploads"

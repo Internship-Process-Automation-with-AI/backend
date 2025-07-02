@@ -48,29 +48,15 @@ def clean_ocr_text(text: str) -> str:
 
 
 def list_ocr_outputs():
-    """List all available OCR output files from the new organized structure."""
-    # Go up one directory to find outputs folder
-    outputs_dir = Path(os.path.join(os.path.dirname(__file__), "..", "outputs"))
+    """List all available OCR output files."""
+    # Go up one directory to find OCRoutput folder
+    output_dir = Path(os.path.join(os.path.dirname(__file__), "..", "OCRoutput"))
     files = []
 
-    if outputs_dir.exists():
-        # Look for OCR files in the new organized structure
-        for sample_dir in outputs_dir.iterdir():
-            if sample_dir.is_dir():
-                # Look for OCRoutput_*.txt files in each sample directory
-                for file_path in sample_dir.glob("OCRoutput_*.txt"):
-                    if file_path.is_file():
-                        files.append(str(file_path))
-
-    # If no files found in new structure, try old structure for backward compatibility
-    if not files:
-        old_output_dir = Path(
-            os.path.join(os.path.dirname(__file__), "..", "OCRoutput")
-        )
-        if old_output_dir.exists():
-            for file_path in old_output_dir.glob("*.txt"):
-                if file_path.is_file():
-                    files.append(str(file_path))
+    if output_dir.exists():
+        for file_path in output_dir.glob("*.txt"):
+            if file_path.is_file():
+                files.append(str(file_path))
 
     return sorted(files)
 
@@ -86,21 +72,15 @@ def load_ocr_text(file_path: str) -> str:
 
 
 def save_results(results: Dict[str, Any], input_file: str) -> str:
-    """Save orchestrator results to JSON file in the new organized structure."""
+    """Save orchestrator results to JSON file."""
     try:
-        # Extract base name from the OCR file path
-        base_name = os.path.splitext(os.path.basename(input_file))[0]
-
-        # Remove "OCRoutput_" prefix if present to get the original sample name
-        if base_name.startswith("OCRoutput_"):
-            base_name = base_name[10:]  # Remove "OCRoutput_" prefix
-
-        # Use the new organized output structure
-        output_dir = os.path.join(os.path.dirname(__file__), "..", "outputs", base_name)
+        # Go up one directory to find LLMoutput folder
+        output_dir = os.path.join(os.path.dirname(__file__), "..", "LLMoutput")
         os.makedirs(output_dir, exist_ok=True)
 
+        base_name = os.path.splitext(os.path.basename(input_file))[0]
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_filename = f"LLMoutput_{base_name}_orchestrator_{timestamp}.json"
+        output_filename = f"{base_name}_orchestrator_{timestamp}.json"
         output_path = os.path.join(output_dir, output_filename)
 
         with open(output_path, "w", encoding="utf-8") as f:
@@ -294,10 +274,8 @@ def main():
     # List available OCR outputs
     ocr_files = list_ocr_outputs()
     if not ocr_files:
-        print("❌ No OCR output files found")
-        print(
-            "   Please run test_ocr.py or mainpipeline.py first to generate OCR outputs"
-        )
+        print("❌ No OCR output files found in 'OCRoutput' directory")
+        print("   Please run test_ocr.py first to generate OCR outputs")
         return
 
     print(f"\n📄 Found {len(ocr_files)} OCR files:")
@@ -357,19 +335,6 @@ def main():
         if results.get("success", False):
             output_path = save_results(results, selected_file)
             print(f"💾 Results saved to: {output_path}")
-
-            # Show the organized output structure
-            base_name = os.path.splitext(os.path.basename(selected_file))[0]
-            if base_name.startswith("OCRoutput_"):
-                base_name = base_name[10:]  # Remove "OCRoutput_" prefix
-            output_base_dir = os.path.join(
-                os.path.dirname(__file__), "..", "outputs", base_name
-            )
-            print(f"\n📁 Output organized in: {output_base_dir}")
-            print(f"   ├── OCRoutput_{base_name}.txt     (OCR text)")
-            print(
-                f"   └── LLMoutput_{base_name}_orchestrator_*.json     (LLM evaluation results)"
-            )
 
     except Exception as e:
         print(f"❌ Error during processing: {e}")

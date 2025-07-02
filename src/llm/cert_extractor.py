@@ -7,7 +7,7 @@ import json
 import logging
 import re
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import google.generativeai as genai
 
@@ -30,22 +30,102 @@ class LLMOrchestrator:
         """Initialize the LLM orchestrator with Gemini."""
         self.model = None
         self.model_name = settings.GEMINI_MODEL
+        self.current_model_index = 0
+        self.available_models = [
+            settings.GEMINI_MODEL
+        ] + settings.GEMINI_FALLBACK_MODELS
         self.degree_evaluator = DegreeEvaluator()
         self._initialize_gemini()
 
     def _initialize_gemini(self):
-        """Initialize Gemini API client."""
+        """Initialize Gemini API client with fallback support."""
         if not settings.GEMINI_API_KEY:
             logger.warning("Gemini API key not provided - LLM processing unavailable")
             return
 
         try:
             genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.model = genai.GenerativeModel(self.model_name)
-            logger.info(f"LLM Orchestrator initialized with model: {self.model_name}")
+            self._try_initialize_model()
         except Exception as e:
             logger.error(f"Failed to initialize Gemini: {e}")
             self.model = None
+
+    def _try_initialize_model(self, model_index: int = 0) -> bool:
+        """Try to initialize a specific model by index."""
+        if model_index >= len(self.available_models):
+            logger.error("All available models failed to initialize")
+            return False
+
+        model_name = self.available_models[model_index]
+        try:
+            self.model = genai.GenerativeModel(model_name)
+            self.model_name = model_name
+            self.current_model_index = model_index
+            logger.info(f"LLM Orchestrator initialized with model: {model_name}")
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to initialize model {model_name}: {e}")
+            return self._try_initialize_model(model_index + 1)
+
+    def _handle_quota_error(self, error: str) -> bool:
+        """Handle quota limit errors by trying fallback models."""
+        quota_indicators = [
+            "quota exceeded",
+            "quota limit",
+            "rate limit",
+            "quota has been exceeded",
+            "quota limit exceeded",
+            "quota exceeded for quota metric",
+            "quota limit exceeded for quota metric",
+            "quota exceeded for quota group",
+            "quota limit exceeded for quota group",
+        ]
+
+        is_quota_error = any(
+            indicator in error.lower() for indicator in quota_indicators
+        )
+
+        if is_quota_error and self.current_model_index < len(self.available_models) - 1:
+            logger.warning(
+                f"Quota limit hit for model {self.model_name}, trying fallback..."
+            )
+            next_model_index = self.current_model_index + 1
+            if self._try_initialize_model(next_model_index):
+                logger.info(
+                    f"Successfully switched to fallback model: {self.model_name}"
+                )
+                return True
+            else:
+                logger.error("All fallback models also failed")
+                return False
+
+        return False
+
+    def _call_llm_with_fallback(
+        self, prompt: str, operation_name: str = "LLM call"
+    ) -> Optional[str]:
+        """Call LLM with automatic fallback on quota errors."""
+        max_retries = len(self.available_models) - 1
+        retry_count = 0
+
+        while retry_count <= max_retries:
+            try:
+                response = self.model.generate_content(prompt)
+                return response.text
+            except Exception as e:
+                error_msg = str(e)
+                logger.warning(
+                    f"{operation_name} failed with model {self.model_name}: {error_msg}"
+                )
+
+                if self._handle_quota_error(error_msg):
+                    retry_count += 1
+                    continue
+                else:
+                    logger.error(f"{operation_name} failed with all available models")
+                    raise e
+
+        return None
 
     def process_work_certificate(
         self, text: str, student_degree: str = "Business Administration"
@@ -192,14 +272,14 @@ class LLMOrchestrator:
 
         try:
             prompt = EXTRACTION_PROMPT.format(document_text=text)
-            response = self.model.generate_content(prompt)
-            results = self._parse_llm_response(response.text)
+            response = self._call_llm_with_fallback(prompt, "extraction")
+            results = self._parse_llm_response(response)
 
             return {
                 "success": True,
                 "processing_time": time.time() - stage_start,
                 "results": results,
-                "raw_response": response.text,
+                "raw_response": response,
             }
 
         except Exception as e:
@@ -235,14 +315,14 @@ class LLMOrchestrator:
                 student_degree=student_degree,
             )
 
-            response = self.model.generate_content(prompt)
-            results = self._parse_llm_response(response.text)
+            response = self._call_llm_with_fallback(prompt, "validation")
+            results = self._parse_llm_response(response)
 
             return {
                 "success": True,
                 "processing_time": time.time() - stage_start,
                 "results": results,
-                "raw_response": response.text,
+                "raw_response": response,
             }
 
         except Exception as e:
@@ -283,14 +363,14 @@ class LLMOrchestrator:
                 student_degree=student_degree,
             )
 
-            response = self.model.generate_content(prompt)
-            results = self._parse_llm_response(response.text)
+            response = self._call_llm_with_fallback(prompt, "correction")
+            results = self._parse_llm_response(response)
 
             return {
                 "success": True,
                 "processing_time": time.time() - stage_start,
                 "results": results,
-                "raw_response": response.text,
+                "raw_response": response,
             }
 
         except Exception as e:
@@ -325,8 +405,8 @@ class LLMOrchestrator:
                 degree_specific_guidelines=degree_guidelines,
             )
 
-            response = self.model.generate_content(prompt)
-            results = self._parse_llm_response(response.text)
+            response = self._call_llm_with_fallback(prompt, "evaluation")
+            results = self._parse_llm_response(response)
 
             # Apply degree-specific relevance analysis and corrections
             if results and extracted_info:
@@ -336,7 +416,7 @@ class LLMOrchestrator:
                 "success": True,
                 "processing_time": time.time() - stage_start,
                 "results": results,
-                "raw_response": response.text,
+                "raw_response": response,
             }
 
         except Exception as e:
@@ -459,8 +539,12 @@ class LLMOrchestrator:
             f"Professional experience directly related to {student_degree} with significant skill development and industry-specific knowledge relevant to the degree program."
         )
 
-    def _parse_llm_response(self, response_text: str) -> Dict[str, Any]:
+    def _parse_llm_response(self, response_text: Optional[str]) -> Dict[str, Any]:
         """Parse the LLM response and extract JSON."""
+        if response_text is None:
+            logger.error("LLM response is None - all models may have failed")
+            return self._create_fallback_response("")
+
         try:
             response_text = response_text.strip()
 
@@ -543,7 +627,12 @@ class LLMOrchestrator:
         """Get statistics about the LLM orchestrator."""
         return {
             "available": self.is_available(),
-            "model": self.model_name,
+            "current_model": self.model_name,
+            "current_model_index": self.current_model_index,
+            "available_models": self.available_models,
+            "fallback_models_remaining": len(self.available_models)
+            - self.current_model_index
+            - 1,
             "api_key_configured": bool(settings.GEMINI_API_KEY),
             "stages": ["extraction", "evaluation", "validation", "correction"],
         }
