@@ -23,7 +23,8 @@ backend/
 │   │   ├── __init__.py
 │   │   ├── cert_extractor.py         # LLM orchestrator for processing
 │   │   ├── degree_evaluator.py       # Degree program management
-│   │   ├── degree_programs_data.py   # Degree program definitions
+│   │   ├── degree_programs_data_en.py # English degree program definitions
+│   │   ├── degree_programs_data_fi.py # Finnish degree program definitions
 │   │   └── prompts/
 │   │       ├── __init__.py
 │   │       ├── correction.py         # Correction prompt templates
@@ -232,7 +233,7 @@ TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
 ```
 
 ### Degree Program Configuration
-Edit `src/llm/degree_programs_data.py` to add or modify degree programs and their evaluation criteria.
+Edit `src/llm/degree_programs_data_en.py` for English degree programs or `src/llm/degree_programs_data_fi.py` for Finnish degree programs to add or modify degree programs and their evaluation criteria.
 
 ## 🔧 Development
 

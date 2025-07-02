@@ -6,17 +6,23 @@ This module handles different degree programs and their specific evaluation crit
 import logging
 from typing import Any, Dict, List, Tuple
 
-from src.llm.degree_programs_data import DEGREE_PROGRAMS
+from src.llm.degree_programs_data_fi import DEGREE_PROGRAMS_FI
 
 logger = logging.getLogger(__name__)
 
 
 class DegreeEvaluator:
-    """Handles degree-specific evaluation of work certificates."""
+    """Handles degree-specific evaluation of work certificates with bilingual support."""
 
     def __init__(self):
-        # Use degree programs data from the separate file
-        self.degree_programs = DEGREE_PROGRAMS
+        """
+        Initialize degree evaluator with bilingual data (Finnish + English).
+        This ensures all degree programs are available and relevance scoring works
+        regardless of certificate language.
+        """
+        # Always use the Finnish data which includes both Finnish and English keywords
+        # This ensures bilingual matching for relevance scoring
+        self.degree_programs = DEGREE_PROGRAMS_FI
 
     def get_degree_info(self, degree_program: str) -> Dict[str, Any]:
         """
@@ -86,15 +92,27 @@ class DegreeEvaluator:
         # Count matches in relevant roles
         role_matches = 0
         for role in degree_info["relevant_roles"]:
-            if role.lower() in combined_text:
+            role_lower = role.lower()
+            # Check for exact match
+            if role_lower in combined_text:
                 role_matches += 1
+            # Also check for partial matches (for compound words)
+            elif any(word in combined_text for word in role_lower.split()):
+                role_matches += 0.5  # Partial match gets half credit
 
         # Count matches in relevant industries
         industry_matches = 0
         if company_industry:
             for industry in degree_info["relevant_industries"]:
-                if industry.lower() in company_industry.lower():
+                industry_lower = industry.lower()
+                # Check for exact match
+                if industry_lower in company_industry.lower():
                     industry_matches += 1
+                # Also check for partial matches
+                elif any(
+                    word in company_industry.lower() for word in industry_lower.split()
+                ):
+                    industry_matches += 0.5  # Partial match gets half credit
 
         # Calculate relevance score
         total_possible_roles = len(degree_info["relevant_roles"])
