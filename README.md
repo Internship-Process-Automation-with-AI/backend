@@ -93,7 +93,7 @@ python -m venv venv
 
 **Windows:**
 ```powershell
-.\venv\Scripts\Activate.ps1
+.\venv\Scripts\Activate
 ```
 
 **macOS/Linux:**

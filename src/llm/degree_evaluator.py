@@ -6,6 +6,8 @@ This module handles different degree programs and their specific evaluation crit
 import logging
 from typing import Any, Dict, List, Tuple
 
+from src.llm.degree_programs_data import DEGREE_PROGRAMS
+
 logger = logging.getLogger(__name__)
 
 
@@ -13,276 +15,8 @@ class DegreeEvaluator:
     """Handles degree-specific evaluation of work certificates."""
 
     def __init__(self):
-        # Define degree programs and their evaluation criteria
-        self.degree_programs = {
-            # 1. Informaatioteknologia (Information Technology)
-            "information_technology": {
-                "name": "Information Technology",
-                "fields": [
-                    "Bachelor of Engineering (BEng), Information Technology",
-                    "Insinööri (AMK), tieto- ja viestintätekniikka",
-                    "Tradenomi (AMK), tietojenkäsittely",
-                ],
-                "relevant_industries": [
-                    "technology",
-                    "software",
-                    "consulting",
-                    "finance",
-                    "healthcare",
-                    "education",
-                    "telecommunications",
-                ],
-                "relevant_roles": [
-                    "software development",
-                    "programming",
-                    "system administration",
-                    "database management",
-                    "network administration",
-                    "cybersecurity",
-                    "data analysis",
-                    "web development",
-                    "IT support",
-                    "technical support",
-                    "software engineering",
-                    "data science",
-                    "information systems",
-                    "digital transformation",
-                    "cloud computing",
-                ],
-                "quality_multipliers": {
-                    "high_relevance": 1.5,
-                    "medium_relevance": 1.3,
-                    "low_relevance": 1.0,
-                },
-            },
-            # 2. Kulttuuri (Culture)
-            "culture": {
-                "name": "Culture",
-                "fields": [
-                    "Medianomi (AMK)",
-                    "Musiikkipedagogi (AMK)",
-                    "Tanssinopettaja (AMK)",
-                ],
-                "relevant_industries": [
-                    "media",
-                    "entertainment",
-                    "education",
-                    "arts",
-                    "culture",
-                    "broadcasting",
-                    "publishing",
-                ],
-                "relevant_roles": [
-                    "media production",
-                    "content creation",
-                    "teaching",
-                    "pedagogy",
-                    "music education",
-                    "dance instruction",
-                    "cultural management",
-                    "arts administration",
-                    "creative direction",
-                    "multimedia design",
-                    "audio production",
-                    "visual arts",
-                    "performing arts",
-                ],
-                "quality_multipliers": {
-                    "high_relevance": 1.4,
-                    "medium_relevance": 1.2,
-                    "low_relevance": 1.0,
-                },
-            },
-            # 3. Luonnonvara-ala (Natural Resources)
-            "natural_resources": {
-                "name": "Natural Resources",
-                "fields": ["Agrologi (AMK), maaseutuelinkeinot"],
-                "relevant_industries": [
-                    "agriculture",
-                    "forestry",
-                    "environmental",
-                    "rural development",
-                    "food production",
-                    "sustainability",
-                ],
-                "relevant_roles": [
-                    "agricultural consulting",
-                    "rural development",
-                    "environmental management",
-                    "sustainable farming",
-                    "food production",
-                    "forestry management",
-                    "land use planning",
-                    "agricultural technology",
-                    "environmental assessment",
-                    "rural business development",
-                ],
-                "quality_multipliers": {
-                    "high_relevance": 1.4,
-                    "medium_relevance": 1.2,
-                    "low_relevance": 1.0,
-                },
-            },
-            # 4. Liiketalous (Business Administration)
-            "business_administration": {
-                "name": "Business Administration",
-                "fields": [
-                    "Bachelor of Business Administration (BBA), International Business",
-                    "Tradenomi (AMK), liiketalous",
-                    "Tradenomi (AMK), liiketalous, verkkokoulutus",
-                ],
-                "relevant_industries": [
-                    "finance",
-                    "marketing",
-                    "consulting",
-                    "retail",
-                    "manufacturing",
-                    "technology",
-                    "international trade",
-                ],
-                "relevant_roles": [
-                    "marketing",
-                    "sales",
-                    "finance",
-                    "accounting",
-                    "management",
-                    "consulting",
-                    "business development",
-                    "strategy",
-                    "operations",
-                    "human resources",
-                    "international business",
-                    "trade",
-                    "logistics",
-                    "supply chain management",
-                    "entrepreneurship",
-                    "business analysis",
-                    "project management",
-                ],
-                "quality_multipliers": {
-                    "high_relevance": 1.4,
-                    "medium_relevance": 1.2,
-                    "low_relevance": 1.0,
-                },
-            },
-            # 5. Sosiaali- ja terveysala (Social and Health Care)
-            "healthcare": {
-                "name": "Healthcare",
-                "fields": [
-                    "Bachelor of Health Care, Nursing",
-                    "Bioanalyytikko (AMK)",
-                    "Ensihoitaja (AMK)",
-                    "Fysioterapeutti (AMK)",
-                    "Kätilö (AMK)",
-                    "Optometristi (AMK)",
-                    "Röntgenhoitaja (AMK)",
-                    "Sairaanhoitaja (AMK)",
-                    "Sosionomi (AMK)",
-                    "Suuhygienisti (AMK)",
-                    "Terveydenhoitaja (AMK)",
-                    "Toimintaterapeutti (AMK)",
-                ],
-                "relevant_industries": [
-                    "healthcare",
-                    "pharmaceuticals",
-                    "medical devices",
-                    "public health",
-                    "social services",
-                    "rehabilitation",
-                ],
-                "relevant_roles": [
-                    "patient care",
-                    "clinical work",
-                    "health administration",
-                    "research",
-                    "public health",
-                    "medical support",
-                    "healthcare management",
-                    "nursing",
-                    "social work",
-                    "rehabilitation",
-                    "medical technology",
-                    "health promotion",
-                    "emergency care",
-                    "maternal care",
-                    "optical care",
-                    "radiology",
-                    "dental hygiene",
-                ],
-                "quality_multipliers": {
-                    "high_relevance": 1.4,
-                    "medium_relevance": 1.2,
-                    "low_relevance": 1.0,
-                },
-            },
-            # 6. Tekniikka (Engineering)
-            "engineering": {
-                "name": "Engineering",
-                "fields": [
-                    "Bachelor of Engineering, Energy and Environmental Engineering",
-                    "Bachelor of Engineering, Mechanical Engineering",
-                    "Insinööri (AMK), energia- ja ympäristötekniikka",
-                    "Insinööri (AMK), konetekniikka",
-                    "Insinööri (AMK), sähkö- ja automaatiotekniikka",
-                    "Insinööri (AMK), talotekniikka",
-                    "Insinööri (AMK), rakennus- ja yhdyskuntatekniikka",
-                    "Rakennusarkkitehti (AMK)",
-                    "Rakennusmestari (AMK)",
-                ],
-                "relevant_industries": [
-                    "manufacturing",
-                    "construction",
-                    "technology",
-                    "automotive",
-                    "aerospace",
-                    "energy",
-                    "environmental",
-                    "building services",
-                ],
-                "relevant_roles": [
-                    "design",
-                    "development",
-                    "testing",
-                    "maintenance",
-                    "project management",
-                    "research",
-                    "quality control",
-                    "technical support",
-                    "system administration",
-                    "energy engineering",
-                    "environmental engineering",
-                    "mechanical engineering",
-                    "electrical engineering",
-                    "automation",
-                    "building technology",
-                    "construction management",
-                    "architecture",
-                    "sustainable design",
-                    "energy efficiency",
-                ],
-                "quality_multipliers": {
-                    "high_relevance": 1.5,
-                    "medium_relevance": 1.3,
-                    "low_relevance": 1.0,
-                },
-            },
-            # General Studies (fallback)
-            "general": {
-                "name": "General Studies",
-                "fields": [
-                    "Liberal Arts",
-                    "General Studies",
-                    "Interdisciplinary Studies",
-                ],
-                "relevant_industries": ["any"],
-                "relevant_roles": ["any"],
-                "quality_multipliers": {
-                    "high_relevance": 1.2,
-                    "medium_relevance": 1.1,
-                    "low_relevance": 1.0,
-                },
-            },
-        }
+        # Use degree programs data from the separate file
+        self.degree_programs = DEGREE_PROGRAMS
 
     def get_degree_info(self, degree_program: str) -> Dict[str, Any]:
         """
@@ -294,15 +28,29 @@ class DegreeEvaluator:
         Returns:
             Dictionary with degree program information
         """
-        degree_program_lower = degree_program.lower()
-
-        # Try exact match first
-        if degree_program_lower in self.degree_programs:
-            return self.degree_programs[degree_program_lower]
-
-        # Try partial matches
+        # First, try to find by exact name match
         for key, info in self.degree_programs.items():
-            if key in degree_program_lower or degree_program_lower in key:
+            if degree_program.lower() == info["name"].lower():
+                return info
+
+        # Normalize the input: convert spaces to underscores and lowercase, remove special chars
+        import re
+
+        normalized_degree = re.sub(r"[^\w\s]", "", degree_program.lower()).replace(
+            " ", "_"
+        )
+
+        # Try exact match with normalized key
+        if normalized_degree in self.degree_programs:
+            return self.degree_programs[normalized_degree]
+
+        # Try exact match with original input (for backward compatibility)
+        if degree_program.lower() in self.degree_programs:
+            return self.degree_programs[degree_program.lower()]
+
+        # Try partial name matching
+        for key, info in self.degree_programs.items():
+            if degree_program.lower() in info["name"].lower():
                 return info
 
         # Default to general if no match found
@@ -366,13 +114,9 @@ class DegreeEvaluator:
         else:
             relevance_level = "low_relevance"
 
-        quality_multiplier = degree_info["quality_multipliers"][relevance_level]
+        logger.info(f"Relevance score: {relevance_score:.2f}, Level: {relevance_level}")
 
-        logger.info(
-            f"Relevance score: {relevance_score:.2f}, Level: {relevance_level}, Multiplier: {quality_multiplier}"
-        )
-
-        return relevance_level, quality_multiplier
+        return relevance_level, 1.0  # No multipliers used anymore
 
     def get_degree_specific_guidelines(self, degree_program: str) -> str:
         """
@@ -398,10 +142,10 @@ EVALUATION CRITERIA:
 3. **Skill Development**: Acquisition of skills directly applicable to the degree field
 4. **Professional Growth**: Opportunities for career development in the field
 
-QUALITY MULTIPLIERS:
-- High Relevance (directly related to {degree_info['name']}): {degree_info['quality_multipliers']['high_relevance']}x
-- Medium Relevance (somewhat related): {degree_info['quality_multipliers']['medium_relevance']}x  
-- Low Relevance (general work experience): {degree_info['quality_multipliers']['low_relevance']}x
+PRACTICAL TRAINING REQUIREMENTS:
+- Total practical training requirement: 30 ECTS credits
+- Professional Training (degree-related): Minimum 20 ECTS credits required
+- General Training (non-degree-related): Maximum 10 ECTS credits allowed
 
 TRAINING CLASSIFICATION GUIDELINES:
 - **Professional Training**: Work directly related to {degree_info['name']} with technical/specialized skills
@@ -422,15 +166,20 @@ IMPORTANT: General training provides valuable transferable skills (communication
         Returns:
             True if supported, False otherwise
         """
-        degree_program_lower = degree_program.lower()
+        # Use the same normalization logic as get_degree_info
+        normalized_degree = degree_program.lower().replace(" ", "_")
 
-        # Check exact matches
-        if degree_program_lower in self.degree_programs:
+        # Try exact match with normalized key
+        if normalized_degree in self.degree_programs:
             return True
 
-        # Check partial matches
-        for key in self.degree_programs.keys():
-            if key in degree_program_lower or degree_program_lower in key:
+        # Try exact match with original input (for backward compatibility)
+        if degree_program.lower() in self.degree_programs:
+            return True
+
+        # Check if any degree program name contains the input
+        for key, info in self.degree_programs.items():
+            if degree_program.lower() in info["name"].lower():
                 return True
 
         return False

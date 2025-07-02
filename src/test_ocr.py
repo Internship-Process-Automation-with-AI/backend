@@ -14,10 +14,9 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-# Add the current directory to Python path
+# Add the current directory (src) to the Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
-sys.path.insert(0, os.path.join(current_dir, "src"))
 
 try:
     from ocr.ocr_model import OCRService
@@ -30,7 +29,8 @@ except ImportError as e:
 
 def list_sample_files():
     """List all available sample files."""
-    sample_dir = Path("samples")
+    # Go up one directory to find samples folder
+    sample_dir = Path(os.path.join(os.path.dirname(__file__), "..", "samples"))
     files = []
 
     if sample_dir.exists():
@@ -49,13 +49,18 @@ def list_sample_files():
     return sorted(files)
 
 
-def save_results_to_file(text: str, filename: str, output_dir: str = "OCRoutput"):
+def save_results_to_file(text: str, filename: str, output_dir: str = None):
     """Save OCR results to a text file."""
+    if output_dir is None:
+        # Use the new organized output structure
+        base_name = os.path.splitext(os.path.basename(filename))[0]
+        output_dir = os.path.join(os.path.dirname(__file__), "..", "outputs", base_name)
+
     os.makedirs(output_dir, exist_ok=True)
 
-    # Create output filename
+    # Create output filename with descriptive prefix
     base_name = os.path.splitext(os.path.basename(filename))[0]
-    output_filename = f"{base_name}.txt"
+    output_filename = f"OCRoutput_{base_name}.txt"
     output_path = os.path.join(output_dir, output_filename)
 
     # Save text to file
@@ -79,7 +84,7 @@ def main():
 
     print(f"📁 Found {len(sample_files)} sample files:")
     for i, file_path in enumerate(sample_files, 1):
-        print(f"   {i}. {file_path}")
+        print(f"   {i}. {os.path.basename(file_path)}")
 
     print("\n" + "=" * 50)
 
@@ -138,6 +143,14 @@ def main():
         if result.text:
             output_path = save_results_to_file(result.text, selected_file)
             print(f"💾 Results saved to: {output_path}")
+
+            # Show the organized output structure
+            base_name = os.path.splitext(os.path.basename(selected_file))[0]
+            output_base_dir = os.path.join(
+                os.path.dirname(__file__), "..", "outputs", base_name
+            )
+            print(f"\n📁 Output organized in: {output_base_dir}")
+            print(f"   └── OCRoutput_{base_name}.txt     (OCR text)")
         else:
             print("⚠️  No text to save")
 

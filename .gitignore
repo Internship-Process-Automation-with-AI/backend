@@ -42,5 +42,4 @@ logs/
 debug/
 
 #output
-LLMoutput/
-OCRoutput/
+outputs

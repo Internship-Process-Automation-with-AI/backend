@@ -14,6 +14,7 @@ EVALUATION CRITERIA:
 4. Academic Credits: Calculate ECTS credits (1 ECTS = 27 hours of work)
 5. Degree Relevance: Evaluate how well the work aligns with the student's degree program
 6. Justification: Provide detailed reasoning for your evaluation
+7. Conclusion: Provide a clear conclusion for the evaluation
 
 EVALUATION GUIDELINES:
 
@@ -45,24 +46,37 @@ TASK ANALYSIS:
 
 CREDIT CALCULATION:
 - Base calculation: 1 ECTS = 27 hours of work
-- General Training: Always 1.0x multiplier (award credits regardless of degree relevance)
-- Professional Training: Apply degree-specific quality multipliers (1.0-1.5x) ONLY if degree relevance is confirmed
-- Round to 2 decimal places
+- Round down to nearest whole number (e.g., 10.6 becomes 10.0)
+- All work experience uses the same calculation: total_hours / 27
+
+PRACTICAL TRAINING REQUIREMENTS:
+- Total practical training requirement: 30 ECTS credits
+- Professional Training (degree-related): Minimum 20 ECTS credits required
+- General Training (non-degree-related): Maximum 10 ECTS credits allowed
+- If a student completes 30 ECTS of degree-related work, they receive the full 30 credits
+- When total accumulated credits exceed 30, degree-related work gets priority in credit allocation
+- Example: Student with 25 credits degree-related + 10 credits general = 25 professional + 5 general (capped at 10)
 
 CREDIT LIMITS:
 - General Training: Maximum 10 ECTS credits
-- Professional Training: Maximum 20 ECTS credits
+- Professional Training: Maximum 30 ECTS credits (if all 30 are degree-related)
 - If calculated credits exceed these limits, cap at the maximum
 
 CALCULATION BREAKDOWN REQUIREMENTS:
-- For General Training: Show calculation without multiplier, cap at 10.0 maximum
-- For Professional Training: Show calculation with quality multiplier, cap at 20.0 maximum
+- Show calculation: total_hours / 27 = base_credits
+- Apply appropriate limits based on training type
 - Ensure calculation breakdown matches the training type classification
 
 JUSTIFICATION REQUIREMENTS:
 - For General Training: Focus on transferable skills and general work experience
 - For Professional Training: Focus on degree-specific skills and industry relevance
-- Ensure justification aligns with the training classification decision
+- Include information about the 30-credit practical training requirement
+- Explain how this experience contributes to the student's overall practical training goals
+
+CONCLUSION REQUIREMENTS:
+- For Professional Training: Mention progress toward the 30-credit requirement
+- For General Training: Clarify that this counts toward the 10-credit general training limit
+- Include total practical training progress if applicable
 
 CRITICAL: You must respond with ONLY a complete, valid JSON object. Do not include any text before or after the JSON.
 
@@ -70,13 +84,12 @@ Example response format:
 {{
     "total_working_hours": 1040,
     "training_type": "professional",
-    "credits_qualified": 20.0,
-    "quality_multiplier": 1.2,
+    "credits_qualified": 38,
     "degree_relevance": "high",
     "relevance_explanation": "Work directly related to International Business degree with marketing and management components",
-    "calculation_breakdown": "6 months full-time (1040 hours) / 27 hours per ECTS = 38.52 credits, capped at 20.0 maximum for professional training",
-    "summary_justification": "Professional marketing role with significant responsibility and skill development relevant to International Business degree",
-    "conclusion": "Student receives 20.0 ECTS credits as professional training (capped at maximum limit)",
+    "calculation_breakdown": "6 months full-time (1040 hours) / 27 hours per ECTS = 38.52 credits, rounded down to 38.0 credits, capped at 30.0 maximum for professional training",
+    "summary_justification": "Professional marketing role with significant responsibility and skill development relevant to International Business degree. This experience contributes significantly toward the required 30 ECTS credits of practical training, with at least 20 credits needing to be degree-related.",
+    "conclusion": "Student receives 30.0 ECTS credits as professional training. This provides full completion of the degree's practical training component with all 30 credits in degree-related work.",
     "confidence_level": "high"
 }}
 
