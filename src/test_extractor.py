@@ -71,6 +71,42 @@ def load_ocr_text(file_path: str) -> str:
         return ""
 
 
+def clean_results_for_output(results: Dict[str, Any]) -> Dict[str, Any]:
+    """Clean results by removing success fields and simplifying file paths."""
+
+    def clean_dict(d: Dict[str, Any]) -> Dict[str, Any]:
+        """Recursively clean a dictionary by removing success fields."""
+        cleaned = {}
+        for key, value in d.items():
+            if key == "success":
+                continue  # Skip success fields
+            elif key == "file_path" and isinstance(value, str):
+                # Simplify file path to show only samples/filename
+                if "samples" in value:
+                    # Extract the part after "samples"
+                    parts = value.split("samples")
+                    if len(parts) > 1:
+                        # Fix backslashes first, then use in f-string
+                        fixed_path = parts[1].replace("\\", "/")
+                        cleaned[key] = f"samples{fixed_path}"
+                    else:
+                        cleaned[key] = value
+                else:
+                    cleaned[key] = value
+            elif isinstance(value, dict):
+                cleaned[key] = clean_dict(value)
+            elif isinstance(value, list):
+                cleaned[key] = [
+                    clean_dict(item) if isinstance(item, dict) else item
+                    for item in value
+                ]
+            else:
+                cleaned[key] = value
+        return cleaned
+
+    return clean_dict(results)
+
+
 def save_results(results: Dict[str, Any], input_file: str) -> str:
     """Save orchestrator results to JSON file."""
     try:
@@ -83,8 +119,11 @@ def save_results(results: Dict[str, Any], input_file: str) -> str:
         output_filename = f"{base_name}_orchestrator_{timestamp}.json"
         output_path = os.path.join(output_dir, output_filename)
 
+        # Clean results before saving
+        cleaned_results = clean_results_for_output(results)
+
         with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(results, f, indent=2, ensure_ascii=False)
+            json.dump(cleaned_results, f, indent=2, ensure_ascii=False)
 
         return output_path
     except Exception as e:

@@ -5,10 +5,11 @@ An advanced AI-powered system for processing and evaluating work certificates fo
 ## 🚀 Features
 
 - 🔍 **Advanced OCR Processing**: Extract text from various document formats (PDF, DOCX, PNG, JPG, TIFF, BMP)
-- 🤖 **LLM-Powered Analysis**: Intelligent extraction and evaluation using Google Gemini AI
+- 🤖 **LLM-Powered Analysis**: Intelligent extraction and evaluation using Google Gemini AI with automatic fallback models
 - 🎓 **Academic Credit Assessment**: Automatic ECTS credit calculation and degree relevance evaluation
 - ✅ **Multi-Stage Validation**: Comprehensive validation and correction pipeline
-- 📊 **Organized Output**: Clean, structured output with organized file management
+- 📊 **Organized Output**: Clean, structured output with organized file management and cleaned JSON
+- 🌐 **Bilingual Support**: Finnish and English degree program support with automatic language detection
 - 🛠️ **Production Ready**: Type-safe, well-documented, and thoroughly tested
 
 ## 📁 Project Structure
@@ -23,8 +24,7 @@ backend/
 │   │   ├── __init__.py
 │   │   ├── cert_extractor.py         # LLM orchestrator for processing
 │   │   ├── degree_evaluator.py       # Degree program management
-│   │   ├── degree_programs_data_en.py # English degree program definitions
-│   │   ├── degree_programs_data_fi.py # Finnish degree program definitions
+│   │   ├── degree_programs_data.py   # Bilingual degree program definitions
 │   │   └── prompts/
 │   │       ├── __init__.py
 │   │       ├── correction.py         # Correction prompt templates
@@ -72,8 +72,9 @@ backend/
 ### 3. **Academic Credit Assessment**
 - Automatic ECTS credit calculation (27 hours = 1 ECTS)
 - Training type classification (General vs Professional)
-- Degree relevance evaluation
+- Degree relevance evaluation with bilingual support
 - Credit limit enforcement (10 ECTS max for general training)
+- Bilingual degree program matching (Finnish and English)
 
 ## 🛠️ Prerequisites
 
@@ -208,10 +209,11 @@ backend/outputs/
    - Cleaned and normalized
 
 2. **LLM Results File** (`LLMoutput_*.json`):
-   - Complete processing results
+   - Complete processing results (cleaned JSON format)
    - Extraction, evaluation, validation, and correction data
    - Academic credit assessment
    - Processing metadata
+   - Simplified file paths and removed success fields for cleaner output
 
 ## 🎓 Supported Degree Programs
 
@@ -220,6 +222,23 @@ The system supports various OAMK degree programs including:
 - Bachelor of Engineering (BEng), Information Technology
 - Rakennusmestari (AMK)
 - And more...
+
+## 🔄 Recent Features
+
+### JSON Output Cleaning
+- **Removed Success Fields**: All `"success": true/false` fields are automatically removed from output JSON for cleaner, more readable results
+- **Simplified File Paths**: File paths are simplified to show only `samples/filename` instead of full absolute paths
+- **Cleaner Structure**: Output JSON is optimized for readability while preserving all essential data
+
+### Gemini Model Fallback
+- **Automatic Fallback**: If the primary Gemini model reaches quota limits, the system automatically switches to fallback models
+- **Seamless Processing**: Fallback happens transparently without interrupting the processing pipeline
+- **Multiple Models**: Supports fallback to `gemini-1.5-pro` when quota is reached
+
+### Bilingual Support
+- **Language Detection**: Automatically detects document language (Finnish/English)
+- **Bilingual Matching**: Degree programs are matched using both Finnish and English keywords
+- **Improved Accuracy**: Finnish certificates now receive correct relevance scoring and justifications
 
 ## ⚙️ Configuration
 
@@ -233,7 +252,7 @@ TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
 ```
 
 ### Degree Program Configuration
-Edit `src/llm/degree_programs_data_en.py` for English degree programs or `src/llm/degree_programs_data_fi.py` for Finnish degree programs to add or modify degree programs and their evaluation criteria.
+Edit `src/llm/degree_programs_data.py` to add or modify degree programs and their evaluation criteria. The system supports both Finnish and English degree programs with automatic language detection.
 
 ## 🔧 Development
 
@@ -255,7 +274,7 @@ pre-commit run
 - `pytesseract`: OCR text extraction
 - `opencv-python`: Image preprocessing
 - `pillow`: Image handling
-- `google-generativeai`: Google Gemini AI integration
+- `google-generativeai`: Google Gemini AI integration with fallback models
 
 **Document Processing:**
 - `pdf2image`: PDF to image conversion
