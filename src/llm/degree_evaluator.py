@@ -6,7 +6,7 @@ This module handles different degree programs and their specific evaluation crit
 import logging
 from typing import Any, Dict, List, Tuple
 
-from src.llm.degree_programs_data_fi import DEGREE_PROGRAMS_FI
+from src.llm.degree_programs_data import DEGREE_PROGRAMS
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class DegreeEvaluator:
         """
         # Always use the Finnish data which includes both Finnish and English keywords
         # This ensures bilingual matching for relevance scoring
-        self.degree_programs = DEGREE_PROGRAMS_FI
+        self.degree_programs = DEGREE_PROGRAMS
 
     def get_degree_info(self, degree_program: str) -> Dict[str, Any]:
         """
