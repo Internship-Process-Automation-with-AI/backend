@@ -19,12 +19,13 @@ REQUIRED JSON FIELDS:
 {{
     "employee_name": "Full name of the person employed",
     "employer": "Company or organization name (use null if not specified)",
+    "certificate_issue_date": "Date when the certificate was issued (usually at the top of the document) in YYYY-MM-DD or DD.MM.YYYY format (use null if not found)",
     "positions": [
         {{
             "title": "Job title or role",
             "employer": "Company or organization name for this specific position (use null if not specified)", 
             "start_date": "Start date in YYYY-MM-DD format (use null if not specified)",
-            "end_date": "End date in YYYY-MM-DD format (use null if not specified)",
+            "end_date": "End date in YYYY-MM-DD or DD.MM.YYYY format (use null if not specified)",
             "duration": "Duration description (e.g., '6 months', '1 year')",
             "responsibilities": "Key responsibilities and tasks for this role"
         }}
@@ -39,8 +40,10 @@ IMPORTANT GUIDELINES:
 - Each position should have its own entry with dates, responsibilities, and employer
 - If only one position is mentioned, still use the array format
 - Focus on extracting specific responsibilities and tasks for each role
-- If dates are missing for specific roles, use null but try to infer from context
-- If employer is missing for specific roles, use null but try to infer from context
+- If dates are missing for specific roles, use null
+- If employer is missing for specific roles, use null
+- If the end date is missing for a role, use the certificate issue date as the end date which is usually at the top of the document or below the document after the signature
+- Always calculate duration if the start date and end date are present
 
 EXAMPLE DOCUMENT:
 Työtodistus
@@ -55,6 +58,7 @@ EXAMPLE JSON RESPONSE:
 {{
     "employee_name": "Ari Tapani Valtamo",
     "employer": "Yritys",
+    "certificate_issue_date": "2009-11-27",
     "positions": [
         {{
             "title": "Varaosavastaava",

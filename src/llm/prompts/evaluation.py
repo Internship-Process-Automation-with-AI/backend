@@ -23,8 +23,10 @@ WORKING HOURS CALCULATION:
 - Part-time work: Calculate based on stated hours or percentage
 - Consider employment period: start_date to end_date
 - Account for breaks, holidays if specified
-- If dates are missing, use duration descriptions to estimate hours
+- If end_date is missing, use the certificate_issue_date from the extracted information as the end date
+- If no certificate_issue_date is available, use duration descriptions to estimate hours
 - If no work schedule specified, assume full-time (40 hours/week)
+- CRITICAL: Do NOT assume the current date when end_date is missing
 
 TRAINING CLASSIFICATION:
 - "Professional Training": Work that demonstrates clear alignment with degree-specific criteria, technical skills, specialized knowledge, or industry-specific work relevant to the degree field

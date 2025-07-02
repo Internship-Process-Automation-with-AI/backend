@@ -20,13 +20,14 @@ CRITICAL VALIDATION RULES:
 - **Validate logical consistency**: Ensure training classification aligns with degree relevance assessment
 - **Validate calculations**: Verify hours and credit calculations are mathematically correct
 - **Allow reasonable hour calculations**: If employment dates are provided, hours can be calculated using standard assumptions (40 hours/week, 8 hours/day)
+- **Allow certificate issue date as end date**: When no explicit end date is provided, using the certificate issue date as the end date is a valid and reasonable assumption
 - **Validate classification logic**: 
   * If degree relevance is "high" or "medium" → training type should be "professional"
   * If degree relevance is "low" → training type should be "general"
   * Flag inconsistencies between relevance assessment and training classification
 - **Validate credit limits**: Ensure appropriate limits are applied (10 ECTS for general, 30 ECTS for professional)
 - **Focus on factual and logical errors**: Flag issues where the LLM contradicts document content or creates logical inconsistencies
-- **Don't flag reasonable assumptions**: Standard working hour calculations from employment dates are valid and should not be flagged as errors
+- **Don't flag reasonable assumptions**: Standard working hour calculations from employment dates and using certificate issue date as end date are valid and should not be flagged as errors
 
 VALIDATION OUTPUT FORMAT:
 Respond with ONLY a valid JSON object containing validation results:

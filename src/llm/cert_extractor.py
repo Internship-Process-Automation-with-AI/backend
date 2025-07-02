@@ -408,9 +408,23 @@ class LLMOrchestrator:
             response = self._call_llm_with_fallback(prompt, "evaluation")
             results = self._parse_llm_response(response)
 
-            # Apply degree-specific relevance analysis and corrections
-            if results and extracted_info:
-                self._apply_degree_corrections(results, extracted_info, student_degree)
+            # Only ensure credit calculations are correct, don't override LLM decisions
+            if results:
+                total_hours = results.get("total_working_hours", 0)
+                base_credits = int(total_hours / 27)
+                training_type = results.get("training_type", "")
+                if training_type == "professional" and base_credits > 30:
+                    results["credits_qualified"] = 30.0
+                    results["calculation_breakdown"] = (
+                        f"{total_hours} hours / 27 hours per ECTS = {base_credits}.0 credits, capped at 30.0 maximum for professional training"
+                    )
+                elif training_type == "general" and base_credits > 10:
+                    results["credits_qualified"] = 10.0
+                    results["calculation_breakdown"] = (
+                        f"{total_hours} hours / 27 hours per ECTS = {base_credits}.0 credits, capped at 10.0 maximum for general training"
+                    )
+                else:
+                    results["credits_qualified"] = float(base_credits)
 
             return {
                 "success": True,
@@ -427,117 +441,6 @@ class LLMOrchestrator:
                 "processing_time": time.time() - stage_start,
                 "results": None,
             }
-
-    def _apply_degree_corrections(
-        self,
-        results: Dict[str, Any],
-        extracted_info: Dict[str, Any],
-        student_degree: str,
-    ):
-        """Apply degree-specific corrections to evaluation results."""
-        positions = extracted_info.get("positions", [])
-        total_relevance_score = 0
-
-        # Calculate average relevance
-        for position in positions:
-            job_title = position.get("title", "")
-            job_description = position.get("responsibilities", "")
-            relevance_level, _ = self.degree_evaluator.calculate_relevance_score(
-                student_degree, job_title, job_description, ""
-            )
-
-            if relevance_level == "high_relevance":
-                total_relevance_score += 1.0
-            elif relevance_level == "medium_relevance":
-                total_relevance_score += 0.5
-
-        avg_relevance_score = total_relevance_score / max(1, len(positions))
-        overall_relevance_level = (
-            "high_relevance"
-            if avg_relevance_score >= 0.6
-            else "medium_relevance"
-            if avg_relevance_score >= 0.3
-            else "low_relevance"
-        )
-
-        # Apply corrections based on relevance
-        total_hours = results.get("total_working_hours", 0)
-        base_credits = int(total_hours / 27)  # Round down
-
-        if overall_relevance_level == "low_relevance":
-            self._apply_general_training_corrections(results, base_credits, total_hours)
-        else:
-            self._apply_professional_training_corrections(
-                results, base_credits, total_hours, student_degree
-            )
-
-        results["degree_relevance_level"] = overall_relevance_level
-        results["student_degree_program"] = student_degree
-
-    def _apply_general_training_corrections(
-        self, results: Dict[str, Any], base_credits: int, total_hours: int
-    ):
-        """Apply corrections for general training classification."""
-        results["training_type"] = "general"
-        results["degree_relevance"] = "low"
-
-        if base_credits > 10:
-            results["credits_qualified"] = 10.0
-            results["conclusion"] = (
-                "Student receives 10.0 ECTS credits as general training (capped at maximum limit)."
-            )
-        else:
-            results["credits_qualified"] = float(base_credits)
-            results["conclusion"] = (
-                f"Student receives {base_credits}.0 ECTS credits as general training."
-            )
-
-        # Only add fallback if LLM didn't provide any justification
-        if not results.get("summary_justification"):
-            results["summary_justification"] = (
-                "Work experience provides valuable general skills and transferable competencies, but does not directly align with the specific requirements of the degree program."
-            )
-
-        # Only add fallback if LLM didn't provide any relevance explanation
-        if not results.get("relevance_explanation"):
-            results["relevance_explanation"] = (
-                "The roles and responsibilities do not sufficiently match the degree-specific criteria for professional training classification."
-            )
-
-        results["calculation_breakdown"] = (
-            f"{total_hours} hours / 27 hours per ECTS = {base_credits}.0 credits, capped at 10.0 maximum for general training"
-        )
-
-    def _apply_professional_training_corrections(
-        self,
-        results: Dict[str, Any],
-        base_credits: int,
-        total_hours: int,
-        student_degree: str,
-    ):
-        """Apply corrections for professional training classification."""
-        results["training_type"] = "professional"
-
-        if base_credits > 30:
-            results["credits_qualified"] = 30.0
-            results["calculation_breakdown"] = (
-                f"{total_hours} hours / 27 hours per ECTS = {base_credits}.0 credits, capped at 30.0 maximum for professional training"
-            )
-            results["conclusion"] = (
-                "Student receives 30.0 ECTS credits as professional training. This provides full completion of the degree's practical training component."
-            )
-        else:
-            results["credits_qualified"] = float(base_credits)
-            results["calculation_breakdown"] = (
-                f"{total_hours} hours / 27 hours per ECTS = {base_credits}.0 credits"
-            )
-            results["conclusion"] = (
-                f"Student receives {base_credits}.0 ECTS credits as professional training."
-            )
-
-        results["summary_justification"] = (
-            f"Professional experience directly related to {student_degree} with significant skill development and industry-specific knowledge relevant to the degree program."
-        )
 
     def _parse_llm_response(self, response_text: Optional[str]) -> Dict[str, Any]:
         """Parse the LLM response and extract JSON."""

@@ -4,7 +4,7 @@ This module handles different degree programs and their specific evaluation crit
 """
 
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 from src.llm.degree_programs_data import DEGREE_PROGRAMS
 
@@ -64,79 +64,6 @@ class DegreeEvaluator:
             f"Unknown degree program: {degree_program}, using general criteria"
         )
         return self.degree_programs["general"]
-
-    def calculate_relevance_score(
-        self,
-        degree_program: str,
-        job_title: str,
-        job_description: str,
-        company_industry: str = "",
-    ) -> Tuple[str, float]:
-        """
-        Calculate relevance score between work experience and degree program.
-
-        Args:
-            degree_program: Student's degree program
-            job_title: Job title from certificate
-            job_description: Job description/tasks from certificate
-            company_industry: Company industry (optional)
-
-        Returns:
-            Tuple of (relevance_level, quality_multiplier)
-        """
-        degree_info = self.get_degree_info(degree_program)
-
-        # Combine all text for analysis
-        combined_text = f"{job_title} {job_description} {company_industry}".lower()
-
-        # Count matches in relevant roles
-        role_matches = 0
-        for role in degree_info["relevant_roles"]:
-            role_lower = role.lower()
-            # Check for exact match
-            if role_lower in combined_text:
-                role_matches += 1
-            # Also check for partial matches (for compound words)
-            elif any(word in combined_text for word in role_lower.split()):
-                role_matches += 0.5  # Partial match gets half credit
-
-        # Count matches in relevant industries
-        industry_matches = 0
-        if company_industry:
-            for industry in degree_info["relevant_industries"]:
-                industry_lower = industry.lower()
-                # Check for exact match
-                if industry_lower in company_industry.lower():
-                    industry_matches += 1
-                # Also check for partial matches
-                elif any(
-                    word in company_industry.lower() for word in industry_lower.split()
-                ):
-                    industry_matches += 0.5  # Partial match gets half credit
-
-        # Calculate relevance score
-        total_possible_roles = len(degree_info["relevant_roles"])
-        role_score = role_matches / max(1, total_possible_roles)
-
-        # Industry bonus
-        industry_bonus = 0.2 if industry_matches > 0 else 0.0
-
-        # Final relevance score (0.0 to 1.0)
-        relevance_score = min(1.0, role_score + industry_bonus)
-
-        # Determine relevance level and multiplier
-        if relevance_score >= 0.7:
-            relevance_level = "high_relevance"
-        elif relevance_score >= 0.4:
-            relevance_level = "medium_relevance"
-        else:
-            relevance_level = "low_relevance"
-
-        logger.info(
-            f"Degree Evaluator: Relevance score: {relevance_score:.2f}, Level: {relevance_level}"
-        )
-
-        return relevance_level, 1.0  # No multipliers used anymore
 
     def get_degree_specific_guidelines(self, degree_program: str) -> str:
         """
