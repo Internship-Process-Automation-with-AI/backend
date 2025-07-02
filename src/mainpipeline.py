@@ -296,11 +296,14 @@ class DocumentPipeline:
                     f"   • Stages: {', '.join([stage for stage, completed in stages_completed.items() if completed])}"
                 )
 
-            # Show final evaluation results
-            evaluation_results = llm_results.get("evaluation_results", {})
-            if evaluation_results.get("success"):
-                data = evaluation_results.get("results", {})
-                print("\n🎓 FINAL EVALUATION:")
+            # Show final evaluation results (use corrected results if available)
+            correction_results = llm_results.get("correction_results", {})
+            if correction_results.get("success"):
+                # Use corrected results
+                data = correction_results.get("results", {}).get(
+                    "evaluation_results", {}
+                )
+                print("\n🎓 FINAL EVALUATION (CORRECTED):")
                 print(f"   • Hours: {data.get('total_working_hours', 'N/A')}")
                 print(f"   • Type: {data.get('training_type', 'N/A')}")
                 print(f"   • Credits: {data.get('credits_qualified', 'N/A')} ECTS")
@@ -311,6 +314,31 @@ class DocumentPipeline:
                 if conclusion:
                     print("\n🎯 CONCLUSION:")
                     print(f"   {conclusion}")
+
+                # Show correction notes if any
+                correction_notes = correction_results.get("results", {}).get(
+                    "correction_notes", []
+                )
+                if correction_notes:
+                    print("\n🔧 CORRECTIONS MADE:")
+                    for note in correction_notes:
+                        print(f"   • {note}")
+            else:
+                # Fall back to original evaluation results
+                evaluation_results = llm_results.get("evaluation_results", {})
+                if evaluation_results.get("success"):
+                    data = evaluation_results.get("results", {})
+                    print("\n🎓 FINAL EVALUATION:")
+                    print(f"   • Hours: {data.get('total_working_hours', 'N/A')}")
+                    print(f"   • Type: {data.get('training_type', 'N/A')}")
+                    print(f"   • Credits: {data.get('credits_qualified', 'N/A')} ECTS")
+                    print(f"   • Relevance: {data.get('degree_relevance', 'N/A')}")
+
+                    # Show conclusion
+                    conclusion = data.get("conclusion", "")
+                    if conclusion:
+                        print("\n🎯 CONCLUSION:")
+                        print(f"   {conclusion}")
 
         print("=" * 80)
 

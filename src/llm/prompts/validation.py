@@ -12,15 +12,21 @@ VALIDATION CRITERIA:
 2. **Information Completeness**: Is all available information from the OCR text properly extracted?
 3. **Assumption Validation**: Are any assumptions made by the LLM justified by the available information?
 4. **Justification Accuracy**: Does the justification accurately reflect what can and cannot be determined from the document?
+5. **Logical Consistency**: Is the training classification consistent with the degree relevance assessment?
+6. **Calculation Accuracy**: Are hours and credit calculations mathematically correct?
 
 CRITICAL VALIDATION RULES:
-- **Allow reasonable calculations**: If dates are provided, hours can be calculated (standard 40 hours/week)
-- **Allow reasonable classifications**: If no specific degree-related tasks are mentioned, "general" training type is appropriate
-- **Allow credit calculations**: Credits can be calculated from hours using the standard 27 hours/ECTS formula
-- **Allow credit limits**: The 10 ECTS maximum for general training and 30 ECTS maximum for professional training are valid rules
-- **Only flag actual errors**: Don't flag valid calculations, reasonable classifications, or established credit limits as errors
-- **Focus on factual errors**: Only flag issues where the LLM contradicts or misrepresents information present in the document
-- **Respect degree relevance logic**: If tasks/responsibilities are not mentioned, "low" relevance is appropriate
+- **Validate factual accuracy**: Check if extracted information matches the original document
+- **Validate logical consistency**: Ensure training classification aligns with degree relevance assessment
+- **Validate calculations**: Verify hours and credit calculations are mathematically correct
+- **Allow reasonable hour calculations**: If employment dates are provided, hours can be calculated using standard assumptions (40 hours/week, 8 hours/day)
+- **Validate classification logic**: 
+  * If degree relevance is "high" or "medium" → training type should be "professional"
+  * If degree relevance is "low" → training type should be "general"
+  * Flag inconsistencies between relevance assessment and training classification
+- **Validate credit limits**: Ensure appropriate limits are applied (10 ECTS for general, 30 ECTS for professional)
+- **Focus on factual and logical errors**: Flag issues where the LLM contradicts document content or creates logical inconsistencies
+- **Don't flag reasonable assumptions**: Standard working hour calculations from employment dates are valid and should not be flagged as errors
 
 VALIDATION OUTPUT FORMAT:
 Respond with ONLY a valid JSON object containing validation results:
@@ -48,7 +54,9 @@ Respond with ONLY a valid JSON object containing validation results:
         "hours_calculation_correct": true/false,
         "training_type_justified": true/false,
         "credits_calculation_correct": true/false,
-        "degree_relevance_assessment_accurate": true/false
+        "degree_relevance_assessment_accurate": true/false,
+        "training_classification_consistent": true/false,
+        "classification_relevance_alignment": "consistent|inconsistent"
     }},
     "justification_validation": {{
         "accurately_reflects_available_information": true/false,
@@ -70,5 +78,9 @@ LLM EVALUATION RESULTS:
 
 STUDENT DEGREE:
 {student_degree}
+
+SPECIAL VALIDATION CHECK:
+- If the relevance_explanation mentions "significant alignment", "directly relevant", or "clear alignment" with the degree program, but training_type is "general", this is a critical inconsistency that must be flagged
+- If the summary_justification mentions "fulfills the requirements for professional training" but training_type is "general", this is a critical inconsistency that must be flagged
 
 Respond with ONLY the JSON object, no additional text, no explanations, no markdown formatting."""

@@ -18,10 +18,11 @@ CRITICAL REQUIREMENTS:
 REQUIRED JSON FIELDS:
 {{
     "employee_name": "Full name of the person employed",
+    "employer": "Company or organization name (use null if not specified)",
     "positions": [
         {{
             "title": "Job title or role",
-            "employer": "Company or organization name", 
+            "employer": "Company or organization name for this specific position (use null if not specified)", 
             "start_date": "Start date in YYYY-MM-DD format (use null if not specified)",
             "end_date": "End date in YYYY-MM-DD format (use null if not specified)",
             "duration": "Duration description (e.g., '6 months', '1 year')",
@@ -53,9 +54,11 @@ Kunnossapitotoimenpiteiden suunnittelu ja toteutus
 EXAMPLE JSON RESPONSE:
 {{
     "employee_name": "Ari Tapani Valtamo",
+    "employer": "Yritys",
     "positions": [
         {{
             "title": "Varaosavastaava",
+            "employer": "Yritys",
             "start_date": "2007-02-05",
             "end_date": "2009-09-30",
             "duration": "2 years, 7 months",
@@ -63,13 +66,13 @@ EXAMPLE JSON RESPONSE:
         }},
         {{
             "title": "Kunnossapitovastaava",
+            "employer": "Yritys",
             "start_date": "1984-02-13",
             "end_date": "2007-02-04",
             "duration": "23 years",
             "responsibilities": "Kunnossapitotoimenpiteiden suunnittelu ja toteutus"
         }}
     ],
-    "employer": "Yritys",
     "total_employment_period": "25 years, 7 months",
     "document_language": "fi",
     "confidence_level": "high(>75%)"

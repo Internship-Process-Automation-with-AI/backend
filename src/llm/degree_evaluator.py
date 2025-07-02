@@ -90,50 +90,43 @@ class DegreeEvaluator:
         combined_text = f"{job_title} {job_description} {company_industry}".lower()
 
         # Count matches in relevant roles
-        role_matches = 0
+        role_matches = 0.0
+        matched_keywords = []
         for role in degree_info["relevant_roles"]:
             role_lower = role.lower()
-            # Check for exact match
             if role_lower in combined_text:
-                role_matches += 1
-            # Also check for partial matches (for compound words)
+                role_matches += 1.0
+                matched_keywords.append((role_lower, "EXACT"))
             elif any(word in combined_text for word in role_lower.split()):
-                role_matches += 0.5  # Partial match gets half credit
+                role_matches += 0.8  # Partial match gets 0.8 credit
+                matched_keywords.append((role_lower, "PARTIAL"))
 
-        # Count matches in relevant industries
+        # Count matches in relevant industries (bonus, not thresholded)
         industry_matches = 0
         if company_industry:
             for industry in degree_info["relevant_industries"]:
                 industry_lower = industry.lower()
-                # Check for exact match
                 if industry_lower in company_industry.lower():
                     industry_matches += 1
-                # Also check for partial matches
                 elif any(
                     word in company_industry.lower() for word in industry_lower.split()
                 ):
-                    industry_matches += 0.5  # Partial match gets half credit
+                    industry_matches += 0.5
 
-        # Calculate relevance score
-        total_possible_roles = len(degree_info["relevant_roles"])
-        role_score = role_matches / max(1, total_possible_roles)
-
-        # Industry bonus
-        industry_bonus = 0.2 if industry_matches > 0 else 0.0
-
-        # Final relevance score (0.0 to 1.0)
-        relevance_score = min(1.0, role_score + industry_bonus)
-
-        # Determine relevance level and multiplier
-        if relevance_score >= 0.7:
+        # Threshold-based scoring
+        if role_matches >= 3:
             relevance_level = "high_relevance"
-        elif relevance_score >= 0.4:
+        elif role_matches >= 2:
             relevance_level = "medium_relevance"
+        elif role_matches >= 1:
+            relevance_level = "low_relevance"
         else:
             relevance_level = "low_relevance"
 
+        # Log actual matches for debugging
+        logger.info(f"Degree Evaluator: Matched keywords: {matched_keywords}")
         logger.info(
-            f"Degree Evaluator: Relevance score: {relevance_score:.2f}, Level: {relevance_level}"
+            f"Degree Evaluator: Role match score: {role_matches:.2f}, Level: {relevance_level}"
         )
 
         return relevance_level, 1.0  # No multipliers used anymore

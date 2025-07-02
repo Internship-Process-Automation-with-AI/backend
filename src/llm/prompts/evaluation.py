@@ -23,16 +23,24 @@ WORKING HOURS CALCULATION:
 - Part-time work: Calculate based on stated hours or percentage
 - Consider employment period: start_date to end_date
 - Account for breaks, holidays if specified
+- If dates are missing, use duration descriptions to estimate hours
+- If no work schedule specified, assume full-time (40 hours/week)
 
 TRAINING CLASSIFICATION:
-- "General Training": Basic work experience, general skills, ANY work experience that does NOT match degree-specific criteria
-- "Professional Training": Technical skills, specialized knowledge, industry-specific work, professional development that DIRECTLY matches degree field criteria
+- "Professional Training": Work that demonstrates clear alignment with degree-specific criteria, technical skills, specialized knowledge, or industry-specific work relevant to the degree field
+- "General Training": Work that provides valuable transferable skills but does NOT directly align with degree-specific technical or industry requirements
 
-CRITICAL DEGREE RELEVANCE RULE:
-- If job roles, responsibilities, or industry do NOT match the degree's relevant roles, industries, or focus areas, the work MUST be classified as "General Training" regardless of duration or complexity
-- Only classify as "Professional Training" if there is clear alignment with degree-specific criteria
-- This is a strict requirement - no exceptions
-- The justification MUST match the training classification decision
+DEGREE RELEVANCE ASSESSMENT:
+- Analyze the work experience against the degree-specific criteria provided
+- Consider job roles, responsibilities, industry, and technical skills
+- Evaluate alignment with the degree's relevant roles and industries
+- Use the degree-specific guidelines to determine relevance level
+
+TRAINING CLASSIFICATION RULE:
+- If degree relevance is "high" or "medium": Classify as "Professional Training"
+- If degree relevance is "low": Classify as "General Training"
+- The training classification MUST be consistent with the degree relevance assessment
+- Professional training should be awarded when work demonstrates clear alignment with degree-specific criteria
 
 DEGREE-SPECIFIC EVALUATION:
 {degree_specific_guidelines}
@@ -51,21 +59,22 @@ CREDIT CALCULATION:
 
 PRACTICAL TRAINING REQUIREMENTS:
 - Total practical training requirement: 30 ECTS credits
-- Professional Training (degree-related): Minimum 20 ECTS credits required
+- Professional Training (degree-related): Can receive up to 30 ECTS credits
 - General Training (non-degree-related): Maximum 10 ECTS credits allowed
-- If a student completes 30 ECTS of degree-related work, they receive the full 30 credits
-- When total accumulated credits exceed 30, degree-related work gets priority in credit allocation
-- Example: Student with 25 credits degree-related + 10 credits general = 25 professional + 5 general (capped at 10)
+- Professional training should be prioritized when work is degree-relevant
 
-CREDIT LIMITS:
-- General Training: Maximum 10 ECTS credits
-- Professional Training: Maximum 30 ECTS credits (if all 30 are degree-related)
-- If calculated credits exceed these limits, cap at the maximum
+CREDIT LIMITS BY TRAINING TYPE:
+- General Training: Maximum 10 ECTS credits (regardless of hours worked)
+- Professional Training: Maximum 30 ECTS credits (if all work is degree-related)
+- Apply the appropriate limit based on the training classification
 
 CALCULATION BREAKDOWN REQUIREMENTS:
 - Show calculation: total_hours / 27 = base_credits
-- Apply appropriate limits based on training type
+- Apply appropriate limits based on training type:
+  * General Training: Cap at 10.0 ECTS maximum
+  * Professional Training: Cap at 30.0 ECTS maximum
 - Ensure calculation breakdown matches the training type classification
+- The breakdown should clearly show why credits are capped
 
 JUSTIFICATION REQUIREMENTS:
 - For General Training: Focus on transferable skills and general work experience
@@ -84,7 +93,7 @@ Example response format:
 {{
     "total_working_hours": 1040,
     "training_type": "professional",
-    "credits_qualified": 38,
+    "credits_qualified": 30,
     "degree_relevance": "high",
     "relevance_explanation": "Work directly related to International Business degree with marketing and management components",
     "calculation_breakdown": "6 months full-time (1040 hours) / 27 hours per ECTS = 38.52 credits, rounded down to 38.0 credits, capped at 30.0 maximum for professional training",

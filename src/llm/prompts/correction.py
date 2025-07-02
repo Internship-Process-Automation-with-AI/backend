@@ -18,12 +18,15 @@ CORRECTION PRINCIPLES:
 
 CRITICAL CORRECTION RULES:
 - **Preserve valid calculations**: If hours were calculated from dates, keep them
-- **Preserve valid classifications**: If training type was correctly classified as "general" due to lack of degree-specific information, keep it
 - **Preserve valid credit calculations**: If credits were calculated using standard formula, keep them
-- **Preserve credit limits**: The 10 ECTS maximum for general training and 30 ECTS maximum for professional training are established rules and should NOT be removed
-- **Only correct actual errors**: Don't change valid evaluations just because information is limited
-- **Focus on factual corrections**: Only correct when the LLM contradicts information present in the document
+- **Preserve credit limits**: The 10 ECTS maximum for general training and 30 ECTS maximum for professional training are established rules
+- **Preserve hour calculations**: If employment dates are available, calculate and preserve working hours using standard assumptions (40 hours/week)
+- **Fix classification inconsistencies**: 
+  * If degree relevance is "high" or "medium" but training type is "general" → change to "professional"
+  * If degree relevance is "low" but training type is "professional" → change to "general"
+- **Focus on factual and logical corrections**: Correct when the LLM contradicts document content or creates logical inconsistencies
 - **Maintain degree relevance logic**: If tasks/responsibilities are not mentioned, "low" relevance is appropriate
+- **Don't remove valid hour calculations**: If dates are provided, hours should be calculated and preserved
 
 CORRECTION OUTPUT FORMAT:
 Respond with ONLY a valid JSON object containing the corrected results:
@@ -75,5 +78,12 @@ VALIDATION RESULTS:
 
 STUDENT DEGREE:
 {student_degree}
+
+SPECIAL CORRECTION CHECK:
+- If validation found inconsistency between degree relevance and training classification, prioritize the degree relevance assessment
+- If relevance_explanation indicates high/medium relevance but training_type is "general", change training_type to "professional" and recalculate credits accordingly
+- If summary_justification mentions professional training requirements but training_type is "general", change training_type to "professional"
+- If employment dates are available but total_working_hours is null, calculate working hours from the dates using standard assumptions (40 hours/week)
+- Always preserve and calculate working hours when employment dates are provided
 
 Respond with ONLY the JSON object, no additional text, no explanations, no markdown formatting."""
