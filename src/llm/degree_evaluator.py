@@ -107,14 +107,16 @@ class DegreeEvaluator:
         relevance_score = min(1.0, role_score + industry_bonus)
 
         # Determine relevance level and multiplier
-        if relevance_score >= 0.6:
+        if relevance_score >= 0.7:
             relevance_level = "high_relevance"
-        elif relevance_score >= 0.3:
+        elif relevance_score >= 0.4:
             relevance_level = "medium_relevance"
         else:
             relevance_level = "low_relevance"
 
-        logger.info(f"Relevance score: {relevance_score:.2f}, Level: {relevance_level}")
+        logger.info(
+            f"Degree Evaluator: Relevance score: {relevance_score:.2f}, Level: {relevance_level}"
+        )
 
         return relevance_level, 1.0  # No multipliers used anymore
 
