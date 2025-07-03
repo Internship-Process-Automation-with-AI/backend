@@ -109,19 +109,3 @@ This document lists all the specific bachelor's degree programs available at Oul
 
 ### Rakennusmestari (AMK)
 - **Focus Areas**: Construction management, building technology, project management, sustainable design
-
----
-
-## Degree Program Categories in the System
-
-The degree evaluator system organizes these programs into the following categories for evaluation purposes:
-
-1. **Information Technology** - All IT and computing related degrees
-2. **Culture** - Media, music, and dance education degrees
-3. **Natural Resources** - Agricultural and environmental degrees
-4. **Business Administration** - All business and management degrees
-5. **Healthcare** - All health care and social work degrees
-6. **Engineering** - All engineering and construction related degrees
-7. **General Studies** - Fallback category for interdisciplinary or custom programs
-
-Each category has specific relevance criteria, relevant industries, and quality multipliers for evaluating work experience and practical training. 
