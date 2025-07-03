@@ -146,7 +146,9 @@ class DocumentPipeline:
         """Process a document through the complete pipeline."""
         results = {
             "success": False,
-            "file_path": file_path,
+            "file_path": os.path.relpath(
+                file_path, os.path.join(os.path.dirname(__file__), "..")
+            ),
             "student_degree": student_degree,
             "processing_time": 0,
             "ocr_results": {},
@@ -211,7 +213,23 @@ class DocumentPipeline:
             end_time = datetime.now()
             results["processing_time"] = (end_time - start_time).total_seconds()
 
+            # Clean up results for cleaner JSON output
+            results = self.clean_results_for_output(results)
+
         return results
+
+    def clean_results_for_output(self, results: Dict[str, Any]) -> Dict[str, Any]:
+        """Clean up results for cleaner JSON output."""
+        # Create a copy to avoid modifying the original
+        cleaned_results = results.copy()
+
+        # Clean up LLM results
+        if "llm_results" in cleaned_results:
+            # Keep raw_response fields for manual verification and accuracy checking
+            # Raw responses are valuable for debugging and quality assurance
+            pass
+
+        return cleaned_results
 
     def save_ocr_text(self, text: str, file_path: str) -> str:
         """Save OCR text to organized output directory."""

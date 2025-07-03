@@ -13,6 +13,10 @@ import google.generativeai as genai
 
 from src.config import settings
 from src.llm.degree_evaluator import DegreeEvaluator
+from src.llm.models import (
+    validate_evaluation_results,
+    validate_extraction_results,
+)
 from src.llm.prompts import (
     CORRECTION_PROMPT,
     EVALUATION_PROMPT,
@@ -168,10 +172,49 @@ class LLMOrchestrator:
                     processing_time=time.time() - start_time,
                 )
 
+            # Stage 1.5: Structural Validation of Extraction Results
+            structural_validation_extraction = validate_extraction_results(
+                extraction_result["results"]
+            )
+
+            if structural_validation_extraction.validation_passed:
+                logger.info("✅ Structural validation passed for extraction")
+            else:
+                logger.warning(
+                    f"Structural validation failed for extraction: {structural_validation_extraction.summary}"
+                )
+                # Log detailed issues
+                for i, issue in enumerate(
+                    structural_validation_extraction.issues_found, 1
+                ):
+                    logger.warning(
+                        f"  Extraction Issue {i}: {issue.type} ({issue.severity}) - {issue.description}"
+                    )
+                # Continue processing but log the issues
+
             # Stage 2: Academic Evaluation
             evaluation_result = self._evaluate_academically(
                 sanitized_text, extraction_result["results"], student_degree
             )
+
+            # Stage 2.5: Structural Validation of Evaluation Results
+            if evaluation_result.get("success", False):
+                structural_validation_evaluation = validate_evaluation_results(
+                    evaluation_result["results"]
+                )
+
+                if not structural_validation_evaluation.validation_passed:
+                    logger.warning(
+                        f"Structural validation failed for evaluation: {structural_validation_evaluation.summary}"
+                    )
+                    # Log detailed issues
+                    for i, issue in enumerate(
+                        structural_validation_evaluation.issues_found, 1
+                    ):
+                        logger.warning(
+                            f"  Evaluation Issue {i}: {issue.type} ({issue.severity}) - {issue.description}"
+                        )
+                    # Continue processing but log the issues
 
             # Stage 3: Validation
             validation_result = self._validate_results(
@@ -194,6 +237,59 @@ class LLMOrchestrator:
                     student_degree,
                 )
 
+            # Stage 4.5: Structural Validation of Correction Results (if correction was performed)
+            structural_validation_correction = None
+            if correction_result and correction_result.get("success", False):
+                # Validate corrected extraction results
+                if "extraction_results" in correction_result["results"]:
+                    structural_validation_correction_extraction = (
+                        validate_extraction_results(
+                            correction_result["results"]["extraction_results"]
+                        )
+                    )
+
+                    if not structural_validation_correction_extraction.validation_passed:
+                        logger.warning(
+                            f"Structural validation failed for corrected extraction: {structural_validation_correction_extraction.summary}"
+                        )
+                        # Log detailed issues
+                        for i, issue in enumerate(
+                            structural_validation_correction_extraction.issues_found, 1
+                        ):
+                            logger.warning(
+                                f"  Corrected Extraction Issue {i}: {issue.type} ({issue.severity}) - {issue.description}"
+                            )
+
+                # Validate corrected evaluation results
+                if "evaluation_results" in correction_result["results"]:
+                    structural_validation_correction_evaluation = (
+                        validate_evaluation_results(
+                            correction_result["results"]["evaluation_results"]
+                        )
+                    )
+
+                    if not structural_validation_correction_evaluation.validation_passed:
+                        logger.warning(
+                            f"Structural validation failed for corrected evaluation: {structural_validation_correction_evaluation.summary}"
+                        )
+                        # Log detailed issues
+                        for i, issue in enumerate(
+                            structural_validation_correction_evaluation.issues_found, 1
+                        ):
+                            logger.warning(
+                                f"  Corrected Evaluation Issue {i}: {issue.type} ({issue.severity}) - {issue.description}"
+                            )
+
+                # Store correction validation results
+                structural_validation_correction = {
+                    "extraction": structural_validation_correction_extraction.dict()
+                    if "structural_validation_correction_extraction" in locals()
+                    else None,
+                    "evaluation": structural_validation_correction_evaluation.dict()
+                    if "structural_validation_correction_evaluation" in locals()
+                    else None,
+                }
+
             return {
                 "success": True,
                 "processing_time": time.time() - start_time,
@@ -201,6 +297,15 @@ class LLMOrchestrator:
                 "evaluation_results": evaluation_result,
                 "validation_results": validation_result,
                 "correction_results": correction_result,
+                "structural_validation": {
+                    "extraction": structural_validation_extraction.dict()
+                    if "structural_validation_extraction" in locals()
+                    else None,
+                    "evaluation": structural_validation_evaluation.dict()
+                    if "structural_validation_evaluation" in locals()
+                    else None,
+                    "correction": structural_validation_correction,
+                },
                 "student_degree": student_degree,
                 "model_used": self.model_name,
                 "stages_completed": {
