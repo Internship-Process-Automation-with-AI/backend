@@ -1,6 +1,6 @@
 """
 LLM Orchestrator for Work Certificate Processing
-Manages a two-stage process: extraction followed by evaluation.
+Manages a 4-stage process: extraction + structural validation of extraction, evaluation + structural validation of evaluation, validation, and correction, on + structural validation of correction.
 """
 
 import json
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 class LLMOrchestrator:
-    """Orchestrates LLM-based work certificate processing using a two-stage approach."""
+    """Orchestrates LLM-based work certificate processing using a 4-stage approach."""
 
     def __init__(self):
         """Initialize the LLM orchestrator with Gemini."""
