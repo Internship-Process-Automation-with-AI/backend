@@ -7,6 +7,8 @@ VALIDATION_PROMPT = """You are an expert document validation specialist. Your ta
 
 TASK: Compare the LLM output with the original OCR text and identify any inaccuracies, missing information, or incorrect assumptions.
 
+IMPORTANT: The STUDENT DEGREE provided is the correct degree to use for validation. Do NOT try to determine or extract the student's degree from the document content. The degree provided is the degree the student is currently pursuing and should be used for all degree-related assessments.
+
 VALIDATION CRITERIA:
 1. **Extraction Accuracy**: Are the extracted facts (names, dates, companies, positions) correct according to the OCR text?
 2. **Information Completeness**: Is all available information from the OCR text properly extracted?
@@ -16,6 +18,7 @@ VALIDATION CRITERIA:
 6. **Calculation Accuracy**: Are hours and credit calculations mathematically correct?
 
 CRITICAL VALIDATION RULES:
+- **Use the provided STUDENT DEGREE**: The student degree provided is the correct degree for evaluation. Do not try to determine the degree from the document content.
 - **Validate factual accuracy**: Check if extracted information matches the original document
 - **Validate logical consistency**: Ensure training classification aligns with degree relevance assessment
 - **Validate calculations**: Verify hours and credit calculations are mathematically correct
@@ -28,6 +31,7 @@ CRITICAL VALIDATION RULES:
 - **Validate credit limits**: Ensure appropriate limits are applied (10 ECTS for general, 30 ECTS for professional)
 - **Focus on factual and logical errors**: Flag issues where the LLM contradicts document content or creates logical inconsistencies
 - **Don't flag reasonable assumptions**: Standard working hour calculations from employment dates and using certificate issue date as end date are valid and should not be flagged as errors
+- **DO NOT validate degree selection**: The student degree provided is the correct degree. Do not flag issues about what degree the student "should" have based on document content.
 
 VALIDATION OUTPUT FORMAT:
 Respond with ONLY a valid JSON object containing validation results:

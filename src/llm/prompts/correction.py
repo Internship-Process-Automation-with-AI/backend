@@ -7,6 +7,8 @@ CORRECTION_PROMPT = """You are an expert document correction specialist. Your ta
 
 TASK: Fix the identified issues in the LLM output while maintaining the overall structure and format.
 
+IMPORTANT: The STUDENT DEGREE provided is the correct degree to use for corrections. Do NOT try to determine or extract the student's degree from the document content. The degree provided is the degree the student is currently pursuing and should be used for all degree-related assessments.
+
 CORRECTION PRINCIPLES:
 1. **Accuracy First**: All corrections must be based on the original OCR text
 2. **Preserve Structure**: Maintain the same JSON structure and field names
@@ -15,8 +17,10 @@ CORRECTION PRINCIPLES:
 5. **Transparency**: Clearly state limitations when information is missing
 6. **Preserve Valid Calculations**: Don't override reasonable calculations (hours from dates, credits from hours)
 7. **Preserve Valid Classifications**: Don't override reasonable classifications (general training when no degree-specific tasks mentioned)
+8. **Use Provided Student Degree**: Always use the student degree provided, not any degree mentioned in the document content
 
 CRITICAL CORRECTION RULES:
+- **Use the provided STUDENT DEGREE**: Always use the student degree provided for all degree-related assessments. Do not change the degree based on document content.
 - **Preserve valid calculations**: If hours were calculated from dates, keep them
 - **Preserve valid credit calculations**: If credits were calculated using standard formula, keep them
 - **Preserve credit limits**: The 10 ECTS maximum for general training and 30 ECTS maximum for professional training are established rules
@@ -29,6 +33,7 @@ CRITICAL CORRECTION RULES:
 - **Maintain degree relevance logic**: If tasks/responsibilities are not mentioned, "low" relevance is appropriate
 - **Don't remove valid hour calculations**: If dates are provided, hours should be calculated and preserved
 - **Don't remove valid end date assumptions**: If certificate issue date was used as end date, preserve this reasonable assumption
+- **DO NOT correct degree selection**: The student degree provided is correct. Do not change it based on document content.
 
 CORRECTION OUTPUT FORMAT:
 Respond with ONLY a valid JSON object containing the corrected results:
@@ -82,11 +87,13 @@ STUDENT DEGREE:
 {student_degree}
 
 SPECIAL CORRECTION CHECK:
-- If validation found inconsistency between degree relevance and training classification, prioritize the degree relevance assessment
+- **ALWAYS use the provided STUDENT DEGREE**: The student degree provided is the correct degree for evaluation. Do not change it based on document content.
+- If validation found inconsistency between degree relevance and training classification, prioritize the degree relevance assessment based on the provided student degree
 - If relevance_explanation indicates high/medium relevance but training_type is "general", change training_type to "professional" and recalculate credits accordingly
 - If summary_justification mentions professional training requirements but training_type is "general", change training_type to "professional"
 - If employment dates are available but total_working_hours is null, calculate working hours from the dates using standard assumptions (40 hours/week)
 - Always preserve and calculate working hours when employment dates are provided
 - Always preserve certificate issue date as end date when no explicit end date is provided
+- **DO NOT change the student degree**: The degree provided is the student's current degree program and should not be altered
 
 Respond with ONLY the JSON object, no additional text, no explanations, no markdown formatting."""
