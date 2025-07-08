@@ -4,7 +4,7 @@ OCR Workflow for processing internship certificates and documents.
 This module provides a complete workflow for:
 1. Setting up OCR configuration
 2. Processing documents from samples directory
-3. Extracting text using cert_extractor with Finnish support
+3. Extracting text using OCR cert_extractor with Finnish support
 4. Saving results to processedData directory
 """
 

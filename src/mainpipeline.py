@@ -23,9 +23,9 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 
 try:
-    from llm.cert_extractor import LLMOrchestrator
     from llm.degree_evaluator import DegreeEvaluator
     from ocr.ocr_model import OCRService
+    from workflow.ai_workflow import LLMOrchestrator
 except ImportError as e:
     print(f"❌ Import error: {e}")
     print(f"   Error type: {type(e)}")
@@ -146,34 +146,36 @@ class DocumentPipeline:
         """Get student email from user input."""
         print("\n📧 STUDENT EMAIL:")
         print("   Enter the student's OAMK email address (@students.oamk.fi)")
-        
+
         while True:
             email = input("Enter student email: ").strip()
-            
+
             # Basic email validation
             if not email:
                 print("❌ Email cannot be empty")
                 continue
-                
+
             if "@" not in email or "." not in email:
                 print("❌ Please enter a valid email address")
                 continue
-            
+
             # Validate OAMK student email domain
             if not email.lower().endswith("@students.oamk.fi"):
                 print("❌ Email must end with @students.oamk.fi")
                 print("   Example: firstname.lastname@students.oamk.fi")
                 continue
-                
+
             # Confirm email
             confirm = input(f"Confirm email '{email}' (y/n): ").strip().lower()
-            if confirm in ['y', 'yes']:
+            if confirm in ["y", "yes"]:
                 print(f"✅ Email confirmed: {email}")
                 return email
             else:
                 print("🔄 Please enter the email again")
 
-    def process_document(self, file_path: str, student_degree: str, student_email: str = None) -> Dict[str, Any]:
+    def process_document(
+        self, file_path: str, student_degree: str, student_email: str = None
+    ) -> Dict[str, Any]:
         """Process a document through the complete pipeline."""
         results = {
             "success": False,
@@ -310,7 +312,7 @@ class DocumentPipeline:
         print("🚀 PIPELINE RESULTS")
         print(f"📄 Document: {os.path.basename(results['file_path'])}")
         print(f"🎓 Degree: {results['student_degree']}")
-        if results.get('student_email'):
+        if results.get("student_email"):
             print(f"📧 Student Email: {results['student_email']}")
         print(f"{'=' * 80}")
 
