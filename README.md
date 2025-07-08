@@ -1,345 +1,758 @@
-# OAMK Work Certificate Processing System
+# OCR Certificate Processing Pipeline
 
-An advanced AI-powered system for processing and evaluating work certificates for academic credit assessment at OAMK University of Applied Sciences. The system combines Optical Character Recognition (OCR) with Large Language Model (LLM) processing to automatically extract, validate, and evaluate work experience for academic credit qualification.
+This project provides a **robust OCR (Optical Character Recognition) pipeline** specifically designed for processing **internship certificates** and similar documents. It uses **Tesseract OCR** with intelligent preprocessing to extract clean text from various document formats including scanned PDFs, Word documents, and images.
 
-## 🚀 Features
+## 🚀 Key Features
 
-- 🔍 **Advanced OCR Processing**: Extract text from various document formats (PDF, DOCX, PNG, JPG, TIFF, BMP)
-- 🤖 **LLM-Powered Analysis**: Intelligent extraction and evaluation using Google Gemini AI with automatic fallback models
-- 🎓 **Academic Credit Assessment**: Automatic ECTS credit calculation and degree relevance evaluation
-- ✅ **Multi-Stage Validation**: Comprehensive validation and correction pipeline
-- 📊 **Organized Output**: Clean, structured output with organized file management and cleaned JSON
-- 🌐 **Bilingual Support**: Finnish and English degree program support with automatic language detection
-- 🛠️ **Production Ready**: Type-safe, well-documented, and thoroughly tested
+- **🔍 Advanced OCR Processing**: High-accuracy text extraction using Tesseract with OpenCV preprocessing
+- **🤖 Automated Workflow**: Complete automation with `python -m src.workflow.ocr_workflow` for batch processing
+- **📄 Multi-Format Support**: PDF, DOCX, DOC, JPG, PNG, BMP, TIFF, and TIF files
+- **🖼️ Intelligent Image Preprocessing**: Automatic noise removal, grayscale conversion, and binarization
+- **📝 Enhanced Word Spacing**: Advanced algorithms to fix missing spaces in scanned documents and images
+- **🇫🇮 Multi-Language Support**: Optimized processing for Finnish and English certificates with auto-detection
+- **📊 Comprehensive Reports**: Detailed processing summaries with language statistics and performance metrics
+- **⚙️ Smart Configuration**: Auto-detection of Tesseract installation across platforms
+- **📝 Clean Text Output**: Normalized and formatted text with whitespace cleaning
+- **🛠️ Production Ready**: Type-safe, well-documented, and comprehensively tested
 
-## 📁 Project Structure
+## 📁 OCR Pipeline Architecture
 
 ```
-backend/
-├── src/
-│   ├── ocr/
-│   │   ├── __init__.py
-│   │   └── ocr_model.py              # OCR service with Tesseract integration
-│   ├── llm/
-│   │   ├── __init__.py
-│   │   ├── cert_extractor.py         # LLM orchestrator for processing
-│   │   ├── degree_evaluator.py       # Degree program management
-│   │   ├── degree_programs_data.py   # Bilingual degree program definitions
-│   │   └── prompts/
-│   │       ├── __init__.py
-│   │       ├── correction.py         # Correction prompt templates
-│   │       ├── evaluation.py         # Evaluation prompt templates
-│   │       ├── extraction.py         # Extraction prompt templates
-│   │       └── validation.py         # Validation prompt templates
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   ├── docx_processor.py         # DOCX file processing
-│   │   ├── finnish_ocr_corrector.py  # Finnish text correction
-│   │   ├── image_preprocessing.py    # Image preprocessing utilities
-│   │   ├── logger.py                 # Logging utilities
-│   │   └── pdf_converter.py          # PDF processing utilities
-│   ├── config.py                     # Application configuration
-│   ├── mainpipeline.py               # Complete end-to-end processing pipeline
-│   ├── test_extractor.py             # LLM processing test script
-│   └── test_ocr.py                   # OCR processing test script
-├── samples/                          # Sample work certificates for testing
-│   ├── scanned/                      # Scanned document samples
-│   ├── letter based format/          # Letter-based certificate samples
-│   └── ...                          # Various sample formats
-├── outputs/                          # Organized output directory
-│   └── {sample_name}/                # Each sample gets its own directory
-│       ├── OCRoutput_{sample}.txt    # OCR extracted text
-│       └── LLMoutput_{sample}_*.json # LLM evaluation results
-├── requirements.txt                  # Python dependencies
-├── setup_precommit.py                # Pre-commit setup script
-└── README.md                         # This file
+backend/src/ocr/
+├── cert_extractor.py    # 🎯 Main certificate processing orchestrator
+│   ├── extract_certificate_text()     # Entry point for all file types
+│   ├── _extract_from_image()          # Image file processing
+│   ├── _extract_from_pdf()            # PDF to image conversion + OCR
+│   ├── _extract_from_docx()           # Word document text + image OCR
+│   └── _clean_text()                  # Text normalization
+│
+└── ocr.py              # 🔧 Core OCR engine and preprocessing
+    ├── OCRProcessor class             # Main OCR functionality
+    ├── extract_text()                 # Text extraction with preprocessing
+    ├── extract_data()                 # Detailed OCR data with coordinates
+    ├── _prepare_image()               # Multi-format image conversion
+    └── _preprocess_image()            # OpenCV enhancement pipeline
 ```
 
-## 🎯 Core Functionality
+## 🔄 Processing Workflow
 
-### 1. **OCR Processing**
-- Multi-format document support (PDF, DOCX, images)
-- Advanced text extraction with Tesseract OCR
-- Automatic image preprocessing for better accuracy
-- Finnish text correction and normalization
+```mermaid
+graph TD
+    A[Certificate File] --> B{File Type Detection}
+    B -->|Image| C[Image Preprocessing]
+    B -->|PDF| D[PDF → Images]
+    B -->|DOCX/DOC| E[Text Extraction + Image OCR]
+    
+    C --> F[OpenCV Enhancement]
+    D --> F
+    E --> F
+    
+    F --> G[Noise Removal]
+    G --> H[Grayscale Conversion]
+    H --> I[Binary Thresholding]
+    I --> J[Tesseract OCR]
+    J --> K[Text Cleaning]
+    K --> L[Clean Output Text]
+    
+    style A fill:#e1f5fe
+    style L fill:#c8e6c9
+    style J fill:#fff3e0
+```
 
-### 2. **LLM-Powered Analysis**
-- **Extraction**: Extract employee information, job details, and employment periods
-- **Evaluation**: Calculate working hours, determine training type, and assess degree relevance
-- **Validation**: Validate results against original documents and identify issues
-- **Correction**: Automatically correct identified problems
+## 🛠️ Installation & Setup
 
-### 3. **Academic Credit Assessment**
-- Automatic ECTS credit calculation (27 hours = 1 ECTS)
-- Training type classification (General vs Professional)
-- Degree relevance evaluation with bilingual support
-- Credit limit enforcement (10 ECTS max for general training)
-- Bilingual degree program matching (Finnish and English)
+### 1. Prerequisites
 
-## 🛠️ Prerequisites
-
-### 1. Install Tesseract OCR
+**Install Tesseract OCR** (required for text extraction):
 
 **Windows:**
 ```powershell
-# Option 1: Download from official site
-# Visit: https://github.com/UB-Mannheim/tesseract/wiki
-# Download and install tesseract-ocr-w64-setup-v5.3.0.exe
+# Option 1: Official installer (Recommended)
+# Download from: https://github.com/UB-Mannheim/tesseract/wiki
+# Install tesseract-ocr-w64-setup-v5.3.0.exe or later
 
-# Option 2: Using Chocolatey
-choco install tesseract
-
-# Option 3: Using Scoop
-scoop install tesseract
+# Option 2: Package managers
+choco install tesseract          # Chocolatey
+scoop install tesseract          # Scoop
 ```
 
 **macOS:**
 ```bash
-# Using Homebrew
-brew install tesseract
-
-# Using MacPorts
-sudo port install tesseract
+brew install tesseract           # Homebrew
+sudo port install tesseract     # MacPorts
 ```
 
-**Linux (Ubuntu/Debian):**
+**Linux:**
 ```bash
-sudo apt update
-sudo apt install tesseract-ocr
+# Ubuntu/Debian
+sudo apt update && sudo apt install tesseract-ocr
+
+# CentOS/RHEL/Fedora
+sudo dnf install tesseract       # Fedora
+sudo yum install tesseract       # CentOS/RHEL
 ```
 
-**Linux (CentOS/RHEL):**
-```bash
-sudo yum install tesseract
-```
-
-### 2. Verify Tesseract Installation
+**Verify Installation:**
 ```bash
 tesseract --version
+# Should output: tesseract 5.x.x
 ```
 
-### 3. Set Up Google Gemini API
-1. Get API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Set environment variable:
-```bash
-export GEMINI_API_KEY="your-api-key-here"
-```
+### 2. Python Environment Setup
 
-## 🚀 Setup Instructions
-
-### 1. Clone and Navigate
 ```bash
+# Clone and navigate to project
 git clone <repository-url>
 cd backend
-```
 
-### 2. Create Virtual Environment
-```bash
+# Create and activate virtual environment
 python -m venv venv
-```
 
-### 3. Activate Virtual Environment
+# Windows
+venv\Scripts\Activate
 
-**Windows:**
-```powershell
-.\venv\Scripts\Activate
-```
-
-**macOS/Linux:**
-```bash
+# macOS/Linux  
 source venv/bin/activate
-```
 
-### 4. Install Dependencies
-```bash
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 5. Set Up Pre-commit Hooks (Optional)
-```bash
-python setup_precommit.py
-```
+## 🚀 Automated OCR Workflow
 
-## 📖 Usage
+### Quick Start with OCR Workflow
 
-### Option 1: Complete Pipeline (Recommended)
-Process documents from start to finish with OCR and LLM evaluation:
+The **OCR Workflow** provides a complete automation solution for processing multiple documents at once with intelligent language detection and Finnish optimization.
+
+#### 🔧 Basic Usage
 
 ```bash
-cd src
-python mainpipeline.py
+# Activate virtual environment
+# Windows
+venv\Scripts\Activate
+# macOS/Linux
+source venv/bin/activate
+
+# Run the automated workflow
+python -m src.workflow.ocr_workflow
 ```
 
 This will:
-1. Show available sample files
-2. Let you select a document
-3. Let you choose a degree program
-4. Process through OCR → LLM → Validation → Correction
-5. Save organized results
+- ✅ **Auto-discover** all supported documents in the `samples/` directory
+- 🇫🇮 **Auto-detect** Finnish documents and apply specialized processing
+- 📄 **Extract text** from PDFs, DOCX, DOC, and image files
+- 💾 **Save results** to `processedData/text_files/`
+- 📊 **Generate reports** with language statistics and processing summaries
+- 🔍 **Create logs** for debugging and monitoring
 
-### Option 2: Individual Components
+#### 📁 Directory Structure
 
-**OCR Processing Only:**
+```
+backend/
+├── samples/                    # 📥 Input documents (PDF, DOCX, images)
+│   ├── certificate1.pdf
+│   ├── finnish-cert.pdf
+│   └── internship-letter.docx
+├── processedData/             # 📤 Output directory
+│   ├── text_files/           # 📄 Extracted text files
+│   │   ├── certificate1.txt
+│   │   ├── finnish-cert.txt
+│   │   └── internship-letter.txt
+│   ├── reports/              # 📊 Processing reports
+│   │   ├── processing_report_20240108_143022.json
+│   │   └── summary_20240108_143022.txt
+│   └── logs/                 # 🔍 Application logs
+└── src/workflow/ocr_workflow.py
+```
+
+#### 🎯 Advanced Workflow Usage
+
+```python
+from src.workflow.ocr_workflow import run_ocr_workflow
+
+# Run with custom configuration
+summary = run_ocr_workflow(
+    samples_dir="my_documents",      # Custom input directory
+    output_dir="results",            # Custom output directory
+    language="fin",                  # Force Finnish language
+    use_finnish_detection=True       # Enable smart Finnish detection
+)
+
+# Access processing results
+print(f"Processed {summary['total_documents']} documents")
+print(f"Success rate: {summary['success_rate']}%")
+print(f"Finnish documents found: {summary['finnish_documents_count']}")
+```
+
+#### 🔍 Language Detection & Finnish Optimization
+
+The workflow includes **intelligent language detection**:
+
+```python
+# Auto-detect Finnish documents based on:
+# 1. Filename indicators: "finnish", "suomi", "työtodistus", "todistus"
+# 2. Content analysis: Finnish characters (ä, ö, å)
+# 3. Finnish keywords: "harjoittelu", "kesätyö", "työ"
+
+# Example processing output:
+# 🇫🇮 Detected Finnish document from filename: finnish-certificate.pdf
+# 📄 Using Finnish-specific extraction for: työtodistus.pdf
+# ✅ Success: certificate.pdf -> certificate.txt (1245 chars, 23 Finnish chars, lang: fin)
+```
+
+#### 📊 Processing Reports
+
+The workflow generates detailed reports:
+
+**JSON Report** (`processing_report_YYYYMMDD_HHMMSS.json`):
+```json
+{
+  "total_documents": 10,
+  "successful": 9,
+  "failed": 1,
+  "success_rate": 90.0,
+  "total_finnish_characters": 156,
+  "finnish_documents_count": 3,
+  "language_statistics": {
+    "fin": 3,
+    "eng": 5,
+    "auto": 1
+  },
+  "finnish_documents": [
+    {
+      "file": "finnish-cert.pdf",
+      "finnish_chars": 89,
+      "language": "fin"
+    }
+  ]
+}
+```
+
+**Human-Readable Summary** (`summary_YYYYMMDD_HHMMSS.txt`):
+```
+OCR PROCESSING SUMMARY
+==================================================
+
+Processing completed: 2024-01-08T14:30:22.123456
+Total documents: 10
+Successful: 9
+Failed: 1
+Success rate: 90.0%
+Total processing time: 45.2s
+Average processing time: 4.5s
+Total text extracted: 12,456 characters
+
+LANGUAGE ANALYSIS:
+--------------------
+Language mode: auto
+Finnish detection: Enabled
+Finnish documents found: 3
+Total Finnish characters: 156
+
+🇫🇮 FINNISH DOCUMENTS:
+--------------------
+🇫🇮 finnish-cert.pdf - 89 Finnish chars (lang: fin)
+🇫🇮 työtodistus.pdf - 45 Finnish chars (lang: fin)
+🇫🇮 harjoittelu.pdf - 22 Finnish chars (lang: fin)
+```
+
+#### 🛠️ Workflow Configuration Options
+
+```python
+from src.workflow.ocr_workflow import OCRWorkflow
+
+# Create workflow with custom settings
+workflow = OCRWorkflow(
+    samples_dir="documents",           # Input directory
+    output_dir="extracted_text",       # Output directory
+    language="auto",                   # Language mode: "auto", "eng", "fin", "eng+fin"
+    use_finnish_detection=True         # Auto-detect Finnish documents
+)
+
+# Process all documents
+summary = workflow.process_all_documents()
+
+# Process individual document
+result = workflow.process_document(Path("document.pdf"))
+```
+
+#### 🔧 Command Line Options
+
 ```bash
-cd src
-python test_ocr.py
+# Basic usage - processes samples/ directory
+python -m src.workflow.ocr_workflow
+
+# Set custom directories via environment variables
+export OCR_SAMPLES_DIR="my_documents"
+export OCR_OUTPUT_DIR="results"
+python -m src.workflow.ocr_workflow
+
+# Run with specific language
+python -c "from src.workflow.ocr_workflow import run_ocr_workflow; run_ocr_workflow(language='fin')"
 ```
 
-**LLM Processing Only (requires OCR output):**
-```bash
-cd src
-python test_extractor.py
+#### 🎯 Production Batch Processing
+
+```python
+# Example: Process large document batches
+import os
+from pathlib import Path
+from src.workflow.ocr_workflow import OCRWorkflow
+
+def process_document_batches(base_dir: str):
+    """Process multiple document folders in batches."""
+    
+    base_path = Path(base_dir)
+    
+    for folder in base_path.iterdir():
+        if folder.is_dir():
+            print(f"Processing folder: {folder.name}")
+            
+            # Create workflow for each folder
+            workflow = OCRWorkflow(
+                samples_dir=folder,
+                output_dir=f"results/{folder.name}",
+                language="auto",
+                use_finnish_detection=True
+            )
+            
+            # Process documents
+            summary = workflow.process_all_documents()
+            
+            print(f"✅ Completed {folder.name}: {summary['successful']}/{summary['total_documents']} documents")
+
+# Usage
+process_document_batches("document_batches")
 ```
 
-## 📊 Output Structure
+#### 🚨 Error Handling & Monitoring
 
-The system creates organized output directories:
+```python
+# Robust workflow execution with error handling
+def safe_workflow_execution():
+    try:
+        summary = run_ocr_workflow()
+        
+        # Check for failed documents
+        if summary['failed'] > 0:
+            print(f"⚠️  {summary['failed']} documents failed processing")
+            
+            # Log failed documents
+            for result in summary['results']:
+                if not result['success']:
+                    print(f"❌ {result['file_path']}: {result['error']}")
+        
+        return summary
+        
+    except Exception as e:
+        print(f"💥 Workflow execution failed: {e}")
+        # Handle workflow failure (send alerts, log to external system, etc.)
+        raise
 
+# Monitor processing progress
+summary = safe_workflow_execution()
+print(f"📊 Processing completed: {summary['success_rate']}% success rate")
 ```
-backend/outputs/
-└── sample_certificate/
-    ├── OCRoutput_sample_certificate.txt
-    └── LLMoutput_sample_certificate_pipeline_20250702_120000.json
+
+---
+
+## 💻 Manual Usage Examples
+
+### Basic Certificate Processing
+
+```python
+from src.ocr.cert_extractor import extract_certificate_text
+
+# Process different file types
+pdf_text = extract_certificate_text("certificates/internship_cert.pdf")
+docx_text = extract_certificate_text("certificates/letter.docx") 
+image_text = extract_certificate_text("certificates/scanned_cert.jpg")
+
+print("Extracted text:", pdf_text)
+
+# Enhanced word spacing for scanned documents
+scanned_text = extract_certificate_text("certificates/scanned_cert.pdf")
+print("Scanned with proper word spacing:", scanned_text)
 ```
 
-### Output Files:
+### Advanced OCR with Custom Settings
 
-1. **OCR Text File** (`OCRoutput_*.txt`):
-   - Raw extracted text from the document
-   - Cleaned and normalized
+```python
+from src.ocr.ocr import ocr_processor
+from PIL import Image
 
-2. **LLM Results File** (`LLMoutput_*.json`):
-   - Complete processing results (cleaned JSON format)
-   - Extraction, evaluation, validation, and correction data
-   - Academic credit assessment
-   - Processing metadata
-   - Simplified file paths and removed success fields for cleaner output
+# Load and process image with custom configuration
+image = Image.open("certificate.png")
 
-## 🎓 Supported Degree Programs
+# Extract text with Finnish language support
+finnish_text = ocr_processor.extract_text(
+    image, 
+    lang="fin",  # Finnish OCR
+    config="--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖäö0123456789.,: "
+)
 
-The system supports various OAMK degree programs including:
-- Insinööri (AMK), tieto- ja viestintätekniikka
-- Bachelor of Engineering (BEng), Information Technology
-- Rakennusmestari (AMK)
-- And more...
+# Get detailed OCR data with coordinates and confidence scores
+ocr_data = ocr_processor.extract_data(image, lang="eng")
+for i, text in enumerate(ocr_data['text']):
+    if text.strip():
+        confidence = ocr_data['conf'][i]
+        x, y, w, h = ocr_data['left'][i], ocr_data['top'][i], ocr_data['width'][i], ocr_data['height'][i]
+        print(f"Text: '{text}' | Confidence: {confidence}% | Position: ({x},{y},{w},{h})")
+```
 
-## 🔄 Recent Features
+### Batch Processing Multiple Files
 
-### JSON Output Cleaning
-- **Removed Success Fields**: All `"success": true/false` fields are automatically removed from output JSON for cleaner, more readable results
-- **Simplified File Paths**: File paths are simplified to show only `samples/filename` instead of full absolute paths
-- **Cleaner Structure**: Output JSON is optimized for readability while preserving all essential data
+```python
+import os
+from pathlib import Path
+from src.ocr.cert_extractor import extract_certificate_text
 
-### Gemini Model Fallback
-- **Automatic Fallback**: If the primary Gemini model reaches quota limits, the system automatically switches to fallback models
-- **Seamless Processing**: Fallback happens transparently without interrupting the processing pipeline
-- **Multiple Models**: Supports fallback to `gemini-1.5-pro` when quota is reached
+def process_certificate_folder(folder_path: str) -> dict[str, str]:
+    """Process all certificate files in a folder."""
+    results = {}
+    folder = Path(folder_path)
+    
+    # Supported file extensions
+    supported_exts = {'.pdf', '.docx', '.doc', '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
+    
+    for file_path in folder.iterdir():
+        if file_path.suffix.lower() in supported_exts:
+            try:
+                text = extract_certificate_text(file_path)
+                results[file_path.name] = text
+                print(f"✅ Processed: {file_path.name}")
+            except Exception as e:
+                results[file_path.name] = f"Error: {e}"
+                print(f"❌ Failed: {file_path.name} - {e}")
+    
+    return results
 
-### Bilingual Support
-- **Language Detection**: Automatically detects document language (Finnish/English)
-- **Bilingual Matching**: Degree programs are matched using both Finnish and English keywords
-- **Improved Accuracy**: Finnish certificates now receive correct relevance scoring and justifications
+# Process all certificates in samples folder
+results = process_certificate_folder("samples/")
+```
+
+### Real-time Processing with Error Handling
+
+```python
+from src.ocr.cert_extractor import extract_certificate_text
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+def safe_extract_text(file_path: str) -> tuple[str, bool, str]:
+    """
+    Safely extract text with comprehensive error handling.
+    
+    Returns:
+        tuple: (extracted_text, success_flag, error_message)
+    """
+    try:
+        text = extract_certificate_text(file_path)
+        
+        if not text.strip():
+            return "", False, "No text could be extracted from the document"
+        
+        # Validate extracted text quality
+        if len(text) < 10:
+            logger.warning(f"Very short text extracted from {file_path}: '{text}'")
+        
+        return text, True, ""
+        
+    except ValueError as e:
+        return "", False, f"Unsupported file format: {e}"
+    except FileNotFoundError:
+        return "", False, f"File not found: {file_path}"
+    except Exception as e:
+        logger.exception(f"Unexpected error processing {file_path}")
+        return "", False, f"Processing error: {e}"
+
+# Usage
+text, success, error = safe_extract_text("certificate.pdf")
+if success:
+    print(f"Extracted: {text[:100]}...")
+else:
+    print(f"Error: {error}")
+```
 
 ## ⚙️ Configuration
 
 ### Environment Variables
-```bash
-# Required for LLM processing
-GEMINI_API_KEY=your-api-key-here
 
-# Optional: Custom Tesseract path
-TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
+Create a `.env` file for custom configuration:
+
+```env
+# Tesseract Configuration
+TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe  # Windows custom path
+# TESSERACT_CMD=/usr/local/bin/tesseract                    # macOS custom path
+
+# Application Settings  
+DEBUG=true
+ENVIRONMENT=development
+APP_NAME=OCR Certificate Processor
 ```
 
-### Degree Program Configuration
-Edit `src/llm/degree_programs_data.py` to add or modify degree programs and their evaluation criteria. The system supports both Finnish and English degree programs with automatic language detection.
+### OCR Language Support
 
-## 🔧 Development
-
-### Code Quality Tools
-```bash
-# Install pre-commit hooks
-python setup_precommit.py
-
-# Run pre-commit on all files
-pre-commit run --all-files
-
-# Run pre-commit on staged files only
-pre-commit run
-```
-
-### Project Dependencies
-
-**Core Processing:**
-- `pytesseract`: OCR text extraction
-- `opencv-python`: Image preprocessing
-- `pillow`: Image handling
-- `google-generativeai`: Google Gemini AI integration with fallback models
-
-**Document Processing:**
-- `pdf2image`: PDF to image conversion
-- `python-docx`: DOCX file processing
-- `pymupdf`: PDF text extraction
-
-**Configuration & Development:**
-- `pydantic`: Data validation
-- `ruff`: Code linting
-- `mypy`: Type checking
-- `pre-commit`: Git hooks
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **"Tesseract not found"**
-   - Ensure Tesseract is installed and in PATH
-   - Set `TESSERACT_CMD` environment variable
-   - Check installation: `tesseract --version`
-
-2. **"LLM orchestrator not available"**
-   - Set `GEMINI_API_KEY` environment variable
-   - Verify API key is valid
-   - Check internet connection
-
-3. **"No OCR output files found"**
-   - Run `test_ocr.py` first to generate OCR outputs
-   - Check that sample files exist in `samples/` directory
-
-4. **Poor OCR accuracy**
-   - Ensure documents are high-resolution
-   - Images should have good contrast
-   - Text should be clearly readable
-
-5. **PDF processing fails**
-   - Install `poppler-utils` (Linux) or `poppler` (macOS/Windows)
-   - For Windows: Download from https://github.com/oschwartz10612/poppler-windows
-
-### Logging
-Check logs for detailed error information:
 ```python
-from src.utils.logger import get_logger
-logger = get_logger(__name__)
+from src.ocr.ocr import ocr_processor
+
+# Check available languages
+languages = ocr_processor.get_available_languages()
+print("Available languages:", languages)
+
+# Common language codes:
+# 'eng' - English
+# 'fin' - Finnish  
+# 'swe' - Swedish
+# 'deu' - German
+# 'fra' - French
 ```
 
-## 📝 Sample Files
+## 🧪 Testing
 
-The `samples/` directory contains various test documents:
-- Scanned PDFs
-- Digital PDFs
-- DOCX files
-- Image files (PNG, JPG)
-- Different certificate formats
+### Quick Test Script
+
+```python
+# test_pipeline.py
+from src.ocr.cert_extractor import extract_certificate_text
+from pathlib import Path
+
+def test_pipeline():
+    """Test the OCR pipeline with sample files."""
+    sample_dir = Path("samples")
+    
+    if not sample_dir.exists():
+        print("❌ samples/ directory not found")
+        return
+    
+    files_tested = 0
+    files_success = 0
+    
+    for file_path in sample_dir.iterdir():
+        if file_path.suffix.lower() in {'.pdf', '.docx', '.doc', '.jpg', '.jpeg', '.png'}:
+            files_tested += 1
+            try:
+                text = extract_certificate_text(file_path)
+                if text.strip():
+                    files_success += 1
+                    print(f"✅ {file_path.name}: {len(text)} characters extracted")
+                else:
+                    print(f"⚠️  {file_path.name}: No text extracted")
+            except Exception as e:
+                print(f"❌ {file_path.name}: {e}")
+    
+    print(f"\n📊 Results: {files_success}/{files_tested} files processed successfully")
+
+if __name__ == "__main__":
+    test_pipeline()
+```
+
+```bash
+# Run the test
+python test_pipeline.py
+```
+
+## 🔧 Troubleshooting
+
+### Common Issues & Solutions
+
+**1. Tesseract Not Found Error**
+```bash
+# Verify installation
+tesseract --version
+
+# Check PATH (Windows)
+echo $env:PATH | Select-String "tesseract"
+
+# Check PATH (macOS/Linux)  
+echo $PATH | grep tesseract
+
+# Manual configuration in .env
+TESSERACT_CMD=/full/path/to/tesseract
+```
+
+**2. Poor OCR Accuracy**
+```python
+# Tips for better results:
+# - Use high-resolution images (300+ DPI)
+# - Ensure good contrast between text and background
+# - Avoid skewed or rotated text
+# - Use clean, noise-free scans
+
+# Custom preprocessing for difficult documents:
+from src.ocr.ocr import ocr_processor
+import cv2
+import numpy as np
+
+def enhance_difficult_image(image_path):
+    """Enhanced preprocessing for low-quality documents."""
+    image = cv2.imread(image_path)
+    
+    # Convert to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # Apply adaptive thresholding
+    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    
+    # Morphological operations to clean up
+    kernel = np.ones((2,2), np.uint8)
+    cleaned = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    
+    # Extract text
+    return ocr_processor.extract_text(cleaned, preprocess=False)
+```
+
+**3. PDF Processing Issues**
+```bash
+# Install poppler for PDF support:
+
+# Windows: Download from https://github.com/oschwartz10612/poppler-windows
+# Add to PATH or extract to project folder
+
+# macOS:
+brew install poppler
+
+# Linux:
+sudo apt-get install poppler-utils
+```
+
+**4. Memory Issues with Large Files**
+```python
+# For large documents, process page by page:
+def process_large_pdf(pdf_path, max_pages=None):
+    """Process large PDFs with memory management."""
+    from pdf2image import convert_from_path
+    
+    images = convert_from_path(pdf_path, first_page=1, last_page=max_pages)
+    texts = []
+    
+    for i, image in enumerate(images):
+        print(f"Processing page {i+1}/{len(images)}")
+        text = ocr_processor.extract_text(image)
+        texts.append(text)
+        
+        # Clear memory
+        del image
+    
+    return "\n\n--- Page Break ---\n\n".join(texts)
+```
+
+## 📊 Performance Optimization
+
+### Processing Speed Tips
+
+```python
+# 1. Skip preprocessing for clean documents
+text = ocr_processor.extract_text(image, preprocess=False)
+
+# 2. Use specific PSM modes for different document types
+configs = {
+    'single_block': '--psm 6',      # Single uniform block of text
+    'single_line': '--psm 7',       # Single text line  
+    'single_word': '--psm 8',       # Single word
+    'single_char': '--psm 10',      # Single character
+}
+
+# 3. Limit character whitelist for known document types
+certificate_config = "--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,:-/ "
+```
+
+## 📈 Integration Examples
+
+### FastAPI Integration
+
+```python
+from fastapi import FastAPI, UploadFile, HTTPException
+from src.ocr.cert_extractor import extract_certificate_text
+import tempfile
+
+app = FastAPI(title="OCR Certificate API")
+
+@app.post("/extract-text/")
+async def extract_text_endpoint(file: UploadFile):
+    """Extract text from uploaded certificate file."""
+    
+    # Validate file type
+    allowed_types = {'application/pdf', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Unsupported file type")
+    
+    # Save uploaded file temporarily
+    with tempfile.NamedTemporaryFile(delete=False, suffix=file.filename) as tmp_file:
+        content = await file.read()
+        tmp_file.write(content)
+        tmp_file_path = tmp_file.name
+    
+    try:
+        # Extract text
+        extracted_text = extract_certificate_text(tmp_file_path)
+        
+        return {
+            "filename": file.filename,
+            "extracted_text": extracted_text,
+            "character_count": len(extracted_text),
+            "word_count": len(extracted_text.split())
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Text extraction failed: {e}")
+    
+    finally:
+        # Clean up temporary file
+        os.unlink(tmp_file_path)
+```
+
+## 📚 Dependencies
+
+```txt
+# Core OCR and Image Processing
+pytesseract==0.3.13          # Tesseract Python wrapper
+opencv-python==4.11.0.86     # Image preprocessing
+Pillow==11.2.1                # Image handling
+
+# Document Processing  
+pdf2image==1.17.0             # PDF to image conversion
+python-docx==1.2.0            # Word document processing
+docx2txt==0.9                 # Text extraction from DOCX
+
+# Configuration Management
+pydantic==2.11.7              # Settings validation
+pydantic-settings==2.10.1     # Environment-based config
+python-dotenv==1.1.1          # .env file support
+
+# Utilities
+numpy==2.3.1                  # Numerical operations
+```
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run pre-commit hooks: `pre-commit run --all-files`
-5. Submit a pull request
+1. **Code Style**: Follow PEP 8 guidelines using `ruff`
+2. **Type Hints**: All functions must have complete type annotations
+3. **Documentation**: Google-style docstrings required
+4. **Testing**: Minimum 90% test coverage with pytest
+5. **Logging**: Use the provided logger for all operations
+
+```bash
+# Development setup
+pip install ruff mypy pytest pre-commit
+pre-commit install
+
+# Run quality checks
+ruff check .
+mypy src/
+pytest tests/ -v --cov=src --cov-report=html
+```
 
 ## 📄 License
 
-This project is developed for OAMK University of Applied Sciences.
+This project is developed for OAMK internship workflow automation.
+
+---
+
+**Need help?** Check the troubleshooting section above or create an issue with:
+- Your operating system and Python version
+- Complete error messages
+- Sample file (if possible)
+- Steps to reproduce the issue
 
 

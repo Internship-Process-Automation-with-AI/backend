@@ -38,8 +38,3 @@ env/
 *.log
 logs/
 
-#debug files
-debug/
-
-#output
-outputs
