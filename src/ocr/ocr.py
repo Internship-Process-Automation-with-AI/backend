@@ -145,6 +145,7 @@ class OCRProcessor:
                 processed_image = self._prepare_image(image, enhance_for_finnish=True)
             else:
                 # Use image directly without heavy preprocessing
+                # BUT ensure it's in a format that pytesseract can handle
                 if isinstance(image, (str, Path)):
                     processed_image = Image.open(image)
                 elif isinstance(image, np.ndarray):
@@ -153,6 +154,9 @@ class OCRProcessor:
                     processed_image = image
                 else:
                     raise ValueError(f"Unsupported image type: {type(image)}")
+
+                # FIX: Ensure image format compatibility with pytesseract
+                processed_image = self._normalize_image_format(processed_image)
 
             # Extract with Finnish language settings
             text = pytesseract.image_to_string(
@@ -284,6 +288,7 @@ class OCRProcessor:
         self,
         image: str | Path | Image.Image | np.ndarray,
         preprocess: bool = True,
+        enhance_for_finnish: bool = False,
     ) -> Image.Image:
         """
         Prepare image for OCR processing.
@@ -291,6 +296,7 @@ class OCRProcessor:
         Args:
             image: Input image in various formats
             preprocess: Whether to apply preprocessing
+            enhance_for_finnish: Whether to apply Finnish-specific enhancements
 
         Returns:
             PIL Image ready for OCR
@@ -311,8 +317,13 @@ class OCRProcessor:
             msg = f"Unsupported image type: {type(image)}"
             raise ValueError(msg)
 
+        # Always normalize format for pytesseract compatibility
+        pil_image = self._normalize_image_format(pil_image)
+
         if preprocess:
-            pil_image = self._preprocess_image(pil_image)
+            pil_image = self._preprocess_image(
+                pil_image, enhance_for_finnish=enhance_for_finnish
+            )
 
         return pil_image
 
@@ -536,6 +547,50 @@ class OCRProcessor:
             result = result.replace(mistake, correction)
 
         return result.strip()
+
+    def _normalize_image_format(self, image: Image.Image) -> Image.Image:
+        """
+        Normalize image format to ensure pytesseract compatibility.
+
+        Args:
+            image: PIL Image to normalize
+
+        Returns:
+            Normalized PIL Image compatible with pytesseract
+        """
+        try:
+            # Convert to RGB if necessary (pytesseract works best with RGB or L mode)
+            if image.mode not in ("RGB", "L"):
+                if image.mode == "RGBA":
+                    # Create white background for RGBA images
+                    background = Image.new("RGB", image.size, (255, 255, 255))
+                    background.paste(
+                        image, mask=image.split()[-1]
+                    )  # Use alpha channel as mask
+                    image = background
+                else:
+                    image = image.convert("RGB")
+
+            # Ensure image has proper format attribute
+            if not hasattr(image, "format") or image.format is None:
+                # Create a new image with proper format
+                img_copy = Image.new(image.mode, image.size)
+                img_copy.paste(image)
+                img_copy.format = "PNG"  # Set a safe format
+                return img_copy
+
+            return image
+
+        except Exception as e:
+            logger.warning(f"Image normalization failed: {e}")
+            # Fallback: convert to RGB and set PNG format
+            try:
+                normalized = image.convert("RGB")
+                normalized.format = "PNG"
+                return normalized
+            except Exception as fallback_e:
+                logger.error(f"Image normalization fallback failed: {fallback_e}")
+                raise
 
 
 # Global OCR processor instance

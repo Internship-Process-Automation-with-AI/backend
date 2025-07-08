@@ -5,10 +5,12 @@ This project provides a **robust OCR (Optical Character Recognition) pipeline** 
 ## 🚀 Key Features
 
 - **🔍 Advanced OCR Processing**: High-accuracy text extraction using Tesseract with OpenCV preprocessing
+- **🤖 Automated Workflow**: Complete automation with `python -m src.workflow.ocr_workflow` for batch processing
 - **📄 Multi-Format Support**: PDF, DOCX, DOC, JPG, PNG, BMP, TIFF, and TIF files
 - **🖼️ Intelligent Image Preprocessing**: Automatic noise removal, grayscale conversion, and binarization
 - **📝 Enhanced Word Spacing**: Advanced algorithms to fix missing spaces in scanned documents and images
-- **🇫🇮 Multi-Language Support**: Optimized processing for Finnish and English certificates
+- **🇫🇮 Multi-Language Support**: Optimized processing for Finnish and English certificates with auto-detection
+- **📊 Comprehensive Reports**: Detailed processing summaries with language statistics and performance metrics
 - **⚙️ Smart Configuration**: Auto-detection of Tesseract installation across platforms
 - **📝 Clean Text Output**: Normalized and formatted text with whitespace cleaning
 - **🛠️ Production Ready**: Type-safe, well-documented, and comprehensively tested
@@ -116,7 +118,245 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## 💻 Usage Examples
+## 🚀 Automated OCR Workflow
+
+### Quick Start with OCR Workflow
+
+The **OCR Workflow** provides a complete automation solution for processing multiple documents at once with intelligent language detection and Finnish optimization.
+
+#### 🔧 Basic Usage
+
+```bash
+# Activate virtual environment
+# Windows
+venv\Scripts\Activate
+# macOS/Linux
+source venv/bin/activate
+
+# Run the automated workflow
+python -m src.workflow.ocr_workflow
+```
+
+This will:
+- ✅ **Auto-discover** all supported documents in the `samples/` directory
+- 🇫🇮 **Auto-detect** Finnish documents and apply specialized processing
+- 📄 **Extract text** from PDFs, DOCX, DOC, and image files
+- 💾 **Save results** to `processedData/text_files/`
+- 📊 **Generate reports** with language statistics and processing summaries
+- 🔍 **Create logs** for debugging and monitoring
+
+#### 📁 Directory Structure
+
+```
+backend/
+├── samples/                    # 📥 Input documents (PDF, DOCX, images)
+│   ├── certificate1.pdf
+│   ├── finnish-cert.pdf
+│   └── internship-letter.docx
+├── processedData/             # 📤 Output directory
+│   ├── text_files/           # 📄 Extracted text files
+│   │   ├── certificate1.txt
+│   │   ├── finnish-cert.txt
+│   │   └── internship-letter.txt
+│   ├── reports/              # 📊 Processing reports
+│   │   ├── processing_report_20240108_143022.json
+│   │   └── summary_20240108_143022.txt
+│   └── logs/                 # 🔍 Application logs
+└── src/workflow/ocr_workflow.py
+```
+
+#### 🎯 Advanced Workflow Usage
+
+```python
+from src.workflow.ocr_workflow import run_ocr_workflow
+
+# Run with custom configuration
+summary = run_ocr_workflow(
+    samples_dir="my_documents",      # Custom input directory
+    output_dir="results",            # Custom output directory
+    language="fin",                  # Force Finnish language
+    use_finnish_detection=True       # Enable smart Finnish detection
+)
+
+# Access processing results
+print(f"Processed {summary['total_documents']} documents")
+print(f"Success rate: {summary['success_rate']}%")
+print(f"Finnish documents found: {summary['finnish_documents_count']}")
+```
+
+#### 🔍 Language Detection & Finnish Optimization
+
+The workflow includes **intelligent language detection**:
+
+```python
+# Auto-detect Finnish documents based on:
+# 1. Filename indicators: "finnish", "suomi", "työtodistus", "todistus"
+# 2. Content analysis: Finnish characters (ä, ö, å)
+# 3. Finnish keywords: "harjoittelu", "kesätyö", "työ"
+
+# Example processing output:
+# 🇫🇮 Detected Finnish document from filename: finnish-certificate.pdf
+# 📄 Using Finnish-specific extraction for: työtodistus.pdf
+# ✅ Success: certificate.pdf -> certificate.txt (1245 chars, 23 Finnish chars, lang: fin)
+```
+
+#### 📊 Processing Reports
+
+The workflow generates detailed reports:
+
+**JSON Report** (`processing_report_YYYYMMDD_HHMMSS.json`):
+```json
+{
+  "total_documents": 10,
+  "successful": 9,
+  "failed": 1,
+  "success_rate": 90.0,
+  "total_finnish_characters": 156,
+  "finnish_documents_count": 3,
+  "language_statistics": {
+    "fin": 3,
+    "eng": 5,
+    "auto": 1
+  },
+  "finnish_documents": [
+    {
+      "file": "finnish-cert.pdf",
+      "finnish_chars": 89,
+      "language": "fin"
+    }
+  ]
+}
+```
+
+**Human-Readable Summary** (`summary_YYYYMMDD_HHMMSS.txt`):
+```
+OCR PROCESSING SUMMARY
+==================================================
+
+Processing completed: 2024-01-08T14:30:22.123456
+Total documents: 10
+Successful: 9
+Failed: 1
+Success rate: 90.0%
+Total processing time: 45.2s
+Average processing time: 4.5s
+Total text extracted: 12,456 characters
+
+LANGUAGE ANALYSIS:
+--------------------
+Language mode: auto
+Finnish detection: Enabled
+Finnish documents found: 3
+Total Finnish characters: 156
+
+🇫🇮 FINNISH DOCUMENTS:
+--------------------
+🇫🇮 finnish-cert.pdf - 89 Finnish chars (lang: fin)
+🇫🇮 työtodistus.pdf - 45 Finnish chars (lang: fin)
+🇫🇮 harjoittelu.pdf - 22 Finnish chars (lang: fin)
+```
+
+#### 🛠️ Workflow Configuration Options
+
+```python
+from src.workflow.ocr_workflow import OCRWorkflow
+
+# Create workflow with custom settings
+workflow = OCRWorkflow(
+    samples_dir="documents",           # Input directory
+    output_dir="extracted_text",       # Output directory
+    language="auto",                   # Language mode: "auto", "eng", "fin", "eng+fin"
+    use_finnish_detection=True         # Auto-detect Finnish documents
+)
+
+# Process all documents
+summary = workflow.process_all_documents()
+
+# Process individual document
+result = workflow.process_document(Path("document.pdf"))
+```
+
+#### 🔧 Command Line Options
+
+```bash
+# Basic usage - processes samples/ directory
+python -m src.workflow.ocr_workflow
+
+# Set custom directories via environment variables
+export OCR_SAMPLES_DIR="my_documents"
+export OCR_OUTPUT_DIR="results"
+python -m src.workflow.ocr_workflow
+
+# Run with specific language
+python -c "from src.workflow.ocr_workflow import run_ocr_workflow; run_ocr_workflow(language='fin')"
+```
+
+#### 🎯 Production Batch Processing
+
+```python
+# Example: Process large document batches
+import os
+from pathlib import Path
+from src.workflow.ocr_workflow import OCRWorkflow
+
+def process_document_batches(base_dir: str):
+    """Process multiple document folders in batches."""
+    
+    base_path = Path(base_dir)
+    
+    for folder in base_path.iterdir():
+        if folder.is_dir():
+            print(f"Processing folder: {folder.name}")
+            
+            # Create workflow for each folder
+            workflow = OCRWorkflow(
+                samples_dir=folder,
+                output_dir=f"results/{folder.name}",
+                language="auto",
+                use_finnish_detection=True
+            )
+            
+            # Process documents
+            summary = workflow.process_all_documents()
+            
+            print(f"✅ Completed {folder.name}: {summary['successful']}/{summary['total_documents']} documents")
+
+# Usage
+process_document_batches("document_batches")
+```
+
+#### 🚨 Error Handling & Monitoring
+
+```python
+# Robust workflow execution with error handling
+def safe_workflow_execution():
+    try:
+        summary = run_ocr_workflow()
+        
+        # Check for failed documents
+        if summary['failed'] > 0:
+            print(f"⚠️  {summary['failed']} documents failed processing")
+            
+            # Log failed documents
+            for result in summary['results']:
+                if not result['success']:
+                    print(f"❌ {result['file_path']}: {result['error']}")
+        
+        return summary
+        
+    except Exception as e:
+        print(f"💥 Workflow execution failed: {e}")
+        # Handle workflow failure (send alerts, log to external system, etc.)
+        raise
+
+# Monitor processing progress
+summary = safe_workflow_execution()
+print(f"📊 Processing completed: {summary['success_rate']}% success rate")
+```
+
+---
+
+## 💻 Manual Usage Examples
 
 ### Basic Certificate Processing
 
@@ -505,7 +745,7 @@ pytest tests/ -v --cov=src --cov-report=html
 
 ## 📄 License
 
-This project is developed for OAMK internship workflow automation. See license file for details.
+This project is developed for OAMK internship workflow automation.
 
 ---
 

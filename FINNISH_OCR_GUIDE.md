@@ -12,7 +12,7 @@ This guide shows you how to use the enhanced OCR pipeline with **Finnish languag
 # Visit: https://github.com/UB-Mannheim/tesseract/wiki
 # Download and install: tesseract-ocr-w64-setup-additional-languages-v5.3.0.exe
 
-# Method 2: Manual installation
+# Method 2: Manual installation (easy)
 # Download fin.traineddata from: https://github.com/tesseract-ocr/tessdata
 # Place in: C:\Program Files\Tesseract-OCR\tessdata\
 ```

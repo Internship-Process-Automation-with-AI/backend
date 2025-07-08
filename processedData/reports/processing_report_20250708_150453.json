@@ -1,0 +1,189 @@
+{
+  "processing_started": "2025-07-08T15:04:29.707962",
+  "processing_completed": "2025-07-08T15:04:53.027995",
+  "total_processing_time": 23.32,
+  "total_documents": 11,
+  "successful": 11,
+  "failed": 0,
+  "success_rate": 100.0,
+  "total_text_extracted": 13446,
+  "total_finnish_characters": 128,
+  "finnish_documents_count": 2,
+  "language_statistics": {
+    "fin": 2,
+    "auto": 9
+  },
+  "finnish_documents": [
+    {
+      "file": "finnish-pdf-10.pdf",
+      "finnish_chars": 85,
+      "language": "fin"
+    },
+    {
+      "file": "finnish-scanned-09.pdf",
+      "finnish_chars": 43,
+      "language": "fin"
+    }
+  ],
+  "average_processing_time": 2.12,
+  "configuration": {
+    "language_mode": "auto",
+    "finnish_detection_enabled": true
+  },
+  "results": [
+    {
+      "file_path": "finnish-pdf-10.pdf",
+      "file_name": "finnish-pdf-10.pdf",
+      "file_size": 83516,
+      "file_type": ".pdf",
+      "processed_at": "2025-07-08T15:04:29.732716",
+      "success": true,
+      "text_length": 2830,
+      "processing_time": 6.73,
+      "detected_language": "fin",
+      "finnish_chars_count": 85,
+      "error": null,
+      "output_file": "finnish-pdf-10.txt"
+    },
+    {
+      "file_path": "finnish-scanned-09.pdf",
+      "file_name": "finnish-scanned-09.pdf",
+      "file_size": 337521,
+      "file_type": ".pdf",
+      "processed_at": "2025-07-08T15:04:36.463786",
+      "success": true,
+      "text_length": 980,
+      "processing_time": 4.88,
+      "detected_language": "fin",
+      "finnish_chars_count": 43,
+      "error": null,
+      "output_file": "finnish-scanned-09.txt"
+    },
+    {
+      "file_path": "formbased-worddoc-03.docx",
+      "file_name": "formbased-worddoc-03.docx",
+      "file_size": 45505,
+      "file_type": ".docx",
+      "processed_at": "2025-07-08T15:04:41.344774",
+      "success": true,
+      "text_length": 3643,
+      "processing_time": 0.05,
+      "detected_language": "auto",
+      "finnish_chars_count": 0,
+      "error": null,
+      "output_file": "formbased-worddoc-03.txt"
+    },
+    {
+      "file_path": "image-sample_certificate.png",
+      "file_name": "image-sample_certificate.png",
+      "file_size": 37178,
+      "file_type": ".png",
+      "processed_at": "2025-07-08T15:04:41.395119",
+      "success": true,
+      "text_length": 189,
+      "processing_time": 0.55,
+      "detected_language": "auto",
+      "finnish_chars_count": 0,
+      "error": null,
+      "output_file": "image-sample_certificate.txt"
+    },
+    {
+      "file_path": "letterbased-pdf-04.pdf",
+      "file_name": "letterbased-pdf-04.pdf",
+      "file_size": 1136494,
+      "file_type": ".pdf",
+      "processed_at": "2025-07-08T15:04:41.940664",
+      "success": true,
+      "text_length": 1106,
+      "processing_time": 3.51,
+      "detected_language": "auto",
+      "finnish_chars_count": 0,
+      "error": null,
+      "output_file": "letterbased-pdf-04.txt"
+    },
+    {
+      "file_path": "letterbased-pdf-05.pdf",
+      "file_name": "letterbased-pdf-05.pdf",
+      "file_size": 1262882,
+      "file_type": ".pdf",
+      "processed_at": "2025-07-08T15:04:45.445830",
+      "success": true,
+      "text_length": 1037,
+      "processing_time": 2.64,
+      "detected_language": "auto",
+      "finnish_chars_count": 0,
+      "error": null,
+      "output_file": "letterbased-pdf-05.txt"
+    },
+    {
+      "file_path": "letterbased-worddoc-01.docx",
+      "file_name": "letterbased-worddoc-01.docx",
+      "file_size": 13504,
+      "file_type": ".docx",
+      "processed_at": "2025-07-08T15:04:48.086670",
+      "success": true,
+      "text_length": 492,
+      "processing_time": 0.01,
+      "detected_language": "auto",
+      "finnish_chars_count": 0,
+      "error": null,
+      "output_file": "letterbased-worddoc-01.txt"
+    },
+    {
+      "file_path": "letterbased-worddoc-02.docx",
+      "file_name": "letterbased-worddoc-02.docx",
+      "file_size": 13866,
+      "file_type": ".docx",
+      "processed_at": "2025-07-08T15:04:48.091711",
+      "success": true,
+      "text_length": 1255,
+      "processing_time": 0.01,
+      "detected_language": "auto",
+      "finnish_chars_count": 0,
+      "error": null,
+      "output_file": "letterbased-worddoc-02.txt"
+    },
+    {
+      "file_path": "scan-letter-pdf-06.pdf",
+      "file_name": "scan-letter-pdf-06.pdf",
+      "file_size": 135647,
+      "file_type": ".pdf",
+      "processed_at": "2025-07-08T15:04:48.102643",
+      "success": true,
+      "text_length": 533,
+      "processing_time": 1.68,
+      "detected_language": "auto",
+      "finnish_chars_count": 0,
+      "error": null,
+      "output_file": "scan-letter-pdf-06.txt"
+    },
+    {
+      "file_path": "scan-letter-unclear.pdf",
+      "file_name": "scan-letter-unclear.pdf",
+      "file_size": 150857,
+      "file_type": ".pdf",
+      "processed_at": "2025-07-08T15:04:49.779729",
+      "success": true,
+      "text_length": 772,
+      "processing_time": 1.68,
+      "detected_language": "auto",
+      "finnish_chars_count": 0,
+      "error": null,
+      "output_file": "scan-letter-unclear.txt"
+    },
+    {
+      "file_path": "scanned-07.pdf",
+      "file_name": "scanned-07.pdf",
+      "file_size": 165332,
+      "file_type": ".pdf",
+      "processed_at": "2025-07-08T15:04:51.458190",
+      "success": true,
+      "text_length": 609,
+      "processing_time": 1.57,
+      "detected_language": "auto",
+      "finnish_chars_count": 0,
+      "error": null,
+      "output_file": "scanned-07.txt"
+    }
+  ]
+}
