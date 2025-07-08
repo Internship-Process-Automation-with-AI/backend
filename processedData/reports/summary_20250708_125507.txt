@@ -1,0 +1,41 @@
+OCR PROCESSING SUMMARY
+==================================================
+
+Processing completed: 2025-07-08T12:55:07.567140
+Total documents: 11
+Successful: 11
+Failed: 0
+Success rate: 100.0%
+Total processing time: 52.85s
+Average processing time: 4.8s
+Total text extracted: 12881 characters
+
+LANGUAGE ANALYSIS:
+--------------------
+Language mode: auto
+Finnish detection: Enabled
+Finnish documents found: 2
+Total Finnish characters: 128
+
+Language distribution:
+  fin: 2 documents
+  auto: 9 documents
+
+FINNISH DOCUMENTS:
+--------------------
+🇫🇮 finnish-pdf-10.pdf - 85 Finnish chars (lang: fin)
+🇫🇮 finnish-scanned-09.pdf - 43 Finnish chars (lang: fin)
+
+SUCCESSFUL DOCUMENTS:
+--------------------
+✅ finnish-pdf-10.pdf -> finnish-pdf-10.txt (2830 chars, 85 Finnish chars (lang: fin))
+✅ finnish-scanned-09.pdf -> finnish-scanned-09.txt (980 chars, 43 Finnish chars (lang: fin))
+✅ formbased-worddoc-03.docx -> formbased-worddoc-03.txt (3643 chars (lang: auto))
+✅ letterbased-pdf-04.pdf -> letterbased-pdf-04.txt (929 chars (lang: auto))
+✅ letterbased-pdf-05.pdf -> letterbased-pdf-05.txt (813 chars (lang: auto))
+✅ letterbased-worddoc-01.docx -> letterbased-worddoc-01.txt (492 chars (lang: auto))
+✅ letterbased-worddoc-02.docx -> letterbased-worddoc-02.txt (1255 chars (lang: auto))
+✅ sample_certificate.png -> sample_certificate.txt (165 chars (lang: auto))
+✅ scan-letter-pdf-06.pdf -> scan-letter-pdf-06.txt (601 chars (lang: auto))
+✅ scan-letter-unclear.pdf -> scan-letter-unclear.txt (679 chars (lang: auto))
+✅ scanned-07.pdf -> scanned-07.txt (494 chars (lang: auto))
