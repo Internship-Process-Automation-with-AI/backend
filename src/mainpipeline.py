@@ -178,8 +178,30 @@ class DocumentPipeline:
             else:
                 print("🔄 Please enter the email again")
 
+    def get_training_type(self) -> str:
+        """Get the student's requested training type (general or professional)."""
+        print("\n📝 TRAINING TYPE APPLICATION:")
+        print("   Are you applying for General Training or Professional Training?")
+        print("   1. General Training (transferable skills, not degree-specific)")
+        print("   2. Professional Training (degree-related, specialized work)")
+
+        while True:
+            choice = input("Enter choice (1 for General, 2 for Professional): ").strip()
+            if choice == "1":
+                print("✅ Selected: General Training")
+                return "general"
+            elif choice == "2":
+                print("✅ Selected: Professional Training")
+                return "professional"
+            else:
+                print("❌ Please enter 1 or 2.")
+
     def process_document(
-        self, file_path: str, student_degree: str, student_email: str = None
+        self,
+        file_path: str,
+        student_degree: str,
+        student_email: str = None,
+        training_type: str = None,
     ) -> Dict[str, Any]:
         """Process a document through the complete pipeline."""
         results = {
@@ -189,6 +211,7 @@ class DocumentPipeline:
             ),
             "student_degree": student_degree,
             "student_email": student_email,
+            "requested_training_type": training_type,
             "processing_time": 0,
             "ocr_results": {},
             "llm_results": {},
@@ -242,9 +265,10 @@ class DocumentPipeline:
             # Step 3: LLM Processing
             print("\n🤖 Step 3: LLM Processing")
             print(f"   Degree: {student_degree}")
+            print(f"   Requested Training Type: {training_type}")
 
             llm_results = self.orchestrator.process_work_certificate(
-                cleaned_text, student_degree
+                cleaned_text, student_degree, training_type
             )
             results["llm_results"] = llm_results
 
@@ -381,14 +405,39 @@ class DocumentPipeline:
                 )
                 print("\n🎓 FINAL EVALUATION (CORRECTED):")
                 print(f"   • Hours: {data.get('total_working_hours', 'N/A')}")
-                print(f"   • Type: {data.get('training_type', 'N/A')}")
-                print(f"   • Credits: {data.get('credits_qualified', 'N/A')} ECTS")
+                print(
+                    f"   • Type: {data.get('requested_training_type', data.get('training_type', 'N/A'))}"
+                )
+                print(
+                    f"   • Credits: {data.get('credits_calculated', data.get('credits_qualified', 'N/A'))} ECTS"
+                )
                 print(f"   • Relevance: {data.get('degree_relevance', 'N/A')}")
 
                 # Show calculation breakdown
                 calculation = data.get("calculation_breakdown", "")
                 if calculation:
                     print(f"   • Calculation: {calculation}")
+
+                # Show requested training type
+                req_type = data.get("requested_training_type", None)
+                if req_type:
+                    print(f"   • Requested Training Type: {req_type}")
+                # Show supporting evidence
+                supporting = data.get("supporting_evidence", None)
+                if supporting:
+                    print(f"   • Supporting Evidence: {supporting}")
+                # Show challenging evidence
+                challenging = data.get("challenging_evidence", None)
+                if challenging:
+                    print(f"   • Challenging Evidence: {challenging}")
+                # Show recommendation
+                recommendation = data.get("recommendation", None)
+                if recommendation:
+                    print(f"   • Recommendation: {recommendation}")
+                # Show recommendation reasoning
+                rec_reason = data.get("recommendation_reasoning", None)
+                if rec_reason:
+                    print(f"   • Recommendation Reasoning: {rec_reason}")
 
                 # Show justification
                 justification = data.get("summary_justification", "")
@@ -409,14 +458,39 @@ class DocumentPipeline:
                     data = evaluation_results.get("results", {})
                     print("\n🎓 FINAL EVALUATION:")
                     print(f"   • Hours: {data.get('total_working_hours', 'N/A')}")
-                    print(f"   • Type: {data.get('training_type', 'N/A')}")
-                    print(f"   • Credits: {data.get('credits_qualified', 'N/A')} ECTS")
+                    print(
+                        f"   • Type: {data.get('requested_training_type', data.get('training_type', 'N/A'))}"
+                    )
+                    print(
+                        f"   • Credits: {data.get('credits_calculated', data.get('credits_qualified', 'N/A'))} ECTS"
+                    )
                     print(f"   • Relevance: {data.get('degree_relevance', 'N/A')}")
 
                     # Show calculation breakdown
                     calculation = data.get("calculation_breakdown", "")
                     if calculation:
                         print(f"   • Calculation: {calculation}")
+
+                    # Show requested training type
+                    req_type = data.get("requested_training_type", None)
+                    if req_type:
+                        print(f"   • Requested Training Type: {req_type}")
+                    # Show supporting evidence
+                    supporting = data.get("supporting_evidence", None)
+                    if supporting:
+                        print(f"   • Supporting Evidence: {supporting}")
+                    # Show challenging evidence
+                    challenging = data.get("challenging_evidence", None)
+                    if challenging:
+                        print(f"   • Challenging Evidence: {challenging}")
+                    # Show recommendation
+                    recommendation = data.get("recommendation", None)
+                    if recommendation:
+                        print(f"   • Recommendation: {recommendation}")
+                    # Show recommendation reasoning
+                    rec_reason = data.get("recommendation_reasoning", None)
+                    if rec_reason:
+                        print(f"   • Recommendation Reasoning: {rec_reason}")
 
                     # Show justification
                     justification = data.get("summary_justification", "")
@@ -480,6 +554,9 @@ def main():
     # Get student email
     student_email = pipeline.get_student_email()
 
+    # Get training type
+    training_type = pipeline.get_training_type()
+
     print(f"\n{'=' * 60}")
     print("🚀 STARTING PIPELINE")
     print(f"📄 Document: {os.path.basename(selected_file)}")
@@ -488,7 +565,9 @@ def main():
     print(f"{'=' * 60}")
 
     # Process document through complete pipeline
-    results = pipeline.process_document(selected_file, student_degree, student_email)
+    results = pipeline.process_document(
+        selected_file, student_degree, student_email, training_type
+    )
 
     # Display results
     pipeline.display_pipeline_results(results)

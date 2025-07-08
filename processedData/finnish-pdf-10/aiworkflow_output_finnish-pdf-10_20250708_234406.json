@@ -1,0 +1,318 @@
+{
+  "success": true,
+  "file_path": "samples\\finnish-pdf-10.pdf",
+  "student_degree": "Bachelor of Engineering (BEng), Information Technology",
+  "student_email": "lea.hampinen@students.oamk.fi",
+  "requested_training_type": "professional",
+  "processing_time": 27.076248,
+  "ocr_results": {
+    "success": true,
+    "engine": "Tesseract",
+    "confidence": 0,
+    "processing_time": 2.82,
+    "text_length": 2830,
+    "detected_language": "fin",
+    "finnish_chars_count": 85
+  },
+  "llm_results": {
+    "success": true,
+    "processing_time": 24.25726628303528,
+    "extraction_results": {
+      "success": true,
+      "processing_time": 7.453205347061157,
+      "results": {
+        "employee_name": "Ari Tapani Valtamo",
+        "employer": "NSG Group Flat Glass Business",
+        "certificate_issue_date": "2009-11-27",
+        "positions": [
+          {
+            "title": "Varaosavastaava",
+            "employer": "Ylöjärven ja Tampereen tehdas",
+            "start_date": "2007-02-05",
+            "end_date": "2009-09-30",
+            "duration": "2 years, 7 months, 25 days",
+            "responsibilities": "Varaosatietojen perustaminen, päivittäminen ja esittämistavan yhdenmukaistaminen Ylöjärven ja Tampereen tehtaiden järjestelmissä, liittyen hankitun ostojärjestelmän Ylöjärven ja käytettävyyteen.\nOsallistuminen ostojärjestelmän asiakaskohtaisten raporttien määrittelyyn vastaamaan kunnossapidon tarpeita.\nPerehtyminen uuteen kalvonleikkuukoneeseen, sen varaosatietojen perustaminen, tekninen tuki kunnossapidossa ja tuotannon henkilöstölle. Varaosa-, kunnossapito- ja huoltosopimusasioissa yhdyshenkilönä kotimaisiin ja ulkomaisiin toimittajiin.\nKehitystehtäviä, tavoitteena tuotteen laadunparannus ja edullisempi kunnossapito."
+          },
+          {
+            "title": "Tekninen Ostaja",
+            "employer": "Tampereen Tehdas",
+            "start_date": "2002-07-01",
+            "end_date": "2006-02-09",
+            "duration": "3 years, 7 months, 8 days",
+            "responsibilities": "Uusia tuotantolaitteita: tasolasin palastelulinja, esikäsittelylinja, — hiontalinja ja karkaisulaitos.\nVaraosien hankintaa em. laitteisiin, osallistumista operoinnin ja huollon koulutuksiin ja määräaikaishuoltoihin. Osallistuminen kunnossapidon töihin ja perehdyttämiseen erityisosaamisalueillani.\nYhteydet kotimaisiin ja ulkomaisiin toimittajiin kunnossapitotöissä ja varaosa-asioissa.\nSuorat ostot osien valmistajilta ja osien valmistuttaminen parantavaan ja edullisempaan kunnossapitoon pyrkien."
+          },
+          {
+            "title": "Kunnossapidon Esimies",
+            "employer": "Tampereen Tehdas",
+            "start_date": "2000-09-15",
+            "end_date": "2002-07-01",
+            "duration": "1 year, 9 months, 16 days",
+            "responsibilities": "Kunnossapidon esimiestehtävät ja varaosahankinnat.\nMurskalinjan ja hionnan jäähdytysveden puhdistustekniikan hankinta uudelle esikäsittelylinjalle.\nKaavionlevityslaitteen hankinta ja kaavionvalmistuksen tilojen suunnittelu.\nKarkaisulaitosten kunnossapito- ja varaosa-asiat."
+          },
+          {
+            "title": "Kehitysinsinööri",
+            "employer": "Tampereen Tehdas",
+            "start_date": "1996-09-01",
+            "end_date": "2000-09-15",
+            "duration": "4 years, 14 days",
+            "responsibilities": "Esikäsittelykoneiden ja painokoneen teknisiä määrittelyjä sekä hankintasopimusten valmisteluja. Perehtyminen painovärin kuivaimiin (IR/UV).\nTuotantolinjojen layout -suunnittelua ja rakennusteknisten lähtötietojen määrittelyä.\nLaitteiden asennusvalvontaa, esikäsittelykoneiden ja silkkipainokoneen hyväksyntätestien tekeminen, osallistuminen koulutuksiin ja kunnossapitotöihin perehdyttäen kunnossapidon ja tuotannon henkilöstöä osaamisalueillani.\nEsikäsittelylinjojen timanttityökalujen ja varaosien hankinta kotimaisilta ja ulkomaisilta toimittajilta."
+          },
+          {
+            "title": "Tuulilasitehtaan tasolasin esikäsittelylinjan käyttäjä",
+            "employer": "Ylöjärven Tehdas",
+            "start_date": "1993-06-30",
+            "end_date": "1996-09-01",
+            "duration": "3 years, 2 months, 2 days",
+            "responsibilities": "(muotoonleikkuu, hionta ja silkkipaino)"
+          },
+          {
+            "title": "Työn järjestelijänä laminointiosastolla",
+            "employer": "Ylöjärven Tehdas",
+            "start_date": "1985-03-06",
+            "end_date": "1985-08-02",
+            "duration": "4 months, 27 days",
+            "responsibilities": null
+          },
+          {
+            "title": "Työn järjestelijänä laminointiosastolla",
+            "employer": "Ylöjärven Tehdas",
+            "start_date": "1984-02-13",
+            "end_date": "1984-09-11",
+            "duration": "6 months, 29 days",
+            "responsibilities": null
+          }
+        ],
+        "total_employment_period": "25 years, 7 months",
+        "document_language": "fi",
+        "confidence_level": "high(>75%)"
+      },
+      "raw_response": "```json\n{\n    \"employee_name\": \"Ari Tapani Valtamo\",\n    \"employer\": \"NSG Group Flat Glass Business\",\n    \"certificate_issue_date\": \"2009-11-27\",\n    \"positions\": [\n        {\n            \"title\": \"Varaosavastaava\",\n            \"employer\": \"Ylöjärven ja Tampereen tehdas\",\n            \"start_date\": \"2007-02-05\",\n            \"end_date\": \"2009-09-30\",\n            \"duration\": \"2 years, 7 months, 25 days\",\n            \"responsibilities\": \"Varaosatietojen perustaminen, päivittäminen ja esittämistavan yhdenmukaistaminen Ylöjärven ja Tampereen tehtaiden järjestelmissä, liittyen hankitun ostojärjestelmän Ylöjärven ja käytettävyyteen.\\nOsallistuminen ostojärjestelmän asiakaskohtaisten raporttien määrittelyyn vastaamaan kunnossapidon tarpeita.\\nPerehtyminen uuteen kalvonleikkuukoneeseen, sen varaosatietojen perustaminen, tekninen tuki kunnossapidossa ja tuotannon henkilöstölle. Varaosa-, kunnossapito- ja huoltosopimusasioissa yhdyshenkilönä kotimaisiin ja ulkomaisiin toimittajiin.\\nKehitystehtäviä, tavoitteena tuotteen laadunparannus ja edullisempi kunnossapito.\"\n        },\n        {\n            \"title\": \"Tekninen Ostaja\",\n            \"employer\": \"Tampereen Tehdas\",\n            \"start_date\": \"2002-07-01\",\n            \"end_date\": \"2006-02-09\",\n            \"duration\": \"3 years, 7 months, 8 days\",\n            \"responsibilities\": \"Uusia tuotantolaitteita: tasolasin palastelulinja, esikäsittelylinja, — hiontalinja ja karkaisulaitos.\\nVaraosien hankintaa em. laitteisiin, osallistumista operoinnin ja huollon koulutuksiin ja määräaikaishuoltoihin. Osallistuminen kunnossapidon töihin ja perehdyttämiseen erityisosaamisalueillani.\\nYhteydet kotimaisiin ja ulkomaisiin toimittajiin kunnossapitotöissä ja varaosa-asioissa.\\nSuorat ostot osien valmistajilta ja osien valmistuttaminen parantavaan ja edullisempaan kunnossapitoon pyrkien.\"\n        },\n        {\n            \"title\": \"Kunnossapidon Esimies\",\n            \"employer\": \"Tampereen Tehdas\",\n            \"start_date\": \"2000-09-15\",\n            \"end_date\": \"2002-07-01\",\n            \"duration\": \"1 year, 9 months, 16 days\",\n            \"responsibilities\": \"Kunnossapidon esimiestehtävät ja varaosahankinnat.\\nMurskalinjan ja hionnan jäähdytysveden puhdistustekniikan hankinta uudelle esikäsittelylinjalle.\\nKaavionlevityslaitteen hankinta ja kaavionvalmistuksen tilojen suunnittelu.\\nKarkaisulaitosten kunnossapito- ja varaosa-asiat.\"\n        },\n        {\n            \"title\": \"Kehitysinsinööri\",\n            \"employer\": \"Tampereen Tehdas\",\n            \"start_date\": \"1996-09-01\",\n            \"end_date\": \"2000-09-15\",\n            \"duration\": \"4 years, 14 days\",\n            \"responsibilities\": \"Esikäsittelykoneiden ja painokoneen teknisiä määrittelyjä sekä hankintasopimusten valmisteluja. Perehtyminen painovärin kuivaimiin (IR/UV).\\nTuotantolinjojen layout -suunnittelua ja rakennusteknisten lähtötietojen määrittelyä.\\nLaitteiden asennusvalvontaa, esikäsittelykoneiden ja silkkipainokoneen hyväksyntätestien tekeminen, osallistuminen koulutuksiin ja kunnossapitotöihin perehdyttäen kunnossapidon ja tuotannon henkilöstöä osaamisalueillani.\\nEsikäsittelylinjojen timanttityökalujen ja varaosien hankinta kotimaisilta ja ulkomaisilta toimittajilta.\"\n        },\n        {\n            \"title\": \"Tuulilasitehtaan tasolasin esikäsittelylinjan käyttäjä\",\n            \"employer\": \"Ylöjärven Tehdas\",\n            \"start_date\": \"1993-06-30\",\n            \"end_date\": \"1996-09-01\",\n            \"duration\": \"3 years, 2 months, 2 days\",\n            \"responsibilities\": \"(muotoonleikkuu, hionta ja silkkipaino)\"\n        },\n        {\n            \"title\": \"Työn järjestelijänä laminointiosastolla\",\n            \"employer\": \"Ylöjärven Tehdas\",\n            \"start_date\": \"1985-03-06\",\n            \"end_date\": \"1985-08-02\",\n            \"duration\": \"4 months, 27 days\",\n            \"responsibilities\": null\n        },\n        {\n            \"title\": \"Työn järjestelijänä laminointiosastolla\",\n            \"employer\": \"Ylöjärven Tehdas\",\n            \"start_date\": \"1984-02-13\",\n            \"end_date\": \"1984-09-11\",\n            \"duration\": \"6 months, 29 days\",\n            \"responsibilities\": null\n        }\n    ],\n    \"total_employment_period\": \"25 years, 7 months\",\n    \"document_language\": \"fi\",\n    \"confidence_level\": \"high(>75%)\"\n}\n```"
+    },
+    "evaluation_results": {
+      "success": true,
+      "processing_time": 4.248035907745361,
+      "results": {
+        "total_working_hours": 34720,
+        "requested_training_type": "professional",
+        "credits_calculated": 10,
+        "degree_relevance": "medium",
+        "relevance_explanation": "The work experience includes technical roles such as development engineer and maintenance supervisor which involve technical specifications, equipment management, and problem-solving. Some positions involve procurement systems and reporting which are relevant, but not the core of the IT degree.",
+        "calculation_breakdown": "34720 hours / 27 hours per ECTS = 1285.0 credits, capped at 30.0 maximum for professional training",
+        "supporting_evidence": "Positions such as Development Engineer involved technical specifications, layout design, and equipment installation, aligning with technical aspects of an IT degree. Involvement in procurement systems and reporting relates to information systems and data management. The role of Varaosavastaava included updating and standardizing systems, touching on data management.",
+        "challenging_evidence": "Many roles focused on maintenance and spare parts management, which are not core areas of an IT degree. The work involves operational technology rather than information technology. The initial roles as a line operator and work organizer are less relevant to IT.",
+        "recommendation": "CONDITIONALLY RECOMMENDED",
+        "recommendation_reasoning": "While the work history contains elements relevant to an IT degree, particularly in roles involving technical specifications, systems, and data, a significant portion of the experience relates to maintenance and procurement. The early roles are not directly relevant. Therefore, it cannot be considered fully professional training, and should be capped at 10 ECTS general training.",
+        "summary_justification": "The student's work experience shows a mix of relevant and non-relevant tasks. The later, more technical roles have some alignment with an IT degree, but overall the experience is not consistently focused on IT-specific skills and knowledge. As such, only general training credits are recommended.",
+        "conclusion": "This work experience is recommended for general training classification. Student would receive 10.0 ECTS credits toward the 30-credit practical training requirement. Remaining 20 credits should be completed through degree-related professional training.",
+        "confidence_level": "high",
+        "credits_qualified": 30.0
+      },
+      "raw_response": "```json\n{\n    \"total_working_hours\": 34720,\n    \"requested_training_type\": \"professional\",\n    \"credits_calculated\": 10,\n    \"degree_relevance\": \"medium\",\n    \"relevance_explanation\": \"The work experience includes technical roles such as development engineer and maintenance supervisor which involve technical specifications, equipment management, and problem-solving. Some positions involve procurement systems and reporting which are relevant, but not the core of the IT degree.\",\n    \"calculation_breakdown\": \"Total estimated hours across all positions: 34720 hours / 27 hours per ECTS = 1285.93 credits, rounded down to 1285 credits. Capped at 10.0 ECTS maximum for general training.\",\n    \"supporting_evidence\": \"Positions such as Development Engineer involved technical specifications, layout design, and equipment installation, aligning with technical aspects of an IT degree. Involvement in procurement systems and reporting relates to information systems and data management. The role of Varaosavastaava included updating and standardizing systems, touching on data management.\",\n    \"challenging_evidence\": \"Many roles focused on maintenance and spare parts management, which are not core areas of an IT degree. The work involves operational technology rather than information technology. The initial roles as a line operator and work organizer are less relevant to IT.\",\n    \"recommendation\": \"CONDITIONALLY RECOMMENDED\",\n    \"recommendation_reasoning\": \"While the work history contains elements relevant to an IT degree, particularly in roles involving technical specifications, systems, and data, a significant portion of the experience relates to maintenance and procurement. The early roles are not directly relevant. Therefore, it cannot be considered fully professional training, and should be capped at 10 ECTS general training.\",\n    \"summary_justification\": \"The student's work experience shows a mix of relevant and non-relevant tasks. The later, more technical roles have some alignment with an IT degree, but overall the experience is not consistently focused on IT-specific skills and knowledge. As such, only general training credits are recommended.\",\n    \"conclusion\": \"This work experience is recommended for general training classification. Student would receive 10.0 ECTS credits toward the 30-credit practical training requirement. Remaining 20 credits should be completed through degree-related professional training.\",\n    \"confidence_level\": \"high\"\n}\n```"
+    },
+    "validation_results": {
+      "success": true,
+      "processing_time": 3.894148349761963,
+      "results": {
+        "validation_passed": false,
+        "overall_accuracy_score": 0.85,
+        "issues_found": [
+          {
+            "type": "evaluation_error",
+            "severity": "medium",
+            "description": "The calculation breakdown states '34720 hours / 27 hours per ECTS = 1285.0 credits, capped at 30.0 maximum for professional training' but the credits_calculated is set to 10. Also, the credits_qualified are set to 30.0 which is incorrect as the recommendation is for general training.",
+            "field_affected": "evaluation",
+            "suggestion": "Correct the credit calculation to align with general training limits (10 ECTS)."
+          },
+          {
+            "type": "evaluation_error",
+            "severity": "high",
+            "description": "The LLM recommends general training (10 credits) but calculates the maximum professional training credits (30) in the calculation breakdown.",
+            "field_affected": "evaluation",
+            "suggestion": "The calculation should reflect the 10 ECTS limit for general training. Also, credits_qualified should be set to 10.0."
+          },
+          {
+            "type": "evaluation_error",
+            "severity": "medium",
+            "description": "Although degree relevance is assessed as 'medium,' the reasoning for general training classification is that it is not 'fully professional training', however the training type should still be 'professional'. The justification should only recommend general training if the relevance assessment was 'low'.",
+            "field_affected": "evaluation",
+            "suggestion": "If the degree relevance is medium, the training type should be professional (30 ECTS)."
+          },
+          {
+            "type": "evaluation_error",
+            "severity": "high",
+            "description": "The training_classification_consistent flag is set to 'true', however it should be 'false' because the degree relevance assessment is 'medium', and the training type recommended is 'general'. This is inconsistent.",
+            "field_affected": "evaluation",
+            "suggestion": "Change the classification_relevance_alignment to 'inconsistent'."
+          }
+        ],
+        "extraction_validation": {
+          "employee_name_correct": true,
+          "job_title_correct": true,
+          "company_correct": true,
+          "dates_correct": true,
+          "missing_information": []
+        },
+        "evaluation_validation": {
+          "hours_calculation_correct": true,
+          "training_type_justified": false,
+          "credits_calculation_correct": false,
+          "degree_relevance_assessment_accurate": true,
+          "training_classification_consistent": false,
+          "classification_relevance_alignment": "inconsistent"
+        },
+        "justification_validation": {
+          "accurately_reflects_available_information": true,
+          "no_unjustified_assumptions": true,
+          "clearly_states_limitations": true
+        },
+        "summary": "The LLM output is mostly accurate, with some inconsistencies in the credit calculations, the relevance assessment, and the training classification. The degree relevance is medium, so the training type should be professional.",
+        "requires_correction": true
+      },
+      "raw_response": "```json\n{\n    \"validation_passed\": false,\n    \"overall_accuracy_score\": 0.85,\n    \"issues_found\": [\n        {\n            \"type\": \"evaluation_error\",\n            \"severity\": \"medium\",\n            \"description\": \"The calculation breakdown states '34720 hours / 27 hours per ECTS = 1285.0 credits, capped at 30.0 maximum for professional training' but the credits_calculated is set to 10. Also, the credits_qualified are set to 30.0 which is incorrect as the recommendation is for general training.\",\n            \"field_affected\": \"evaluation\",\n            \"suggestion\": \"Correct the credit calculation to align with general training limits (10 ECTS).\"\n        },\n        {\n            \"type\": \"evaluation_error\",\n            \"severity\": \"high\",\n            \"description\": \"The LLM recommends general training (10 credits) but calculates the maximum professional training credits (30) in the calculation breakdown.\",\n            \"field_affected\": \"evaluation\",\n            \"suggestion\": \"The calculation should reflect the 10 ECTS limit for general training. Also, credits_qualified should be set to 10.0.\"\n        },\n        {\n            \"type\": \"evaluation_error\",\n            \"severity\": \"medium\",\n            \"description\": \"Although degree relevance is assessed as 'medium,' the reasoning for general training classification is that it is not 'fully professional training', however the training type should still be 'professional'. The justification should only recommend general training if the relevance assessment was 'low'.\",\n            \"field_affected\": \"evaluation\",\n            \"suggestion\": \"If the degree relevance is medium, the training type should be professional (30 ECTS).\"\n        },\n        {\n            \"type\": \"evaluation_error\",\n            \"severity\": \"high\",\n            \"description\": \"The training_classification_consistent flag is set to 'true', however it should be 'false' because the degree relevance assessment is 'medium', and the training type recommended is 'general'. This is inconsistent.\",\n            \"field_affected\": \"evaluation\",\n            \"suggestion\": \"Change the classification_relevance_alignment to 'inconsistent'.\"\n        }\n    ],\n    \"extraction_validation\": {\n        \"employee_name_correct\": true,\n        \"job_title_correct\": true,\n        \"company_correct\": true,\n        \"dates_correct\": true,\n        \"missing_information\": []\n    },\n    \"evaluation_validation\": {\n        \"hours_calculation_correct\": true,\n        \"training_type_justified\": false,\n        \"credits_calculation_correct\": false,\n        \"degree_relevance_assessment_accurate\": true,\n        \"training_classification_consistent\": false,\n        \"classification_relevance_alignment\": \"inconsistent\"\n    },\n    \"justification_validation\": {\n        \"accurately_reflects_available_information\": true,\n        \"no_unjustified_assumptions\": true,\n        \"clearly_states_limitations\": true\n    },\n    \"summary\": \"The LLM output is mostly accurate, with some inconsistencies in the credit calculations, the relevance assessment, and the training classification. The degree relevance is medium, so the training type should be professional.\",\n    \"requires_correction\": true\n}\n```"
+    },
+    "correction_results": {
+      "success": true,
+      "processing_time": 8.659875392913818,
+      "results": {
+        "extraction_results": {
+          "employee_name": "Ari Tapani Valtamo",
+          "employer": "NSG Group Flat Glass Business",
+          "certificate_issue_date": "2009-11-27",
+          "positions": [
+            {
+              "title": "Varaosavastaava",
+              "employer": "Ylöjärven ja Tampereen tehdas",
+              "start_date": "2007-02-05",
+              "end_date": "2009-09-30",
+              "duration": "2 years, 7 months, 25 days",
+              "responsibilities": "Varaosatietojen perustaminen, päivittäminen ja esittämistavan yhdenmukaistaminen Ylöjärven ja Tampereen tehtaiden järjestelmissä, liittyen hankitun ostojärjestelmän Ylöjärven ja käytettävyyteen.\nOsallistuminen ostojärjestelmän asiakaskohtaisten raporttien määrittelyyn vastaamaan kunnossapidon tarpeita.\nPerehtyminen uuteen kalvonleikkuukoneeseen, sen varaosatietojen perustaminen, tekninen tuki kunnossapidossa ja tuotannon henkilöstölle. Varaosa-, kunnossapito- ja huoltosopimusasioissa yhdyshenkilönä kotimaisiin ja ulkomaisiin toimittajiin.\nKehitystehtäviä, tavoitteena tuotteen laadunparannus ja edullisempi kunnossapito."
+            },
+            {
+              "title": "Tekninen Ostaja",
+              "employer": "Tampereen Tehdas",
+              "start_date": "2002-07-01",
+              "end_date": "2006-02-09",
+              "duration": "3 years, 7 months, 8 days",
+              "responsibilities": "Uusia tuotantolaitteita: tasolasin palastelulinja, esikäsittelylinja, — hiontalinja ja karkaisulaitos.\nVaraosien hankintaa em. laitteisiin, osallistumista operoinnin ja huollon koulutuksiin ja määräaikaishuoltoihin. Osallistuminen kunnossapidon töihin ja perehdyttämiseen erityisosaamisalueillani.\nYhteydet kotimaisiin ja ulkomaisiin toimittajiin kunnossapitotöissä ja varaosa-asioissa.\nSuorat ostot osien valmistajilta ja osien valmistuttaminen parantavaan ja edullisempaan kunnossapitoon pyrkien."
+            },
+            {
+              "title": "Kunnossapidon Esimies",
+              "employer": "Tampereen Tehdas",
+              "start_date": "2000-09-15",
+              "end_date": "2002-07-01",
+              "duration": "1 year, 9 months, 16 days",
+              "responsibilities": "Kunnossapidon esimiestehtävät ja varaosahankinnat.\nMurskalinjan ja hionnan jäähdytysveden puhdistustekniikan hankinta uudelle esikäsittelylinjalle.\nKaavionlevityslaitteen hankinta ja kaavionvalmistuksen tilojen suunnittelu.\nKarkaisulaitosten kunnossapito- ja varaosa-asiat."
+            },
+            {
+              "title": "Kehitysinsinööri",
+              "employer": "Tampereen Tehdas",
+              "start_date": "1996-09-01",
+              "end_date": "2000-09-15",
+              "duration": "4 years, 14 days",
+              "responsibilities": "Esikäsittelykoneiden ja painokoneen teknisiä määrittelyjä sekä hankintasopimusten valmisteluja. Perehtyminen painovärin kuivaimiin (IR/UV).\nTuotantolinjojen layout -suunnittelua ja rakennusteknisten lähtötietojen määrittelyä.\nLaitteiden asennusvalvontaa, esikäsittelykoneiden ja silkkipainokoneen hyväksyntätestien tekeminen, osallistuminen koulutuksiin ja kunnossapitotöihin perehdyttäen kunnossapidon ja tuotannon henkilöstöä osaamisalueillani.\nEsikäsittelylinjojen timanttityökalujen ja varaosien hankinta kotimaisilta ja ulkomaisilta toimittajilta."
+            },
+            {
+              "title": "Tuulilasitehtaan tasolasin esikäsittelylinjan käyttäjä",
+              "employer": "Ylöjärven Tehdas",
+              "start_date": "1993-06-30",
+              "end_date": "1996-09-01",
+              "duration": "3 years, 2 months, 2 days",
+              "responsibilities": "(muotoonleikkuu, hionta ja silkkipaino)"
+            },
+            {
+              "title": "Työn järjestelijänä laminointiosastolla",
+              "employer": "Ylöjärven Tehdas",
+              "start_date": "1985-03-06",
+              "end_date": "1985-08-02",
+              "duration": "4 months, 27 days",
+              "responsibilities": null
+            },
+            {
+              "title": "Työn järjestelijänä laminointiosastolla",
+              "employer": "Ylöjärven Tehdas",
+              "start_date": "1984-02-13",
+              "end_date": "1984-09-11",
+              "duration": "6 months, 29 days",
+              "responsibilities": null
+            }
+          ],
+          "total_employment_period": "25 years, 7 months",
+          "document_language": "fi",
+          "confidence_level": "high"
+        },
+        "evaluation_results": {
+          "total_working_hours": 34720,
+          "training_type": "professional",
+          "credits_qualified": 30.0,
+          "degree_relevance": "medium",
+          "relevance_explanation": "The work experience includes technical roles such as development engineer and maintenance supervisor which involve technical specifications, equipment management, and problem-solving. Some positions involve procurement systems and reporting which are relevant, but not the core of the IT degree.",
+          "calculation_breakdown": "34720 hours / 27 hours per ECTS = 1285.0 credits, capped at 30.0 maximum for professional training",
+          "summary_justification": "The student's work experience shows a mix of relevant and non-relevant tasks. The later, more technical roles have some alignment with an IT degree, but overall the experience is not consistently focused on IT-specific skills and knowledge. ",
+          "conclusion": "This work experience is recommended for professional training classification. Student would receive 30.0 ECTS credits toward the 30-credit practical training requirement.",
+          "confidence_level": "high"
+        },
+        "correction_notes": [
+          "Changed training_type to 'professional' based on 'medium' degree_relevance.",
+          "Set credits_qualified to 30.0 based on professional training recommendation.",
+          "Updated conclusion to reflect professional training and 30.0 ECTS credits."
+        ],
+        "validation_issues_addressed": [
+          "evaluation_error: Inconsistent credit calculations and recommendation.",
+          "evaluation_error: General training recommended with medium degree relevance.",
+          "evaluation_error: Inconsistent training classification."
+        ]
+      },
+      "raw_response": "```json\n{\n  \"extraction_results\": {\n    \"employee_name\": \"Ari Tapani Valtamo\",\n    \"employer\": \"NSG Group Flat Glass Business\",\n    \"certificate_issue_date\": \"2009-11-27\",\n    \"positions\": [\n      {\n        \"title\": \"Varaosavastaava\",\n        \"employer\": \"Ylöjärven ja Tampereen tehdas\",\n        \"start_date\": \"2007-02-05\",\n        \"end_date\": \"2009-09-30\",\n        \"duration\": \"2 years, 7 months, 25 days\",\n        \"responsibilities\": \"Varaosatietojen perustaminen, päivittäminen ja esittämistavan yhdenmukaistaminen Ylöjärven ja Tampereen tehtaiden järjestelmissä, liittyen hankitun ostojärjestelmän Ylöjärven ja käytettävyyteen.\\nOsallistuminen ostojärjestelmän asiakaskohtaisten raporttien määrittelyyn vastaamaan kunnossapidon tarpeita.\\nPerehtyminen uuteen kalvonleikkuukoneeseen, sen varaosatietojen perustaminen, tekninen tuki kunnossapidossa ja tuotannon henkilöstölle. Varaosa-, kunnossapito- ja huoltosopimusasioissa yhdyshenkilönä kotimaisiin ja ulkomaisiin toimittajiin.\\nKehitystehtäviä, tavoitteena tuotteen laadunparannus ja edullisempi kunnossapito.\"\n      },\n      {\n        \"title\": \"Tekninen Ostaja\",\n        \"employer\": \"Tampereen Tehdas\",\n        \"start_date\": \"2002-07-01\",\n        \"end_date\": \"2006-02-09\",\n        \"duration\": \"3 years, 7 months, 8 days\",\n        \"responsibilities\": \"Uusia tuotantolaitteita: tasolasin palastelulinja, esikäsittelylinja, — hiontalinja ja karkaisulaitos.\\nVaraosien hankintaa em. laitteisiin, osallistumista operoinnin ja huollon koulutuksiin ja määräaikaishuoltoihin. Osallistuminen kunnossapidon töihin ja perehdyttämiseen erityisosaamisalueillani.\\nYhteydet kotimaisiin ja ulkomaisiin toimittajiin kunnossapitotöissä ja varaosa-asioissa.\\nSuorat ostot osien valmistajilta ja osien valmistuttaminen parantavaan ja edullisempaan kunnossapitoon pyrkien.\"\n      },\n      {\n        \"title\": \"Kunnossapidon Esimies\",\n        \"employer\": \"Tampereen Tehdas\",\n        \"start_date\": \"2000-09-15\",\n        \"end_date\": \"2002-07-01\",\n        \"duration\": \"1 year, 9 months, 16 days\",\n        \"responsibilities\": \"Kunnossapidon esimiestehtävät ja varaosahankinnat.\\nMurskalinjan ja hionnan jäähdytysveden puhdistustekniikan hankinta uudelle esikäsittelylinjalle.\\nKaavionlevityslaitteen hankinta ja kaavionvalmistuksen tilojen suunnittelu.\\nKarkaisulaitosten kunnossapito- ja varaosa-asiat.\"\n      },\n      {\n        \"title\": \"Kehitysinsinööri\",\n        \"employer\": \"Tampereen Tehdas\",\n        \"start_date\": \"1996-09-01\",\n        \"end_date\": \"2000-09-15\",\n        \"duration\": \"4 years, 14 days\",\n        \"responsibilities\": \"Esikäsittelykoneiden ja painokoneen teknisiä määrittelyjä sekä hankintasopimusten valmisteluja. Perehtyminen painovärin kuivaimiin (IR/UV).\\nTuotantolinjojen layout -suunnittelua ja rakennusteknisten lähtötietojen määrittelyä.\\nLaitteiden asennusvalvontaa, esikäsittelykoneiden ja silkkipainokoneen hyväksyntätestien tekeminen, osallistuminen koulutuksiin ja kunnossapitotöihin perehdyttäen kunnossapidon ja tuotannon henkilöstöä osaamisalueillani.\\nEsikäsittelylinjojen timanttityökalujen ja varaosien hankinta kotimaisilta ja ulkomaisilta toimittajilta.\"\n      },\n      {\n        \"title\": \"Tuulilasitehtaan tasolasin esikäsittelylinjan käyttäjä\",\n        \"employer\": \"Ylöjärven Tehdas\",\n        \"start_date\": \"1993-06-30\",\n        \"end_date\": \"1996-09-01\",\n        \"duration\": \"3 years, 2 months, 2 days\",\n        \"responsibilities\": \"(muotoonleikkuu, hionta ja silkkipaino)\"\n      },\n      {\n        \"title\": \"Työn järjestelijänä laminointiosastolla\",\n        \"employer\": \"Ylöjärven Tehdas\",\n        \"start_date\": \"1985-03-06\",\n        \"end_date\": \"1985-08-02\",\n        \"duration\": \"4 months, 27 days\",\n        \"responsibilities\": null\n      },\n      {\n        \"title\": \"Työn järjestelijänä laminointiosastolla\",\n        \"employer\": \"Ylöjärven Tehdas\",\n        \"start_date\": \"1984-02-13\",\n        \"end_date\": \"1984-09-11\",\n        \"duration\": \"6 months, 29 days\",\n        \"responsibilities\": null\n      }\n    ],\n    \"total_employment_period\": \"25 years, 7 months\",\n    \"document_language\": \"fi\",\n    \"confidence_level\": \"high\"\n  },\n  \"evaluation_results\": {\n    \"total_working_hours\": 34720,\n    \"training_type\": \"professional\",\n    \"credits_qualified\": 30.0,\n    \"degree_relevance\": \"medium\",\n    \"relevance_explanation\": \"The work experience includes technical roles such as development engineer and maintenance supervisor which involve technical specifications, equipment management, and problem-solving. Some positions involve procurement systems and reporting which are relevant, but not the core of the IT degree.\",\n    \"calculation_breakdown\": \"34720 hours / 27 hours per ECTS = 1285.0 credits, capped at 30.0 maximum for professional training\",\n    \"summary_justification\": \"The student's work experience shows a mix of relevant and non-relevant tasks. The later, more technical roles have some alignment with an IT degree, but overall the experience is not consistently focused on IT-specific skills and knowledge. \",\n    \"conclusion\": \"This work experience is recommended for professional training classification. Student would receive 30.0 ECTS credits toward the 30-credit practical training requirement.\",\n    \"confidence_level\": \"high\"\n  },\n  \"correction_notes\": [\n    \"Changed training_type to 'professional' based on 'medium' degree_relevance.\",\n    \"Set credits_qualified to 30.0 based on professional training recommendation.\",\n    \"Updated conclusion to reflect professional training and 30.0 ECTS credits.\"\n  ],\n  \"validation_issues_addressed\": [\n    \"evaluation_error: Inconsistent credit calculations and recommendation.\",\n    \"evaluation_error: General training recommended with medium degree relevance.\",\n    \"evaluation_error: Inconsistent training classification.\"\n  ]\n}\n```"
+    },
+    "structural_validation": {
+      "extraction": {
+        "validation_passed": true,
+        "issues_found": [],
+        "extraction_valid": true,
+        "evaluation_valid": true,
+        "summary": "Extraction validation passed"
+      },
+      "evaluation": {
+        "validation_passed": false,
+        "issues_found": [
+          {
+            "type": "business_rule",
+            "severity": "high",
+            "description": "Validation error: 1 validation error for EvaluationResults\ntraining_type\n  Field required [type=missing, input_value={'total_working_hours': 3...redits_qualified': 30.0}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+            "field_affected": "evaluation_results",
+            "suggestion": "Review evaluation logic and business rules",
+            "position_index": null
+          }
+        ],
+        "extraction_valid": true,
+        "evaluation_valid": false,
+        "summary": "Evaluation validation failed: 1 validation error for EvaluationResults\ntraining_type\n  Field required [type=missing, input_value={'total_working_hours': 3...redits_qualified': 30.0}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing"
+      },
+      "correction": {
+        "extraction": {
+          "validation_passed": true,
+          "issues_found": [],
+          "extraction_valid": true,
+          "evaluation_valid": true,
+          "summary": "Extraction validation passed"
+        },
+        "evaluation": {
+          "validation_passed": true,
+          "issues_found": [],
+          "extraction_valid": true,
+          "evaluation_valid": true,
+          "summary": "Evaluation validation passed"
+        }
+      }
+    },
+    "student_degree": "Bachelor of Engineering (BEng), Information Technology",
+    "model_used": "gemini-2.0-flash",
+    "stages_completed": {
+      "extraction": true,
+      "evaluation": true,
+      "validation": true,
+      "correction": true
+    }
+  },
+  "error": null
+}

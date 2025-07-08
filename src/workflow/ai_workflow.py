@@ -132,7 +132,10 @@ class LLMOrchestrator:
         return None
 
     def process_work_certificate(
-        self, text: str, student_degree: str = "Business Administration"
+        self,
+        text: str,
+        student_degree: str = "Business Administration",
+        requested_training_type: str = None,
     ) -> Dict[str, Any]:
         """
         Process a work certificate using the 4-stage LLM approach.
@@ -140,6 +143,7 @@ class LLMOrchestrator:
         Args:
             text: Cleaned OCR text from the work certificate
             student_degree: Student's degree program
+            requested_training_type: Student's requested training type (general or professional)
 
         Returns:
             Dictionary with both extraction and evaluation results
@@ -194,7 +198,10 @@ class LLMOrchestrator:
 
             # Stage 2: Academic Evaluation
             evaluation_result = self._evaluate_academically(
-                sanitized_text, extraction_result["results"], student_degree
+                sanitized_text,
+                extraction_result["results"],
+                student_degree,
+                requested_training_type,
             )
 
             # Stage 2.5: Structural Validation of Evaluation Results
@@ -488,9 +495,13 @@ class LLMOrchestrator:
             }
 
     def _evaluate_academically(
-        self, text: str, extracted_info: Dict[str, Any], student_degree: str
+        self,
+        text: str,
+        extracted_info: Dict[str, Any],
+        student_degree: str,
+        requested_training_type: str = None,
     ) -> Dict[str, Any]:
-        """Stage 2: Evaluate the certificate for academic credits with degree-specific criteria."""
+        """Stage 2: Evaluate the certificate for academic credits with degree-specific criteria and requested training type."""
         stage_start = time.time()
 
         try:
@@ -508,6 +519,7 @@ class LLMOrchestrator:
                 document_text=text,
                 student_degree=student_degree,
                 degree_specific_guidelines=degree_guidelines,
+                requested_training_type=requested_training_type or "general",
             )
 
             response = self._call_llm_with_fallback(prompt, "evaluation")
@@ -517,7 +529,10 @@ class LLMOrchestrator:
             if results:
                 total_hours = results.get("total_working_hours", 0)
                 base_credits = int(total_hours / 27)
-                training_type = results.get("training_type", "")
+                # Use requested_training_type for capping
+                training_type = requested_training_type or results.get(
+                    "training_type", ""
+                )
                 if training_type == "professional" and base_credits > 30:
                     results["credits_qualified"] = 30.0
                     results["calculation_breakdown"] = (

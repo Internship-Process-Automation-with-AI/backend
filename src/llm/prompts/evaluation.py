@@ -1,20 +1,20 @@
 """
 LLM prompt for academic evaluation of work certificates.
-This prompt focuses on determining academic credits and training classification.
+This prompt focuses on analyzing evidence for/against the student's requested training type and providing a recommendation.
 """
 
-EVALUATION_PROMPT = """You are an expert in academic practical training evaluation for higher education institutions.
+EVALUATION_PROMPT = """You are an expert academic advisor assisting with practical training evaluation for higher education institutions.
 
-Your task is to evaluate a work certificate and determine its academic value for practical training credits. You have been provided with extracted information, the original certificate text, and the student's degree program information.
+Your task is to analyze a work certificate and provide evidence-based recommendations for practical training credit evaluation. You have been provided with extracted information, the original certificate text, the student's degree program, and the student's requested training type.
 
 EVALUATION CRITERIA:
 1. Total Working Hours: Calculate based on employment period and work schedule
 2. Nature of Tasks: Describe the type of work and responsibilities
-3. Training Classification: Determine if it's "general" or "professional" training
+3. Training Type Analysis: Analyze whether the work experience supports the student's requested training type
 4. Academic Credits: Calculate ECTS credits (1 ECTS = 27 hours of work)
 5. Degree Relevance: Evaluate how well the work aligns with the student's degree program
-6. Justification: Provide detailed reasoning for your evaluation
-7. Conclusion: Provide a clear conclusion for the evaluation
+6. Evidence Analysis: Provide evidence for and against the requested training type
+7. Recommendation: Provide a clear recommendation for human evaluators
 
 EVALUATION GUIDELINES:
 
@@ -28,7 +28,7 @@ WORKING HOURS CALCULATION:
 - If no work schedule specified, assume full-time (40 hours/week)
 - CRITICAL: Do NOT assume the current date when end_date is missing
 
-TRAINING CLASSIFICATION:
+TRAINING TYPE ANALYSIS:
 - "Professional Training": Work that demonstrates clear alignment with degree-specific criteria, technical skills, specialized knowledge, or industry-specific work relevant to the degree field
 - "General Training": Work that provides valuable transferable skills but does NOT directly align with degree-specific technical or industry requirements
 
@@ -38,11 +38,17 @@ DEGREE RELEVANCE ASSESSMENT:
 - Evaluate alignment with the degree's relevant roles and industries
 - Use the degree-specific guidelines to determine relevance level
 
-TRAINING CLASSIFICATION RULE:
-- If degree relevance is "high" or "medium": Classify as "Professional Training"
-- If degree relevance is "low": Classify as "General Training"
-- The training classification MUST be consistent with the degree relevance assessment
-- Professional training should be awarded when work demonstrates clear alignment with degree-specific criteria
+EVIDENCE ANALYSIS:
+- Provide specific evidence from the work experience that supports the requested training type
+- Provide specific evidence that might challenge the requested training type
+- Be objective and factual in your analysis
+- Focus on the actual work performed, not assumptions
+
+RECOMMENDATION APPROACH:
+- If evidence strongly supports the requested training type: "RECOMMENDED"
+- If evidence partially supports the requested training type: "CONDITIONALLY RECOMMENDED"
+- If evidence does not support the requested training type: "NOT RECOMMENDED"
+- Always provide clear reasoning for your recommendation
 
 DEGREE-SPECIFIC EVALUATION:
 {degree_specific_guidelines}
@@ -64,50 +70,53 @@ PRACTICAL TRAINING REQUIREMENTS:
 - Total practical training requirement: 30 ECTS credits
 - Professional Training (degree-related): Can receive up to 30 ECTS credits
 - General Training (non-degree-related): Maximum 10 ECTS credits allowed
-- Professional training should be prioritized when work is degree-relevant
 
 CREDIT LIMITS BY TRAINING TYPE:
 - General Training: Maximum 10 ECTS credits (regardless of hours worked)
 - Professional Training: Maximum 30 ECTS credits (if all work is degree-related)
-- Apply the appropriate limit based on the training classification
+- Apply the appropriate limit based on the student's requested training type
 
 CALCULATION BREAKDOWN REQUIREMENTS:
 - Show calculation: total_hours / 27 = base_credits
-- Apply appropriate limits based on training type:
+- Apply appropriate limits based on requested training type:
   * General Training: Cap at 10.0 ECTS maximum
   * Professional Training: Cap at 30.0 ECTS maximum
-- Ensure calculation breakdown matches the training type classification
 - The breakdown should clearly show why credits are capped
 
-JUSTIFICATION REQUIREMENTS:
-- For General Training: Focus on transferable skills and general work experience
-- For Professional Training: Focus on degree-specific skills and industry relevance
-- Include information about the 30-credit practical training requirement
-- Explain how this experience contributes to the student's overall practical training goals
+EVIDENCE AND RECOMMENDATION REQUIREMENTS:
+- Provide specific examples from the work experience that support the requested training type
+- Provide specific examples that might challenge the requested training type
+- Give a clear recommendation: RECOMMENDED, CONDITIONALLY RECOMMENDED, or NOT RECOMMENDED
+- Explain the reasoning behind your recommendation
+- Note that this is advisory - final decision rests with human evaluators
 
 CONCLUSION REQUIREMENTS:
-- For Professional Training: Mention progress toward the 30-credit requirement
-- For General Training: Clarify that this counts toward the 10-credit general training limit
-- For General Training: Explain remaining credit options (can use up to remaining general credits + professional, or all professional)
-- Include total practical training progress if applicable
-- Be mathematically accurate about remaining credit requirements
+- Summarize the evidence analysis
+- Provide the final recommendation
+- Explain credit calculation and limits
+- Note that this is an advisory recommendation for human evaluators
 
 CRITICAL: You must respond with ONLY a complete, valid JSON object. Do not include any text before or after the JSON.
 
 Example response format:
 {{
     "total_working_hours": 1040,
-    "training_type": "general",
-    "credits_qualified": 10,
+    "requested_training_type": "professional",
+    "credits_calculated": 10,
     "degree_relevance": "low",
     "relevance_explanation": "Work involves general customer service and administrative tasks not directly related to International Business degree requirements",
     "calculation_breakdown": "6 months full-time (1040 hours) / 27 hours per ECTS = 38.52 credits, rounded down to 38.0 credits, capped at 10.0 maximum for general training",
-    "summary_justification": "General work experience providing valuable transferable skills in customer service and administrative tasks. While not directly related to International Business degree requirements, this experience contributes toward the practical training requirement. The student will need additional degree-related professional training to complete the remaining 20 credits.",
-    "conclusion": "Student receives 10.0 ECTS credits as general training. This leaves 20.0 ECTS credits remaining for the 30-credit practical training requirement. The student can complete the remaining credits through professional training (degree-related work) or a combination of professional and general training (up to 5 more general credits allowed).",
+    "supporting_evidence": "Work experience demonstrates customer service skills, communication abilities, and workplace professionalism",
+    "challenging_evidence": "Tasks are primarily administrative and customer service oriented, lacking specific business management, marketing, or international business components",
+    "recommendation": "NOT RECOMMENDED for professional training",
+    "recommendation_reasoning": "While the work experience provides valuable transferable skills, it lacks the degree-specific technical and industry-relevant components required for professional training classification. This experience would be better classified as general training.",
+    "summary_justification": "The work experience, while valuable, does not demonstrate sufficient alignment with International Business degree requirements to justify professional training classification. The tasks are primarily administrative and customer service oriented rather than business management or international business focused.",
+    "conclusion": "This work experience is recommended for general training classification. Student would receive 10.0 ECTS credits toward the 30-credit practical training requirement. Remaining 20 credits should be completed through degree-related professional training.",
     "confidence_level": "high"
 }}
 
 Student Degree Program: {student_degree}
+Student Requested Training Type: {requested_training_type}
 Extracted Information: {extracted_info}
 Original Certificate Text: {document_text}
 
