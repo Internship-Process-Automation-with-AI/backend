@@ -1,0 +1,118 @@
+{
+  "success": true,
+  "file_path": "samples\\finnish-scanned-09.pdf",
+  "student_degree": "Sosionomi (AMK)",
+  "student_email": "lea.hampinen@students.oamk.fi",
+  "processing_time": 11.973745,
+  "ocr_results": {
+    "success": true,
+    "engine": "Tesseract",
+    "confidence": 0,
+    "processing_time": 5.5,
+    "text_length": 980,
+    "detected_language": "fin",
+    "finnish_chars_count": 43
+  },
+  "llm_results": {
+    "success": true,
+    "processing_time": 6.471959590911865,
+    "extraction_results": {
+      "success": true,
+      "processing_time": 2.1009340286254883,
+      "results": {
+        "employee_name": "Juho Eero Heikonen",
+        "employer": "Teboil Paimio",
+        "certificate_issue_date": "2017-09-09",
+        "positions": [
+          {
+            "title": "Liikenneasematyöntekijä",
+            "employer": "Teboil Paimio",
+            "start_date": "2017-07-24",
+            "end_date": "2017-09-01",
+            "duration": "1 month, 8 days",
+            "responsibilities": "Liikenneasematyöntekijän tehtävät mm. kassatyöskentely, Veikkaus-myynti, astiahuolto, kuormien purku ja hyllytys, siivous"
+          }
+        ],
+        "total_employment_period": "1 month, 8 days",
+        "document_language": "fi",
+        "confidence_level": "high(>75%)"
+      },
+      "raw_response": "```json\n{\n    \"employee_name\": \"Juho Eero Heikonen\",\n    \"employer\": \"Teboil Paimio\",\n    \"certificate_issue_date\": \"2017-09-09\",\n    \"positions\": [\n        {\n            \"title\": \"Liikenneasematyöntekijä\",\n            \"employer\": \"Teboil Paimio\",\n            \"start_date\": \"2017-07-24\",\n            \"end_date\": \"2017-09-01\",\n            \"duration\": \"1 month, 8 days\",\n            \"responsibilities\": \"Liikenneasematyöntekijän tehtävät mm. kassatyöskentely, Veikkaus-myynti, astiahuolto, kuormien purku ja hyllytys, siivous\"\n        }\n    ],\n    \"total_employment_period\": \"1 month, 8 days\",\n    \"document_language\": \"fi\",\n    \"confidence_level\": \"high(>75%)\"\n}\n```"
+    },
+    "evaluation_results": {
+      "success": true,
+      "processing_time": 2.8962364196777344,
+      "results": {
+        "total_working_hours": 136,
+        "training_type": "general",
+        "credits_qualified": 5.0,
+        "degree_relevance": "low",
+        "relevance_explanation": "The work performed as a 'Liikenneasematyöntekijä' at Teboil Paimio involved tasks such as cashier work, lottery sales, dishwashing, unloading and stocking goods, and cleaning. These tasks provide general work experience and transferable skills but are not directly related to the Sosionomi (AMK) curriculum or the social services, healthcare, public administration, or education sectors. While the role involves customer service and responsibility, it lacks the specific skills and knowledge required in social work roles.",
+        "calculation_breakdown": "1 month, 8 days of full-time work (136 hours) / 27 hours per ECTS = 5.03 credits, rounded down to 5.0 credits. General Training is capped at 10.0 ECTS.",
+        "summary_justification": "This work experience provided Juho with general skills such as customer service, responsibility, and teamwork. While not directly related to the Sosionomi (AMK) degree, it contributes to the student's overall work experience and develops transferable skills. These skills are valuable in any professional setting. This experience counts toward the 10 ECTS credit limit for general training.",
+        "conclusion": "Student receives 5.0 ECTS credits as general training. This contributes toward the maximum 10 ECTS credits allowed for general training. The remaining 25 ECTS credits should come from professional training.",
+        "confidence_level": "high"
+      },
+      "raw_response": "```json\n{\n    \"total_working_hours\": 136,\n    \"training_type\": \"general\",\n    \"credits_qualified\": 5,\n    \"degree_relevance\": \"low\",\n    \"relevance_explanation\": \"The work performed as a 'Liikenneasematyöntekijä' at Teboil Paimio involved tasks such as cashier work, lottery sales, dishwashing, unloading and stocking goods, and cleaning. These tasks provide general work experience and transferable skills but are not directly related to the Sosionomi (AMK) curriculum or the social services, healthcare, public administration, or education sectors. While the role involves customer service and responsibility, it lacks the specific skills and knowledge required in social work roles.\",\n    \"calculation_breakdown\": \"1 month, 8 days of full-time work (136 hours) / 27 hours per ECTS = 5.03 credits, rounded down to 5.0 credits. General Training is capped at 10.0 ECTS.\",\n    \"summary_justification\": \"This work experience provided Juho with general skills such as customer service, responsibility, and teamwork. While not directly related to the Sosionomi (AMK) degree, it contributes to the student's overall work experience and develops transferable skills. These skills are valuable in any professional setting. This experience counts toward the 10 ECTS credit limit for general training.\",\n    \"conclusion\": \"Student receives 5.0 ECTS credits as general training. This contributes toward the maximum 10 ECTS credits allowed for general training. The remaining 25 ECTS credits should come from professional training.\",\n    \"confidence_level\": \"high\"\n}\n```"
+    },
+    "validation_results": {
+      "success": true,
+      "processing_time": 1.4747891426086426,
+      "results": {
+        "validation_passed": true,
+        "overall_accuracy_score": 1.0,
+        "issues_found": [],
+        "extraction_validation": {
+          "employee_name_correct": true,
+          "job_title_correct": true,
+          "company_correct": true,
+          "dates_correct": true,
+          "missing_information": []
+        },
+        "evaluation_validation": {
+          "hours_calculation_correct": true,
+          "training_type_justified": true,
+          "credits_calculation_correct": true,
+          "degree_relevance_assessment_accurate": true,
+          "training_classification_consistent": true,
+          "classification_relevance_alignment": "consistent"
+        },
+        "justification_validation": {
+          "accurately_reflects_available_information": true,
+          "no_unjustified_assumptions": true,
+          "clearly_states_limitations": true
+        },
+        "summary": "LLM output is accurate and consistent with the provided OCR text and student degree.",
+        "requires_correction": false
+      },
+      "raw_response": "```json\n{\n    \"validation_passed\": true,\n    \"overall_accuracy_score\": 1.0,\n    \"issues_found\": [],\n    \"extraction_validation\": {\n        \"employee_name_correct\": true,\n        \"job_title_correct\": true,\n        \"company_correct\": true,\n        \"dates_correct\": true,\n        \"missing_information\": []\n    },\n    \"evaluation_validation\": {\n        \"hours_calculation_correct\": true,\n        \"training_type_justified\": true,\n        \"credits_calculation_correct\": true,\n        \"degree_relevance_assessment_accurate\": true,\n        \"training_classification_consistent\": true,\n        \"classification_relevance_alignment\": \"consistent\"\n    },\n    \"justification_validation\": {\n        \"accurately_reflects_available_information\": true,\n        \"no_unjustified_assumptions\": true,\n        \"clearly_states_limitations\": true\n    },\n    \"summary\": \"LLM output is accurate and consistent with the provided OCR text and student degree.\",\n    \"requires_correction\": false\n}\n```"
+    },
+    "correction_results": null,
+    "structural_validation": {
+      "extraction": {
+        "validation_passed": true,
+        "issues_found": [],
+        "extraction_valid": true,
+        "evaluation_valid": true,
+        "summary": "Extraction validation passed"
+      },
+      "evaluation": {
+        "validation_passed": true,
+        "issues_found": [],
+        "extraction_valid": true,
+        "evaluation_valid": true,
+        "summary": "Evaluation validation passed"
+      },
+      "correction": null
+    },
+    "student_degree": "Sosionomi (AMK)",
+    "model_used": "gemini-2.0-flash",
+    "stages_completed": {
+      "extraction": true,
+      "evaluation": true,
+      "validation": true,
+      "correction": false
+    }
+  },
+  "error": null
+}

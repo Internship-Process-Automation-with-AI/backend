@@ -58,6 +58,7 @@ CREDIT CALCULATION:
 - Base calculation: 1 ECTS = 27 hours of work
 - Round down to nearest whole number (e.g., 10.6 becomes 10.0)
 - All work experience uses the same calculation: total_hours / 27
+- IMPORTANT: The base calculation is always total_hours / 27, but the final credits are capped based on training type
 
 PRACTICAL TRAINING REQUIREMENTS:
 - Total practical training requirement: 30 ECTS credits
@@ -87,20 +88,22 @@ JUSTIFICATION REQUIREMENTS:
 CONCLUSION REQUIREMENTS:
 - For Professional Training: Mention progress toward the 30-credit requirement
 - For General Training: Clarify that this counts toward the 10-credit general training limit
+- For General Training: Explain remaining credit options (can use up to remaining general credits + professional, or all professional)
 - Include total practical training progress if applicable
+- Be mathematically accurate about remaining credit requirements
 
 CRITICAL: You must respond with ONLY a complete, valid JSON object. Do not include any text before or after the JSON.
 
 Example response format:
 {{
     "total_working_hours": 1040,
-    "training_type": "professional",
-    "credits_qualified": 30,
-    "degree_relevance": "high",
-    "relevance_explanation": "Work directly related to International Business degree with marketing and management components",
-    "calculation_breakdown": "6 months full-time (1040 hours) / 27 hours per ECTS = 38.52 credits, rounded down to 38.0 credits, capped at 30.0 maximum for professional training",
-    "summary_justification": "Professional marketing role with significant responsibility and skill development relevant to International Business degree. This experience contributes significantly toward the required 30 ECTS credits of practical training, with at least 20 credits needing to be degree-related.",
-    "conclusion": "Student receives 30.0 ECTS credits as professional training. This provides full completion of the degree's practical training component with all 30 credits in degree-related work.",
+    "training_type": "general",
+    "credits_qualified": 10,
+    "degree_relevance": "low",
+    "relevance_explanation": "Work involves general customer service and administrative tasks not directly related to International Business degree requirements",
+    "calculation_breakdown": "6 months full-time (1040 hours) / 27 hours per ECTS = 38.52 credits, rounded down to 38.0 credits, capped at 10.0 maximum for general training",
+    "summary_justification": "General work experience providing valuable transferable skills in customer service and administrative tasks. While not directly related to International Business degree requirements, this experience contributes toward the practical training requirement. The student will need additional degree-related professional training to complete the remaining 20 credits.",
+    "conclusion": "Student receives 10.0 ECTS credits as general training. This leaves 20.0 ECTS credits remaining for the 30-credit practical training requirement. The student can complete the remaining credits through professional training (degree-related work) or a combination of professional and general training (up to 5 more general credits allowed).",
     "confidence_level": "high"
 }}
 
