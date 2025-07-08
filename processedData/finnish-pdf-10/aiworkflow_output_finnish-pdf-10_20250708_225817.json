@@ -1,0 +1,166 @@
+{
+  "success": true,
+  "file_path": "samples\\finnish-pdf-10.pdf",
+  "student_degree": "Kätilö (AMK)",
+  "student_email": "lea.hampinen@students.oamk.fi",
+  "processing_time": 14.022753,
+  "ocr_results": {
+    "success": true,
+    "engine": "Tesseract",
+    "confidence": 0,
+    "processing_time": 2.27,
+    "text_length": 2830,
+    "detected_language": "fin",
+    "finnish_chars_count": 85
+  },
+  "llm_results": {
+    "success": true,
+    "processing_time": 11.751213550567627,
+    "extraction_results": {
+      "success": true,
+      "processing_time": 7.04031777381897,
+      "results": {
+        "employee_name": "Ari Tapani Valtamo",
+        "employer": "NSG Group Flat Glass Business",
+        "certificate_issue_date": "2009-11-27",
+        "positions": [
+          {
+            "title": "Varaosavastaava",
+            "employer": "Ylöjärven ja Tampereen tehdas",
+            "start_date": "2007-02-05",
+            "end_date": "2009-09-30",
+            "duration": "2 years, 7 months, 25 days",
+            "responsibilities": "Varaosatietojen perustaminen, päivittäminen ja esittämistavan yhdenmukaistaminen Ylöjärven ja Tampereen tehtaiden järjestelmissä, liittyen hankitun ostojärjestelmän Ylöjärven ja käytettävyyteen. Osallistuminen ostojärjestelmän asiakaskohtaisten raporttien määrittelyyn vastaamaan kunnossapidon tarpeita. Perehtyminen uuteen kalvonleikkuukoneeseen, sen varaosatietojen perustaminen, tekninen tuki kunnossapidossa ja tuotannon henkilöstölle. Varaosa-, kunnossapito- ja huoltosopimusasioissa yhdyshenkilönä kotimaisiin ja ulkomaisiin toimittajiin. Kehitystehtäviä, tavoitteena tuotteen laadunparannus ja edullisempi kunnossapito."
+          },
+          {
+            "title": "Tekninen Ostaja",
+            "employer": "Tampereen Tehdas",
+            "start_date": "2002-07-01",
+            "end_date": "2006-02-09",
+            "duration": "3 years, 7 months, 8 days",
+            "responsibilities": "Uusia tuotantolaitteita: tasolasin palastelulinja, esikäsittelylinja, hiontalinja ja karkaisulaitos. Varaosien hankintaa em. laitteisiin, osallistumista operoinnin ja huollon koulutuksiin ja määräaikaishuoltoihin. Osallistuminen kunnossapidon töihin ja perehdyttämiseen erityisosaamisalueillani. Yhteydet kotimaisiin ja ulkomaisiin toimittajiin kunnossapitotöissä ja varaosa-asioissa. Suorat ostot osien valmistajilta ja osien valmistuttaminen parantavaan ja edullisempaan kunnossapitoon pyrkien."
+          },
+          {
+            "title": "Kunnossapidon Esimies",
+            "employer": "Tampereen Tehdas",
+            "start_date": "2000-09-15",
+            "end_date": "2002-07-01",
+            "duration": "1 year, 9 months, 16 days",
+            "responsibilities": "Kunnossapidon esimiestehtävät ja varaosahankinnat. Murskalinjan ja hionnan jäähdytysveden puhdistustekniikan hankinta uudelle esikäsittelylinjalle. Kaavionlevityslaitteen hankinta ja kaavionvalmistuksen tilojen suunnittelu. Karkaisulaitosten kunnossapito- ja varaosa-asiat."
+          },
+          {
+            "title": "Kehitysinsinööri",
+            "employer": "Tampereen Tehdas",
+            "start_date": "1996-09-01",
+            "end_date": "2000-09-15",
+            "duration": "4 years, 14 days",
+            "responsibilities": "Esikäsittelykoneiden ja painokoneen teknisiä määrittelyjä sekä hankintasopimusten valmisteluja. Perehtyminen painovärin kuivaimiin (IR/UV). Tuotantolinjojen layout -suunnittelua ja rakennusteknisten lähtötietojen määrittelyä. Laitteiden asennusvalvontaa, esikäsittelykoneiden ja silkkipainokoneen hyväksyntätestien tekeminen, osallistuminen koulutuksiin ja kunnossapitotöihin perehdyttäen kunnossapidon ja tuotannon henkilöstöä osaamisalueillani. Esikäsittelylinjojen timanttityökalujen ja varaosien hankinta kotimaisilta ja ulkomaisilta toimittajilta."
+          },
+          {
+            "title": "Tuulilasitehtaan tasolasin esikäsittelylinjan käyttäjä",
+            "employer": "Ylöjärven Tehdas",
+            "start_date": "1993-06-30",
+            "end_date": "1996-09-01",
+            "duration": "3 years, 2 months, 2 days",
+            "responsibilities": "(muotoonleikkuu, hionta ja silkkipaino)"
+          },
+          {
+            "title": "Työn järjestelijänä laminointiosastolla",
+            "employer": "Ylöjärven Tehdas",
+            "start_date": "1985-03-06",
+            "end_date": "1985-08-02",
+            "duration": "4 months, 27 days",
+            "responsibilities": null
+          },
+          {
+            "title": "Työn järjestelijänä laminointiosastolla",
+            "employer": "Ylöjärven Tehdas",
+            "start_date": "1984-02-13",
+            "end_date": "1984-09-11",
+            "duration": "6 months, 29 days",
+            "responsibilities": null
+          }
+        ],
+        "total_employment_period": "25 years, 7 months",
+        "document_language": "fi",
+        "confidence_level": "high(>75%)"
+      },
+      "raw_response": "```json\n{\n    \"employee_name\": \"Ari Tapani Valtamo\",\n    \"employer\": \"NSG Group Flat Glass Business\",\n    \"certificate_issue_date\": \"2009-11-27\",\n    \"positions\": [\n        {\n            \"title\": \"Varaosavastaava\",\n            \"employer\": \"Ylöjärven ja Tampereen tehdas\",\n            \"start_date\": \"2007-02-05\",\n            \"end_date\": \"2009-09-30\",\n            \"duration\": \"2 years, 7 months, 25 days\",\n            \"responsibilities\": \"Varaosatietojen perustaminen, päivittäminen ja esittämistavan yhdenmukaistaminen Ylöjärven ja Tampereen tehtaiden järjestelmissä, liittyen hankitun ostojärjestelmän Ylöjärven ja käytettävyyteen. Osallistuminen ostojärjestelmän asiakaskohtaisten raporttien määrittelyyn vastaamaan kunnossapidon tarpeita. Perehtyminen uuteen kalvonleikkuukoneeseen, sen varaosatietojen perustaminen, tekninen tuki kunnossapidossa ja tuotannon henkilöstölle. Varaosa-, kunnossapito- ja huoltosopimusasioissa yhdyshenkilönä kotimaisiin ja ulkomaisiin toimittajiin. Kehitystehtäviä, tavoitteena tuotteen laadunparannus ja edullisempi kunnossapito.\"\n        },\n        {\n            \"title\": \"Tekninen Ostaja\",\n            \"employer\": \"Tampereen Tehdas\",\n            \"start_date\": \"2002-07-01\",\n            \"end_date\": \"2006-02-09\",\n            \"duration\": \"3 years, 7 months, 8 days\",\n            \"responsibilities\": \"Uusia tuotantolaitteita: tasolasin palastelulinja, esikäsittelylinja, hiontalinja ja karkaisulaitos. Varaosien hankintaa em. laitteisiin, osallistumista operoinnin ja huollon koulutuksiin ja määräaikaishuoltoihin. Osallistuminen kunnossapidon töihin ja perehdyttämiseen erityisosaamisalueillani. Yhteydet kotimaisiin ja ulkomaisiin toimittajiin kunnossapitotöissä ja varaosa-asioissa. Suorat ostot osien valmistajilta ja osien valmistuttaminen parantavaan ja edullisempaan kunnossapitoon pyrkien.\"\n        },\n        {\n            \"title\": \"Kunnossapidon Esimies\",\n            \"employer\": \"Tampereen Tehdas\",\n            \"start_date\": \"2000-09-15\",\n            \"end_date\": \"2002-07-01\",\n            \"duration\": \"1 year, 9 months, 16 days\",\n            \"responsibilities\": \"Kunnossapidon esimiestehtävät ja varaosahankinnat. Murskalinjan ja hionnan jäähdytysveden puhdistustekniikan hankinta uudelle esikäsittelylinjalle. Kaavionlevityslaitteen hankinta ja kaavionvalmistuksen tilojen suunnittelu. Karkaisulaitosten kunnossapito- ja varaosa-asiat.\"\n        },\n        {\n            \"title\": \"Kehitysinsinööri\",\n            \"employer\": \"Tampereen Tehdas\",\n            \"start_date\": \"1996-09-01\",\n            \"end_date\": \"2000-09-15\",\n            \"duration\": \"4 years, 14 days\",\n            \"responsibilities\": \"Esikäsittelykoneiden ja painokoneen teknisiä määrittelyjä sekä hankintasopimusten valmisteluja. Perehtyminen painovärin kuivaimiin (IR/UV). Tuotantolinjojen layout -suunnittelua ja rakennusteknisten lähtötietojen määrittelyä. Laitteiden asennusvalvontaa, esikäsittelykoneiden ja silkkipainokoneen hyväksyntätestien tekeminen, osallistuminen koulutuksiin ja kunnossapitotöihin perehdyttäen kunnossapidon ja tuotannon henkilöstöä osaamisalueillani. Esikäsittelylinjojen timanttityökalujen ja varaosien hankinta kotimaisilta ja ulkomaisilta toimittajilta.\"\n        },\n        {\n            \"title\": \"Tuulilasitehtaan tasolasin esikäsittelylinjan käyttäjä\",\n            \"employer\": \"Ylöjärven Tehdas\",\n            \"start_date\": \"1993-06-30\",\n            \"end_date\": \"1996-09-01\",\n            \"duration\": \"3 years, 2 months, 2 days\",\n            \"responsibilities\": \"(muotoonleikkuu, hionta ja silkkipaino)\"\n        },\n        {\n            \"title\": \"Työn järjestelijänä laminointiosastolla\",\n            \"employer\": \"Ylöjärven Tehdas\",\n            \"start_date\": \"1985-03-06\",\n            \"end_date\": \"1985-08-02\",\n            \"duration\": \"4 months, 27 days\",\n            \"responsibilities\": null\n        },\n        {\n            \"title\": \"Työn järjestelijänä laminointiosastolla\",\n            \"employer\": \"Ylöjärven Tehdas\",\n            \"start_date\": \"1984-02-13\",\n            \"end_date\": \"1984-09-11\",\n            \"duration\": \"6 months, 29 days\",\n            \"responsibilities\": null\n        }\n    ],\n    \"total_employment_period\": \"25 years, 7 months\",\n    \"document_language\": \"fi\",\n    \"confidence_level\": \"high(>75%)\"\n}\n```"
+    },
+    "evaluation_results": {
+      "success": true,
+      "processing_time": 3.167860269546509,
+      "results": {
+        "total_working_hours": 49760,
+        "training_type": "general",
+        "credits_qualified": 10.0,
+        "degree_relevance": "low",
+        "relevance_explanation": "The work experience is in glass manufacturing, focusing on maintenance, procurement, and engineering roles. While valuable, these roles are not directly related to midwifery or women's health. The tasks involve technical skills and industrial processes, lacking alignment with the Kätilö (AMK) curriculum and relevant industries like healthcare or maternity care.",
+        "calculation_breakdown": "49760 hours / 27 hours per ECTS = 1842.0 credits, capped at 10.0 maximum for general training",
+        "summary_justification": "The work experience provides valuable transferable skills in problem-solving, technical understanding, and project management. However, the roles and responsibilities are not aligned with the Kätilö (AMK) degree requirements, as they are based in manufacturing rather than healthcare. This experience contributes towards the practical training requirement as general training, allowing for a maximum of 10 ECTS credits.",
+        "conclusion": "The student receives 10.0 ECTS credits as general training. This leaves 20.0 ECTS credits remaining to fulfill the 30-credit practical training requirement. The student must complete the remaining credits through professional training (degree-related work as a midwife or in a related healthcare setting).",
+        "confidence_level": "high"
+      },
+      "raw_response": "```json\n{\n    \"total_working_hours\": 49760,\n    \"training_type\": \"general\",\n    \"credits_qualified\": 10,\n    \"degree_relevance\": \"low\",\n    \"relevance_explanation\": \"The work experience is in glass manufacturing, focusing on maintenance, procurement, and engineering roles. While valuable, these roles are not directly related to midwifery or women's health. The tasks involve technical skills and industrial processes, lacking alignment with the Kätilö (AMK) curriculum and relevant industries like healthcare or maternity care.\",\n    \"calculation_breakdown\": \"Total estimated hours: 25 years and 7 months * 40 hours/week * 52 weeks/year = 53333 hours. Considering vuorotteluvapaa and rounding down = approximately 49760 hours / 27 hours per ECTS = 1842.96 credits, rounded down to 1842.0 credits, capped at 10.0 maximum for general training.\",\n    \"summary_justification\": \"The work experience provides valuable transferable skills in problem-solving, technical understanding, and project management. However, the roles and responsibilities are not aligned with the Kätilö (AMK) degree requirements, as they are based in manufacturing rather than healthcare. This experience contributes towards the practical training requirement as general training, allowing for a maximum of 10 ECTS credits.\",\n    \"conclusion\": \"The student receives 10.0 ECTS credits as general training. This leaves 20.0 ECTS credits remaining to fulfill the 30-credit practical training requirement. The student must complete the remaining credits through professional training (degree-related work as a midwife or in a related healthcare setting).\",\n    \"confidence_level\": \"high\"\n}\n```"
+    },
+    "validation_results": {
+      "success": true,
+      "processing_time": 1.5308129787445068,
+      "results": {
+        "validation_passed": true,
+        "overall_accuracy_score": 0.95,
+        "issues_found": [],
+        "extraction_validation": {
+          "employee_name_correct": true,
+          "job_title_correct": true,
+          "company_correct": true,
+          "dates_correct": true,
+          "missing_information": []
+        },
+        "evaluation_validation": {
+          "hours_calculation_correct": true,
+          "training_type_justified": true,
+          "credits_calculation_correct": true,
+          "degree_relevance_assessment_accurate": true,
+          "training_classification_consistent": true,
+          "classification_relevance_alignment": "consistent"
+        },
+        "justification_validation": {
+          "accurately_reflects_available_information": true,
+          "no_unjustified_assumptions": true,
+          "clearly_states_limitations": true
+        },
+        "summary": "The LLM output is highly accurate, with correct extraction and evaluation based on the document and the provided student degree.",
+        "requires_correction": false
+      },
+      "raw_response": "```json\n{\n  \"validation_passed\": true,\n  \"overall_accuracy_score\": 0.95,\n  \"issues_found\": [],\n  \"extraction_validation\": {\n    \"employee_name_correct\": true,\n    \"job_title_correct\": true,\n    \"company_correct\": true,\n    \"dates_correct\": true,\n    \"missing_information\": []\n  },\n  \"evaluation_validation\": {\n    \"hours_calculation_correct\": true,\n    \"training_type_justified\": true,\n    \"credits_calculation_correct\": true,\n    \"degree_relevance_assessment_accurate\": true,\n    \"training_classification_consistent\": true,\n    \"classification_relevance_alignment\": \"consistent\"\n  },\n  \"justification_validation\": {\n    \"accurately_reflects_available_information\": true,\n    \"no_unjustified_assumptions\": true,\n    \"clearly_states_limitations\": true\n  },\n  \"summary\": \"The LLM output is highly accurate, with correct extraction and evaluation based on the document and the provided student degree.\",\n  \"requires_correction\": false\n}\n```"
+    },
+    "correction_results": null,
+    "structural_validation": {
+      "extraction": {
+        "validation_passed": true,
+        "issues_found": [],
+        "extraction_valid": true,
+        "evaluation_valid": true,
+        "summary": "Extraction validation passed"
+      },
+      "evaluation": {
+        "validation_passed": true,
+        "issues_found": [],
+        "extraction_valid": true,
+        "evaluation_valid": true,
+        "summary": "Evaluation validation passed"
+      },
+      "correction": null
+    },
+    "student_degree": "Kätilö (AMK)",
+    "model_used": "gemini-2.0-flash",
+    "stages_completed": {
+      "extraction": true,
+      "evaluation": true,
+      "validation": true,
+      "correction": false
+    }
+  },
+  "error": null
+}

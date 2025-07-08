@@ -385,6 +385,17 @@ class DocumentPipeline:
                 print(f"   • Credits: {data.get('credits_qualified', 'N/A')} ECTS")
                 print(f"   • Relevance: {data.get('degree_relevance', 'N/A')}")
 
+                # Show calculation breakdown
+                calculation = data.get("calculation_breakdown", "")
+                if calculation:
+                    print(f"   • Calculation: {calculation}")
+
+                # Show justification
+                justification = data.get("summary_justification", "")
+                if justification:
+                    print("\n📋 JUSTIFICATION:")
+                    print(f"   {justification}")
+
                 # Show conclusion
                 conclusion = data.get("conclusion", "")
                 if conclusion:
@@ -401,6 +412,17 @@ class DocumentPipeline:
                     print(f"   • Type: {data.get('training_type', 'N/A')}")
                     print(f"   • Credits: {data.get('credits_qualified', 'N/A')} ECTS")
                     print(f"   • Relevance: {data.get('degree_relevance', 'N/A')}")
+
+                    # Show calculation breakdown
+                    calculation = data.get("calculation_breakdown", "")
+                    if calculation:
+                        print(f"   • Calculation: {calculation}")
+
+                    # Show justification
+                    justification = data.get("summary_justification", "")
+                    if justification:
+                        print("\n📋 JUSTIFICATION:")
+                        print(f"   {justification}")
 
                     # Show conclusion
                     conclusion = data.get("conclusion", "")
