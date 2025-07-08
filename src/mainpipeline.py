@@ -24,8 +24,8 @@ sys.path.insert(0, current_dir)
 
 try:
     from llm.degree_evaluator import DegreeEvaluator
-    from ocr.ocr_model import OCRService
     from workflow.ai_workflow import LLMOrchestrator
+    from workflow.ocr_workflow import OCRWorkflow
 except ImportError as e:
     print(f"❌ Import error: {e}")
     print(f"   Error type: {type(e)}")
@@ -42,7 +42,7 @@ class DocumentPipeline:
 
     def __init__(self):
         """Initialize the pipeline components."""
-        self.ocr_service = None
+        self.ocr_workflow = None
         self.orchestrator = None
         self.degree_evaluator = None
 
@@ -50,12 +50,17 @@ class DocumentPipeline:
         """Initialize all required services."""
         print("🔄 Initializing services...")
 
-        # Initialize OCR service
+        # Initialize OCR workflow
         try:
-            self.ocr_service = OCRService()
-            print("✅ OCR service initialized")
+            self.ocr_workflow = OCRWorkflow(
+                samples_dir="samples",
+                output_dir="processedData",
+                language="auto",
+                use_finnish_detection=True,
+            )
+            print("✅ OCR workflow initialized")
         except Exception as e:
-            print(f"❌ Failed to initialize OCR service: {e}")
+            print(f"❌ Failed to initialize OCR workflow: {e}")
             return False
 
         # Initialize LLM orchestrator
@@ -197,30 +202,41 @@ class DocumentPipeline:
             print("\n📄 Step 1: OCR Processing")
             print(f"   File: {os.path.basename(file_path)}")
 
-            ocr_result = self.ocr_service.extract_text_from_file(file_path)
+            # Process single document using OCR workflow
+            file_path_obj = Path(file_path)
+            ocr_result = self.ocr_workflow.process_document(file_path_obj)
 
             results["ocr_results"] = {
-                "success": ocr_result.success,
-                "engine": ocr_result.engine,
-                "confidence": ocr_result.confidence,
-                "processing_time": ocr_result.processing_time,
-                "text_length": len(ocr_result.text) if ocr_result.text else 0,
+                "success": ocr_result["success"],
+                "engine": "Tesseract",
+                "confidence": ocr_result.get("confidence", 0),
+                "processing_time": ocr_result.get("processing_time", 0),
+                "text_length": ocr_result.get("text_length", 0),
+                "detected_language": ocr_result.get("detected_language", "unknown"),
+                "finnish_chars_count": ocr_result.get("finnish_chars_count", 0),
             }
 
-            if not ocr_result.success or not ocr_result.text:
-                results["error"] = "OCR processing failed or no text extracted"
+            if not ocr_result["success"] or not ocr_result.get("extracted_text"):
+                results["error"] = ocr_result.get(
+                    "error", "OCR processing failed or no text extracted"
+                )
                 return results
 
-            print(f"   ✅ OCR completed: {len(ocr_result.text)} characters")
+            extracted_text = ocr_result["extracted_text"]
+            print(f"   ✅ OCR completed: {len(extracted_text)} characters")
+            if ocr_result.get("detected_language"):
+                print(f"   🌐 Detected language: {ocr_result['detected_language']}")
+            if ocr_result.get("finnish_chars_count", 0) > 0:
+                print(f"   🇫🇮 Finnish characters: {ocr_result['finnish_chars_count']}")
 
             # Save OCR text to organized directory
-            ocr_output_path = self.save_ocr_text(ocr_result.text, file_path)
+            ocr_output_path = self.save_ocr_text(extracted_text, file_path)
             if ocr_output_path:
                 print(f"   💾 OCR text saved to: {ocr_output_path}")
 
             # Step 2: Text Cleaning
             print("\n🧹 Step 2: Text Cleaning")
-            cleaned_text = self.clean_ocr_text(ocr_result.text)
+            cleaned_text = self.clean_ocr_text(extracted_text)
             print(f"   ✅ Text cleaned: {len(cleaned_text)} characters")
 
             # Step 3: LLM Processing
@@ -270,11 +286,11 @@ class DocumentPipeline:
         try:
             base_name = os.path.splitext(os.path.basename(file_path))[0]
             output_dir = os.path.join(
-                os.path.dirname(__file__), "..", "outputs", base_name
+                os.path.dirname(__file__), "..", "processedData", base_name
             )
             os.makedirs(output_dir, exist_ok=True)
 
-            output_filename = f"OCRoutput_{base_name}.txt"
+            output_filename = f"ocr_output_{base_name}.txt"
             output_path = os.path.join(output_dir, output_filename)
 
             with open(output_path, "w", encoding="utf-8") as f:
@@ -290,12 +306,12 @@ class DocumentPipeline:
         try:
             base_name = os.path.splitext(os.path.basename(results["file_path"]))[0]
             output_dir = os.path.join(
-                os.path.dirname(__file__), "..", "outputs", base_name
+                os.path.dirname(__file__), "..", "processedData", base_name
             )
             os.makedirs(output_dir, exist_ok=True)
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_filename = f"LLMoutput_{base_name}_pipeline_{timestamp}.json"
+            output_filename = f"aiworkflow_output_{base_name}_{timestamp}.json"
             output_path = os.path.join(output_dir, output_filename)
 
             with open(output_path, "w", encoding="utf-8") as f:
@@ -335,6 +351,12 @@ class DocumentPipeline:
             print(f"   • Confidence: {ocr_results.get('confidence', 0):.1f}%")
             print(f"   • Processing time: {ocr_results.get('processing_time', 0):.2f}s")
             print(f"   • Text length: {ocr_results.get('text_length', 0)} characters")
+            if ocr_results.get("detected_language"):
+                print(f"   • Language: {ocr_results.get('detected_language')}")
+            if ocr_results.get("finnish_chars_count", 0) > 0:
+                print(
+                    f"   • Finnish characters: {ocr_results.get('finnish_chars_count')}"
+                )
 
         # LLM Results
         llm_results = results.get("llm_results", {})
@@ -457,12 +479,12 @@ def main():
         # Show the organized output structure
         base_name = os.path.splitext(os.path.basename(selected_file))[0]
         output_base_dir = os.path.join(
-            os.path.dirname(__file__), "..", "outputs", base_name
+            os.path.dirname(__file__), "..", "processedData", base_name
         )
         print(f"\n📁 Output organized in: {output_base_dir}")
-        print(f"   ├── OCRoutput_{base_name}.txt     (OCR text)")
+        print(f"   ├── ocr_output_{base_name}.txt     (OCR text)")
         print(
-            f"   └── LLMoutput_{base_name}_pipeline_*.json     (LLM evaluation results)"
+            f"   └── aiworkflow_output_{base_name}_*.json     (AI workflow evaluation results)"
         )
     else:
         print("⚠️  Pipeline failed - no results to save")

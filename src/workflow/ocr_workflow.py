@@ -4,7 +4,7 @@ OCR Workflow for processing internship certificates and documents.
 This module provides a complete workflow for:
 1. Setting up OCR configuration
 2. Processing documents from samples directory
-3. Extracting text using OCR cert_extractor with Finnish support
+3. Extracting text using cert_extractor with Finnish support
 4. Saving results to processedData directory
 """
 
@@ -14,7 +14,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from config.settings import settings
+from src.config import settings
 from src.ocr.cert_extractor import (
     SUPPORTED_DOC_FORMATS,
     SUPPORTED_IMAGE_FORMATS,
@@ -68,7 +68,6 @@ class OCRWorkflow:
         self.output_dir.mkdir(exist_ok=True)
 
         # Create subdirectories for organization
-        (self.output_dir / "text_files").mkdir(exist_ok=True)
         (self.output_dir / "logs").mkdir(exist_ok=True)
         (self.output_dir / "reports").mkdir(exist_ok=True)
 
@@ -77,7 +76,7 @@ class OCRWorkflow:
     def _verify_ocr_setup(self) -> None:
         """Verify OCR configuration is working."""
         try:
-            tesseract_path = settings.tesseract_executable
+            tesseract_path = settings.TESSERACT_CMD or "tesseract"
             logger.info(f"✅ OCR setup verified. Tesseract at: {tesseract_path}")
 
             # Check for Finnish language support if using auto-detection
@@ -210,7 +209,13 @@ class OCRWorkflow:
             Dictionary containing processing results
         """
         start_time = time.time()
-        relative_path = file_path.relative_to(self.samples_dir)
+
+        # Handle files that may be outside the samples directory
+        try:
+            relative_path = file_path.relative_to(self.samples_dir)
+        except ValueError:
+            # If file is not in samples directory, use the filename as relative path
+            relative_path = Path(file_path.name)
 
         result = {
             "file_path": str(relative_path),
@@ -237,9 +242,13 @@ class OCRWorkflow:
                 # Count Finnish characters
                 finnish_chars = sum(1 for c in extracted_text.lower() if c in "äöå")
 
-                # Save text to file
-                output_filename = self._generate_output_filename(file_path)
-                output_path = self.output_dir / "text_files" / output_filename
+                # Save text to file in document-specific directory
+                base_name = file_path.stem
+                document_dir = self.output_dir / base_name
+                document_dir.mkdir(exist_ok=True)
+
+                output_filename = f"ocr_output_{base_name}.txt"
+                output_path = document_dir / output_filename
 
                 with open(output_path, "w", encoding="utf-8") as f:
                     f.write(extracted_text)
@@ -251,6 +260,7 @@ class OCRWorkflow:
                         "detected_language": detected_lang,
                         "finnish_chars_count": finnish_chars,
                         "output_file": str(output_filename),
+                        "extracted_text": extracted_text,
                     },
                 )
 
@@ -284,14 +294,18 @@ class OCRWorkflow:
         base_name = input_path.stem
 
         # Handle subdirectories by replacing path separators
-        relative_path = input_path.relative_to(self.samples_dir)
-        if relative_path.parent != Path():
-            # Include subdirectory in filename
-            base_name = (
-                str(relative_path.parent).replace("/", "_").replace("\\", "_")
-                + "_"
-                + base_name
-            )
+        try:
+            relative_path = input_path.relative_to(self.samples_dir)
+            if relative_path.parent != Path():
+                # Include subdirectory in filename
+                base_name = (
+                    str(relative_path.parent).replace("/", "_").replace("\\", "_")
+                    + "_"
+                    + base_name
+                )
+        except ValueError:
+            # If file is not in samples directory, use just the filename
+            pass
 
         return f"{base_name}.txt"
 

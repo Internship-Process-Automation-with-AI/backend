@@ -10,7 +10,7 @@ import numpy as np
 import pytesseract
 from PIL import Image
 
-from config.settings import settings
+from src.config import settings
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -65,8 +65,12 @@ class OCRProcessor:
     def _configure_tesseract(self) -> None:
         """Configure Tesseract executable path."""
         try:
-            pytesseract.pytesseract.tesseract_cmd = settings.tesseract_executable
-            logger.info(f"Tesseract configured at: {settings.tesseract_executable}")
+            pytesseract.pytesseract.tesseract_cmd = (
+                settings.TESSERACT_CMD or "tesseract"
+            )
+            logger.info(
+                f"Tesseract configured at: {settings.TESSERACT_CMD or 'tesseract'}"
+            )
         except RuntimeError as e:
             logger.exception(f"Failed to configure Tesseract: {e}")
             raise
