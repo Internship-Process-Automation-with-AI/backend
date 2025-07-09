@@ -198,7 +198,8 @@ class EvaluationResults(BaseModel):
     """Model for LLM evaluation results with business rule validation."""
 
     total_working_hours: Optional[int] = None
-    training_type: str = Field(..., pattern="^(general|professional)$")
+    requested_training_type: str = Field(..., pattern="^(general|professional)$")
+    credits_calculated: Optional[float] = None
     credits_qualified: float
     degree_relevance: str = Field(..., pattern="^(high|medium|low)$")
     relevance_explanation: str
@@ -228,7 +229,7 @@ class EvaluationResults(BaseModel):
             raise ValueError(f"Credits exceed maximum allowed: {v}")
         return v
 
-    @validator("training_type")
+    @validator("requested_training_type")
     def validate_training_type_consistency(cls, v, values):
         """Validate training type consistency with degree relevance."""
         if "degree_relevance" in values:
@@ -236,20 +237,20 @@ class EvaluationResults(BaseModel):
             if relevance in ["high", "medium"] and v == "general":
                 raise ValueError(
                     f"Inconsistent classification: degree relevance is '{relevance}' "
-                    f"but training type is '{v}'. Should be 'professional'."
+                    f"but requested training type is '{v}'. Should be 'professional'."
                 )
             if relevance == "low" and v == "professional":
                 raise ValueError(
                     f"Inconsistent classification: degree relevance is '{relevance}' "
-                    f"but training type is '{v}'. Should be 'general'."
+                    f"but requested training type is '{v}'. Should be 'general'."
                 )
         return v
 
     @validator("credits_qualified")
     def validate_credit_limits(cls, v, values):
         """Validate credit limits based on training type."""
-        if "training_type" in values:
-            training_type = values["training_type"]
+        if "requested_training_type" in values:
+            training_type = values["requested_training_type"]
             if training_type == "general" and v > 10:
                 raise ValueError(f"General training credits exceed maximum: {v} > 10")
             if training_type == "professional" and v > 30:

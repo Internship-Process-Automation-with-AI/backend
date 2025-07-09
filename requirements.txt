@@ -44,3 +44,29 @@ pytest>=7.4.3,<8.0.0
 pytest-asyncio>=0.21.1,<1.0.0
 pre-commit>=3.5.0,<4.0.0
 ruff>=0.1.14,<1.0.0
+
+# System Dependencies (must be installed separately)
+# Tesseract OCR Engine: https://github.com/tesseract-ocr/tesseract
+#   - Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
+#     After installation, add to PATH or set environment variable:
+#     set TESSERACT_PATH=C:\Program Files\Tesseract-OCR\tesseract.exe
+#     Finnish language is usually included, but verify with:
+#     tesseract --list-langs
+#     If 'fin' is not listed, download fin.traineddata from:
+#     https://github.com/tesseract-ocr/tessdata
+#     and place it in C:\Program Files\Tesseract-OCR\tessdata\
+#   - macOS: brew install tesseract
+#     Verify installation: tesseract --version
+#   - Ubuntu/Debian: sudo apt-get install tesseract-ocr
+#     For Finnish language: sudo apt-get install tesseract-ocr-fin
+#     Verify installation: tesseract --version
+#
+# Poppler (for PDF processing): https://poppler.freedesktop.org/
+#   - Windows: Download from https://github.com/oschwartz10612/poppler-windows/releases
+#     Extract to C:\poppler and add to PATH:
+#     set PATH=%PATH%;C:\poppler\Library\bin
+#   - macOS: brew install poppler
+#     Verify installation: pdftoppm -h
+#   - Ubuntu/Debian: sudo apt-get install poppler-utils
+#     Verify installation: pdftoppm -h
+

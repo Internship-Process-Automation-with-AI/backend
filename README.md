@@ -298,6 +298,29 @@ The system includes **intelligent language detection** for OCR processing:
 # ✅ Success: certificate.pdf -> certificate.txt (1245 chars, 23 Finnish chars, lang: fin)
 ```
 
+#### 🌐 Frontend Interface
+
+The system also includes a modern web interface for easy document processing:
+
+```bash
+# Navigate to frontend directory
+cd ../frontend
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
+```
+
+The frontend provides:
+- **Drag-and-drop** document upload
+- **Degree selection** from supported programs
+- **Training type selection** (General/Professional)
+- **Real-time processing** with progress indicators
+- **Visual results** with color-coded decisions
+- **Downloadable reports** in JSON format
+
 #### 🔧 Command Line Options
 
 ```bash

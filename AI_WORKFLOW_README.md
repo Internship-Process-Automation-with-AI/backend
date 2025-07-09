@@ -241,14 +241,6 @@ The system evaluates work experience against the student's requested training ty
 💡 RECOMMENDATION: Apply this work experience as general training. The experience provides valuable transferable skills but does not meet the criteria for professional training in this degree program.
 ```
 
-### **Frontend Display**
-The frontend also shows the decision, justification, and recommendation (for rejected cases) in a user-friendly interface with:
-- Document information and degree program
-- Calculated credits and training type
-- Decision status with color coding (green for accepted, red for rejected)
-- Justification text
-- Recommendation section (only for rejected cases)
-
 ## Degree-Specific Evaluation
 
 ### **Degree Programs Data** (`degree_programs_data.py`)
