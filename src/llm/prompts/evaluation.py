@@ -90,15 +90,29 @@ EVIDENCE AND RECOMMENDATION REQUIREMENTS:
 - Explain the reasoning behind your recommendation
 - Note that this is advisory - final decision rests with human evaluators
 
-CONCLUSION REQUIREMENTS:
-- Summarize the evidence analysis
-- Provide the final recommendation
-- Explain credit calculation and limits
-- Note that this is an advisory recommendation for human evaluators
+DECISION REQUIREMENTS:
+- Based on the evidence analysis and the student's requested training type, provide a clear decision
+- Decision must be either "ACCEPTED" or "REJECTED" for the requested training type
+- If evidence supports the requested training type: "ACCEPTED"
+- If evidence does not support the requested training type: "REJECTED"
+- The decision should be based on whether the work experience meets the criteria for the requested training type
+
+JUSTIFICATION REQUIREMENTS:
+- Provide clear reasoning for the decision
+- Explain why the work experience was accepted or rejected for the requested training type
+- Include credit calculation and limits explanation
+- Note that this is an advisory decision for human evaluators
+
+RECOMMENDATION REQUIREMENTS:
+- Provide a clear recommendation for the student on what to do next
+- For REJECTED cases only: Recommend applying for general training instead
+- For ACCEPTED cases: No recommendation needed (student's request is already approved)
+- Keep the recommendation concise and actionable
+- This recommendation is for teachers reviewing the application
 
 CRITICAL: You must respond with ONLY a complete, valid JSON object. Do not include any text before or after the JSON.
 
-Example response format:
+Example response format for REJECTED case:
 {{
     "total_working_hours": 1040,
     "requested_training_type": "professional",
@@ -111,7 +125,27 @@ Example response format:
     "recommendation": "NOT RECOMMENDED for professional training",
     "recommendation_reasoning": "While the work experience provides valuable transferable skills, it lacks the degree-specific technical and industry-relevant components required for professional training classification. This experience would be better classified as general training.",
     "summary_justification": "The work experience, while valuable, does not demonstrate sufficient alignment with International Business degree requirements to justify professional training classification. The tasks are primarily administrative and customer service oriented rather than business management or international business focused.",
-    "conclusion": "This work experience is recommended for general training classification. Student would receive 10.0 ECTS credits toward the 30-credit practical training requirement. Remaining 20 credits should be completed through degree-related professional training.",
+    "decision": "REJECTED",
+    "justification": "The work experience does not meet the criteria for professional training as requested. While the experience provides valuable transferable skills, it lacks the degree-specific technical and industry-relevant components required for professional training classification. This experience would be better classified as general training. Student would receive 10.0 ECTS credits toward the 30-credit practical training requirement.",
+    "recommendation": "Apply this work experience as general training. The experience provides valuable transferable skills but does not meet the criteria for professional training in this degree program.",
+    "confidence_level": "high"
+}}
+
+Example response format for ACCEPTED case:
+{{
+    "total_working_hours": 2160,
+    "requested_training_type": "professional",
+    "credits_calculated": 30,
+    "degree_relevance": "high",
+    "relevance_explanation": "Work as Marketing Manager directly aligns with International Business degree requirements, involving strategic marketing, market analysis, and business development",
+    "calculation_breakdown": "12 months full-time (2160 hours) / 27 hours per ECTS = 80.0 credits, capped at 30.0 maximum for professional training",
+    "supporting_evidence": "Role involves strategic marketing planning, market research, customer analysis, and business development activities directly relevant to international business",
+    "challenging_evidence": "None - work experience fully supports professional training classification",
+    "recommendation": "RECOMMENDED for professional training",
+    "recommendation_reasoning": "The work experience demonstrates clear alignment with International Business degree requirements through strategic marketing and business development activities.",
+    "summary_justification": "The work experience fully meets the criteria for professional training classification, providing comprehensive exposure to international business practices and strategic marketing.",
+    "decision": "ACCEPTED",
+    "justification": "The work experience meets the criteria for professional training as requested. The role of Marketing Manager aligns directly with the International Business degree, focusing on strategic marketing and business development. Student would receive 30.0 ECTS credits toward the 30-credit practical training requirement. No additional credits needed.",
     "confidence_level": "high"
 }}
 

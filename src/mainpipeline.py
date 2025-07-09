@@ -404,52 +404,84 @@ class DocumentPipeline:
                     "evaluation_results", {}
                 )
                 print("\n🎓 FINAL EVALUATION (CORRECTED):")
-                print(f"   • Hours: {data.get('total_working_hours', 'N/A')}")
+                print(f"   • Document: {os.path.basename(results['file_path'])}")
+                print(f"   • Degree: {results['student_degree']}")
+                if results.get("student_email"):
+                    print(f"   • Student Email: {results['student_email']}")
                 print(
-                    f"   • Type: {data.get('requested_training_type', data.get('training_type', 'N/A'))}"
+                    f"   • Total Working Hours: {data.get('total_working_hours', 'N/A')}"
                 )
                 print(
-                    f"   • Credits: {data.get('credits_calculated', data.get('credits_qualified', 'N/A'))} ECTS"
+                    f"   • Requested Training Type: {data.get('requested_training_type', 'N/A')}"
                 )
-                print(f"   • Relevance: {data.get('degree_relevance', 'N/A')}")
+                # Show the actual calculated credits (before capping)
+                calculated_credits = data.get("credits_calculated", "N/A")
+                qualified_credits = data.get("credits_qualified", "N/A")
+                calculation_breakdown = data.get("calculation_breakdown", "")
+
+                # Check if the calculation breakdown indicates capping
+                is_capped = (
+                    "capped" in calculation_breakdown.lower()
+                    if calculation_breakdown
+                    else False
+                )
+
+                if (
+                    calculated_credits != "N/A"
+                    and qualified_credits != "N/A"
+                    and (calculated_credits != qualified_credits or is_capped)
+                ):
+                    print(
+                        f"   • Calculated Credits: {calculated_credits} ECTS (capped at {qualified_credits} ECTS)"
+                    )
+                else:
+                    print(f"   • Calculated Credits: {calculated_credits} ECTS")
+                print(f"   • Degree Relevance: {data.get('degree_relevance', 'N/A')}")
 
                 # Show calculation breakdown
                 calculation = data.get("calculation_breakdown", "")
                 if calculation:
                     print(f"   • Calculation: {calculation}")
 
-                # Show requested training type
-                req_type = data.get("requested_training_type", None)
-                if req_type:
-                    print(f"   • Requested Training Type: {req_type}")
-                # Show supporting evidence
-                supporting = data.get("supporting_evidence", None)
-                if supporting:
-                    print(f"   • Supporting Evidence: {supporting}")
-                # Show challenging evidence
-                challenging = data.get("challenging_evidence", None)
-                if challenging:
-                    print(f"   • Challenging Evidence: {challenging}")
-                # Show recommendation
-                recommendation = data.get("recommendation", None)
-                if recommendation:
-                    print(f"   • Recommendation: {recommendation}")
-                # Show recommendation reasoning
-                rec_reason = data.get("recommendation_reasoning", None)
-                if rec_reason:
-                    print(f"   • Recommendation Reasoning: {rec_reason}")
+                # Show decision
+                decision = data.get("decision", "")
+                requested_training_type = data.get("requested_training_type", "")
+                calculated_credits = data.get("credits_calculated", "")
+                qualified_credits = data.get("credits_qualified", "")
+
+                if decision and calculated_credits:
+                    if decision == "REJECTED":
+                        # If rejected, show just the decision without credit information
+                        print(f"\n🎯 DECISION: {decision}")
+                    else:
+                        # If accepted, show the requested training type and credits
+                        display_training_type = (
+                            requested_training_type.upper()
+                            if requested_training_type
+                            else "PROFESSIONAL"
+                        )
+                        # For accepted training, show the qualified credits
+                        display_credits = (
+                            qualified_credits
+                            if qualified_credits
+                            else calculated_credits
+                        )
+                        print(
+                            f"\n🎯 DECISION: {decision} (Student receives {display_credits} ECTS as {display_training_type} training)"
+                        )
+                elif decision:
+                    print(f"\n🎯 DECISION: {decision}")
 
                 # Show justification
-                justification = data.get("summary_justification", "")
+                justification = data.get("justification", "")
                 if justification:
-                    print("\n📋 JUSTIFICATION:")
-                    print(f"   {justification}")
+                    print(f"📋 JUSTIFICATION: {justification}")
 
-                # Show conclusion
-                conclusion = data.get("conclusion", "")
-                if conclusion:
-                    print("\n🎯 CONCLUSION:")
-                    print(f"   {conclusion}")
+                # Show recommendation only for rejected cases
+                decision = data.get("decision", "")
+                recommendation = data.get("recommendation", "")
+                if recommendation and decision == "REJECTED":
+                    print(f"💡 RECOMMENDATION: {recommendation}")
 
             else:
                 # Fall back to original evaluation results
@@ -457,52 +489,86 @@ class DocumentPipeline:
                 if evaluation_results.get("success"):
                     data = evaluation_results.get("results", {})
                     print("\n🎓 FINAL EVALUATION:")
-                    print(f"   • Hours: {data.get('total_working_hours', 'N/A')}")
+                    print(f"   • Document: {os.path.basename(results['file_path'])}")
+                    print(f"   • Degree: {results['student_degree']}")
+                    if results.get("student_email"):
+                        print(f"   • Student Email: {results['student_email']}")
                     print(
-                        f"   • Type: {data.get('requested_training_type', data.get('training_type', 'N/A'))}"
+                        f"   • Total Working Hours: {data.get('total_working_hours', 'N/A')}"
                     )
                     print(
-                        f"   • Credits: {data.get('credits_calculated', data.get('credits_qualified', 'N/A'))} ECTS"
+                        f"   • Requested Training Type: {data.get('requested_training_type', 'N/A')}"
                     )
-                    print(f"   • Relevance: {data.get('degree_relevance', 'N/A')}")
+                    # Show the actual calculated credits (before capping)
+                    calculated_credits = data.get("credits_calculated", "N/A")
+                    qualified_credits = data.get("credits_qualified", "N/A")
+                    calculation_breakdown = data.get("calculation_breakdown", "")
+
+                    # Check if the calculation breakdown indicates capping
+                    is_capped = (
+                        "capped" in calculation_breakdown.lower()
+                        if calculation_breakdown
+                        else False
+                    )
+
+                    if (
+                        calculated_credits != "N/A"
+                        and qualified_credits != "N/A"
+                        and (calculated_credits != qualified_credits or is_capped)
+                    ):
+                        print(
+                            f"   • Calculated Credits: {calculated_credits} ECTS (capped at {qualified_credits} ECTS)"
+                        )
+                    else:
+                        print(f"   • Calculated Credits: {calculated_credits} ECTS")
 
                     # Show calculation breakdown
                     calculation = data.get("calculation_breakdown", "")
                     if calculation:
                         print(f"   • Calculation: {calculation}")
+                    print(
+                        f"   • Degree Relevance: {data.get('degree_relevance', 'N/A')}"
+                    )
 
-                    # Show requested training type
-                    req_type = data.get("requested_training_type", None)
-                    if req_type:
-                        print(f"   • Requested Training Type: {req_type}")
-                    # Show supporting evidence
-                    supporting = data.get("supporting_evidence", None)
-                    if supporting:
-                        print(f"   • Supporting Evidence: {supporting}")
-                    # Show challenging evidence
-                    challenging = data.get("challenging_evidence", None)
-                    if challenging:
-                        print(f"   • Challenging Evidence: {challenging}")
-                    # Show recommendation
-                    recommendation = data.get("recommendation", None)
-                    if recommendation:
-                        print(f"   • Recommendation: {recommendation}")
-                    # Show recommendation reasoning
-                    rec_reason = data.get("recommendation_reasoning", None)
-                    if rec_reason:
-                        print(f"   • Recommendation Reasoning: {rec_reason}")
+                    # Show decision
+                    decision = data.get("decision", "")
+                    requested_training_type = data.get("requested_training_type", "")
+                    calculated_credits = data.get("credits_calculated", "")
+                    qualified_credits = data.get("credits_qualified", "")
+
+                    if decision and calculated_credits:
+                        if decision == "REJECTED":
+                            # If rejected, show just the decision without credit information
+                            print(f"\n🎯 DECISION: {decision}")
+                        else:
+                            # If accepted, show the requested training type and credits
+                            display_training_type = (
+                                requested_training_type.upper()
+                                if requested_training_type
+                                else "PROFESSIONAL"
+                            )
+                            # For accepted training, show the qualified credits
+                            display_credits = (
+                                qualified_credits
+                                if qualified_credits
+                                else calculated_credits
+                            )
+                            print(
+                                f"\n🎯 DECISION: {decision} (Student receives {display_credits} ECTS as {display_training_type} training)"
+                            )
+                    elif decision:
+                        print(f"\n🎯 DECISION: {decision}")
 
                     # Show justification
-                    justification = data.get("summary_justification", "")
+                    justification = data.get("justification", "")
                     if justification:
-                        print("\n📋 JUSTIFICATION:")
-                        print(f"   {justification}")
+                        print(f"\n📋 JUSTIFICATION: {justification}")
 
-                    # Show conclusion
-                    conclusion = data.get("conclusion", "")
-                    if conclusion:
-                        print("\n🎯 CONCLUSION:")
-                        print(f"   {conclusion}")
+                    # Show recommendation only for rejected cases
+                    decision = data.get("decision", "")
+                    recommendation = data.get("recommendation", "")
+                    if recommendation and decision == "REJECTED":
+                        print(f"💡 RECOMMENDATION: {recommendation}")
 
         print("=" * 80)
 

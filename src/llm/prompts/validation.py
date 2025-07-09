@@ -14,24 +14,21 @@ VALIDATION CRITERIA:
 2. **Information Completeness**: Is all available information from the OCR text properly extracted?
 3. **Assumption Validation**: Are any assumptions made by the LLM justified by the available information?
 4. **Justification Accuracy**: Does the justification accurately reflect what can and cannot be determined from the document?
-5. **Logical Consistency**: Is the training classification consistent with the degree relevance assessment?
-6. **Calculation Accuracy**: Are hours and credit calculations mathematically correct?
+5. **Calculation Accuracy**: Are hours and credit calculations mathematically correct?
+6. **Training Type Consistency**: Does the AI's recommendation align with the requested training type and provide appropriate evidence?
 
 CRITICAL VALIDATION RULES:
 - **Use the provided STUDENT DEGREE**: The student degree provided is the correct degree for evaluation. Do not try to determine the degree from the document content.
 - **Validate factual accuracy**: Check if extracted information matches the original document
-- **Validate logical consistency**: Ensure training classification aligns with degree relevance assessment
 - **Validate calculations**: Verify hours and credit calculations are mathematically correct
 - **Allow reasonable hour calculations**: If employment dates are provided, hours can be calculated using standard assumptions (40 hours/week, 8 hours/day)
 - **Allow certificate issue date as end date**: When no explicit end date is provided, using the certificate issue date as the end date is a valid and reasonable assumption
-- **Validate classification logic**: 
-  * If degree relevance is "high" or "medium" → training type should be "professional"
-  * If degree relevance is "low" → training type should be "general"
-  * Flag inconsistencies between relevance assessment and training classification
 - **Validate credit limits**: Ensure appropriate limits are applied (10 ECTS for general, 30 ECTS for professional)
 - **Focus on factual and logical errors**: Flag issues where the LLM contradicts document content or creates logical inconsistencies
 - **Don't flag reasonable assumptions**: Standard working hour calculations from employment dates and using certificate issue date as end date are valid and should not be flagged as errors
 - **DO NOT validate degree selection**: The student degree provided is the correct degree. Do not flag issues about what degree the student "should" have based on document content.
+- **RESPECT REQUESTED TRAINING TYPE**: The REQUESTED_TRAINING_TYPE is the user's choice and should be respected. Do NOT flag it as an error if it doesn't match the AI's degree relevance assessment. The AI's job is to provide evidence and reasoning for whether the requested type is appropriate, not to override the user's choice.
+- **Validate AI recommendation logic**: Check that the AI's recommendation and reasoning are consistent with the requested training type and degree relevance assessment, but do not force the training type to match the degree relevance.
 
 VALIDATION OUTPUT FORMAT:
 Respond with ONLY a valid JSON object containing validation results:
@@ -60,8 +57,8 @@ Respond with ONLY a valid JSON object containing validation results:
         "training_type_justified": true/false,
         "credits_calculation_correct": true/false,
         "degree_relevance_assessment_accurate": true/false,
-        "training_classification_consistent": true/false,
-        "classification_relevance_alignment": "consistent|inconsistent"
+        "recommendation_consistent": true/false,
+        "evidence_alignment": "consistent|inconsistent"
     }},
     "justification_validation": {{
         "accurately_reflects_available_information": true/false,
@@ -84,8 +81,12 @@ LLM EVALUATION RESULTS:
 STUDENT DEGREE:
 {student_degree}
 
+REQUESTED TRAINING TYPE:
+{requested_training_type}
+
 SPECIAL VALIDATION CHECK:
-- If the relevance_explanation mentions "significant alignment", "directly relevant", or "clear alignment" with the degree program, but training_type is "general", this is a critical inconsistency that must be flagged
-- If the summary_justification mentions "fulfills the requirements for professional training" but training_type is "general", this is a critical inconsistency that must be flagged
+- If the relevance_explanation mentions "significant alignment", "directly relevant", or "clear alignment" with the degree program, but the AI recommends against the requested training type without sufficient evidence, this may be flagged as inconsistent reasoning
+- If the summary_justification mentions "fulfills the requirements for professional training" but the AI recommends against professional training without clear evidence, this may be flagged as inconsistent reasoning
+- The AI's recommendation should be based on evidence from the document, not just degree relevance alone
 
 Respond with ONLY the JSON object, no additional text, no explanations, no markdown formatting."""

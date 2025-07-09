@@ -229,6 +229,7 @@ class LLMOrchestrator:
                 extraction_result["results"],
                 evaluation_result["results"],
                 student_degree,
+                requested_training_type,
             )
 
             # Stage 4: Correction (if needed)
@@ -242,6 +243,7 @@ class LLMOrchestrator:
                     evaluation_result["results"],
                     validation_result["results"],
                     student_degree,
+                    requested_training_type,
                 )
 
             # Stage 4.5: Structural Validation of Correction Results (if correction was performed)
@@ -409,6 +411,7 @@ class LLMOrchestrator:
         extracted_info: Dict[str, Any],
         evaluation_results: Dict[str, Any],
         student_degree: str,
+        requested_training_type: str = None,
     ) -> Dict[str, Any]:
         """Stage 3: Validate LLM results against original document."""
         stage_start = time.time()
@@ -425,6 +428,7 @@ class LLMOrchestrator:
                 extraction_results=extraction_str,
                 evaluation_results=evaluation_str,
                 student_degree=student_degree,
+                requested_training_type=requested_training_type or "general",
             )
 
             response = self._call_llm_with_fallback(prompt, "validation")
@@ -453,6 +457,7 @@ class LLMOrchestrator:
         evaluation_results: Dict[str, Any],
         validation_results: Dict[str, Any],
         student_degree: str,
+        requested_training_type: str = None,
     ) -> Dict[str, Any]:
         """Stage 4: Correct inaccuracies identified by validation."""
         stage_start = time.time()
@@ -473,10 +478,17 @@ class LLMOrchestrator:
                 original_llm_output=original_str,
                 validation_results=validation_str,
                 student_degree=student_degree,
+                requested_training_type=requested_training_type or "general",
             )
 
             response = self._call_llm_with_fallback(prompt, "correction")
             results = self._parse_llm_response(response)
+
+            # Ensure requested_training_type is preserved in correction results
+            if results and "evaluation_results" in results:
+                results["evaluation_results"]["requested_training_type"] = (
+                    requested_training_type
+                )
 
             return {
                 "success": True,
@@ -527,8 +539,15 @@ class LLMOrchestrator:
 
             # Only ensure credit calculations are correct, don't override LLM decisions
             if results:
+                # Store the requested training type in the results
+                results["requested_training_type"] = requested_training_type
+
                 total_hours = results.get("total_working_hours", 0)
                 base_credits = int(total_hours / 27)
+
+                # Store the actual calculated credits (before capping)
+                results["credits_calculated"] = float(base_credits)
+
                 # Use requested_training_type for capping
                 training_type = requested_training_type or results.get(
                     "training_type", ""

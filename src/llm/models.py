@@ -204,7 +204,9 @@ class EvaluationResults(BaseModel):
     relevance_explanation: str
     calculation_breakdown: str
     summary_justification: str
-    conclusion: str
+    decision: str = Field(..., pattern="^(ACCEPTED|REJECTED)$")
+    justification: str
+    recommendation: Optional[str] = None
     confidence_level: Optional[str] = None
 
     @validator("total_working_hours")

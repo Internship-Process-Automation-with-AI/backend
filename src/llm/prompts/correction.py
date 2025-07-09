@@ -27,8 +27,8 @@ CRITICAL CORRECTION RULES:
 - **Preserve hour calculations**: If employment dates are available, calculate and preserve working hours using standard assumptions (40 hours/week)
 - **Preserve certificate issue date as end date**: When no explicit end date is provided, using the certificate issue date as the end date is valid and should be preserved
 - **Fix classification inconsistencies**: 
-  * If degree relevance is "high" or "medium" but training type is "general" → change to "professional"
-  * If degree relevance is "low" but training type is "professional" → change to "general"
+  * Only fix training type if there's clear evidence that the AI's recommendation contradicts the requested training type without proper justification
+  * The AI should provide evidence and reasoning for whether the requested training type is appropriate, not automatically override it
 - **Focus on factual and logical corrections**: Correct when the LLM contradicts document content or creates logical inconsistencies
 - **Maintain degree relevance logic**: If tasks/responsibilities are not mentioned, "low" relevance is appropriate
 - **Don't remove valid hour calculations**: If dates are provided, hours should be calculated and preserved
@@ -63,7 +63,9 @@ Respond with ONLY a valid JSON object containing the corrected results:
         "relevance_explanation": "Corrected explanation based on available information",
         "calculation_breakdown": "Corrected calculation explanation",
         "summary_justification": "Corrected justification that accurately reflects document content",
-        "conclusion": "Corrected conclusion",
+        "decision": "ACCEPTED|REJECTED",
+        "justification": "Corrected justification for the decision",
+        "recommendation": "Corrected recommendation for the student",
         "confidence_level": "high|medium|low"
     }},
     "correction_notes": [
@@ -86,11 +88,13 @@ VALIDATION RESULTS:
 STUDENT DEGREE:
 {student_degree}
 
+REQUESTED TRAINING TYPE:
+{requested_training_type}
+
 SPECIAL CORRECTION CHECK:
 - **ALWAYS use the provided STUDENT DEGREE**: The student degree provided is the correct degree for evaluation. Do not change it based on document content.
-- If validation found inconsistency between degree relevance and training classification, prioritize the degree relevance assessment based on the provided student degree
-- If relevance_explanation indicates high/medium relevance but training_type is "general", change training_type to "professional" and recalculate credits accordingly
-- If summary_justification mentions professional training requirements but training_type is "general", change training_type to "professional"
+- **RESPECT REQUESTED TRAINING TYPE**: The REQUESTED_TRAINING_TYPE is the user's choice and should be respected unless there's clear evidence that it's inappropriate
+- The AI should provide evidence and reasoning for whether the requested training type is appropriate, not automatically override it
 - If employment dates are available but total_working_hours is null, calculate working hours from the dates using standard assumptions (40 hours/week)
 - Always preserve and calculate working hours when employment dates are provided
 - Always preserve certificate issue date as end date when no explicit end date is provided
