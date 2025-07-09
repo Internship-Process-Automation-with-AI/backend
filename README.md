@@ -1,63 +1,96 @@
-# OCR Certificate Processing Pipeline
+# AI-Powered Academic Credit Evaluation System
 
-This project provides a **robust OCR (Optical Character Recognition) pipeline** specifically designed for processing **internship certificates** and similar documents. It uses **Tesseract OCR** with intelligent preprocessing to extract clean text from various document formats including scanned PDFs, Word documents, and images.
+This project provides a **comprehensive AI-powered pipeline** for evaluating work certificates and determining academic credits for higher education institutions. It combines **advanced OCR processing** with **4-stage LLM evaluation** to automatically assess work experience and provide evidence-based recommendations for practical training credit evaluation.
+
+## 🎯 System Overview
+
+The system processes work certificates through a sophisticated pipeline that:
+1. **Extracts text** from various document formats (PDF, DOCX, images)
+2. **Analyzes work experience** against degree-specific criteria
+3. **Evaluates training type requests** (General vs Professional)
+4. **Provides clear decisions** (ACCEPTED/REJECTED) with justifications
+5. **Offers actionable recommendations** for rejected cases
 
 ## 🚀 Key Features
 
 - **🔍 Advanced OCR Processing**: High-accuracy text extraction using Tesseract with OpenCV preprocessing
-- **🤖 Automated Workflow**: Complete automation with `python -m src.workflow.ocr_workflow` for batch processing
+- **🤖 AI-Powered Evaluation**: 4-stage LLM pipeline for intelligent work experience analysis
+- **🎓 Degree-Specific Analysis**: Custom evaluation criteria for different academic programs
+- **📋 Decision System**: Clear ACCEPTED/REJECTED decisions with detailed justifications
+- **💡 Smart Recommendations**: Actionable guidance for rejected applications
 - **📄 Multi-Format Support**: PDF, DOCX, DOC, JPG, PNG, BMP, TIFF, and TIF files
 - **🖼️ Intelligent Image Preprocessing**: Automatic noise removal, grayscale conversion, and binarization
-- **📝 Enhanced Word Spacing**: Advanced algorithms to fix missing spaces in scanned documents and images
-- **🇫🇮 Multi-Language Support**: Optimized processing for Finnish and English certificates with auto-detection
-- **📊 Comprehensive Reports**: Detailed processing summaries with language statistics and performance metrics
+- **🇫🇮 Multi-Language Support**: Optimized processing for Finnish and English certificates
+- **📊 Comprehensive Reports**: Detailed evaluation summaries with credit calculations
 - **⚙️ Smart Configuration**: Auto-detection of Tesseract installation across platforms
-- **📝 Clean Text Output**: Normalized and formatted text with whitespace cleaning
 - **🛠️ Production Ready**: Type-safe, well-documented, and comprehensively tested
 
-## 📁 OCR Pipeline Architecture
+## 📁 System Architecture
 
 ```
-backend/src/ocr/
-├── cert_extractor.py    # 🎯 Main certificate processing orchestrator
-│   ├── extract_certificate_text()     # Entry point for all file types
-│   ├── _extract_from_image()          # Image file processing
-│   ├── _extract_from_pdf()            # PDF to image conversion + OCR
-│   ├── _extract_from_docx()           # Word document text + image OCR
-│   └── _clean_text()                  # Text normalization
+backend/src/
+├── config.py               # ⚙️ Configuration management
+├── mainpipeline.py         # 🎯 Main CLI interface
 │
-└── ocr.py              # 🔧 Core OCR engine and preprocessing
-    ├── OCRProcessor class             # Main OCR functionality
-    ├── extract_text()                 # Text extraction with preprocessing
-    ├── extract_data()                 # Detailed OCR data with coordinates
-    ├── _prepare_image()               # Multi-format image conversion
-    └── _preprocess_image()            # OpenCV enhancement pipeline
+├── ocr/                    # 🔍 OCR Processing
+│   ├── __init__.py         # OCR module initialization
+│   ├── cert_extractor.py   # Main certificate processing orchestrator
+│   └── ocr.py             # Core OCR engine and preprocessing
+│
+├── llm/                    # 🤖 AI Evaluation Engine
+│   ├── __init__.py         # LLM module initialization
+│   ├── degree_evaluator.py # Degree-specific evaluation criteria
+│   ├── degree_programs_data.py # Degree program definitions and criteria
+│   ├── models.py          # Pydantic validation models
+│   └── prompts/           # LLM prompts for each stage
+│       ├── __init__.py     # Prompts module initialization
+│       ├── extraction.py  # Information extraction prompts
+│       ├── evaluation.py  # Academic evaluation prompts
+│       ├── validation.py  # Cross-checking prompts
+│       └── correction.py  # Error correction prompts
+│
+├── workflow/               # 🔄 Pipeline Orchestration
+│   ├── ai_workflow.py     # 4-stage LLM processing pipeline
+│   └── ocr_workflow.py    # OCR batch processing
+│
+└── utils/                  # 🛠️ Utility Functions
+    ├── __init__.py         # Utils module initialization
+    └── logger.py          # Logging configuration and utilities
 ```
 
-## 🔄 Processing Workflow
+## 🔄 AI Evaluation Pipeline
 
 ```mermaid
 graph TD
-    A[Certificate File] --> B{File Type Detection}
-    B -->|Image| C[Image Preprocessing]
-    B -->|PDF| D[PDF → Images]
-    B -->|DOCX/DOC| E[Text Extraction + Image OCR]
+    A[Work Certificate] --> B[OCR Processing]
+    B --> C[Text Extraction]
+    C --> D[LLM Stage 1: Information Extraction]
+    D --> E[LLM Stage 2: Academic Evaluation]
+    E --> F[LLM Stage 3: Validation]
+    F --> G{Validation Passed?}
+    G -->|Yes| H[Final Results]
+    G -->|No| I[LLM Stage 4: Correction]
+    I --> H
     
-    C --> F[OpenCV Enhancement]
-    D --> F
-    E --> F
-    
-    F --> G[Noise Removal]
-    G --> H[Grayscale Conversion]
-    H --> I[Binary Thresholding]
-    I --> J[Tesseract OCR]
-    J --> K[Text Cleaning]
-    K --> L[Clean Output Text]
+    H --> J[Decision: ACCEPTED/REJECTED]
+    J --> K[Justification]
+    J --> L{Rejected?}
+    L -->|Yes| M[Recommendation]
+    L -->|No| N[Complete]
+    M --> N
     
     style A fill:#e1f5fe
-    style L fill:#c8e6c9
-    style J fill:#fff3e0
+    style N fill:#c8e6c9
+    style J fill:#ff9800
+    style M fill:#2196f3
 ```
+
+### 🎯 Evaluation Stages
+
+1. **Information Extraction**: Extract structured data (employee info, positions, dates)
+2. **Academic Evaluation**: Analyze work experience against degree criteria and requested training type
+3. **Validation**: Cross-check results against original document
+4. **Correction**: Fix any identified issues automatically
 
 ## 🛠️ Installation & Setup
 
@@ -109,7 +142,7 @@ cd backend
 python -m venv venv
 
 # Windows
-venv\Scripts\Activate
+.\venv\Scripts\activate
 
 # macOS/Linux  
 source venv/bin/activate
@@ -118,32 +151,44 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## 🚀 Automated OCR Workflow
+### 3. API Key Setup
 
-### Quick Start with OCR Workflow
+```bash
+# Set up environment variables
+export GEMINI_API_KEY="your_gemini_api_key_here"
+# On Windows: set GEMINI_API_KEY=your_gemini_api_key_here
 
-The **OCR Workflow** provides a complete automation solution for processing multiple documents at once with intelligent language detection and Finnish optimization.
+# Or create a .env file
+echo "GEMINI_API_KEY=your_gemini_api_key_here" > .env
+```
+
+## 🚀 AI-Powered Evaluation Pipeline
+
+### Quick Start with Main Pipeline
+
+The **Main Pipeline** provides a complete AI-powered evaluation solution for work certificates with degree-specific analysis and decision support.
 
 #### 🔧 Basic Usage
 
 ```bash
 # Activate virtual environment
 # Windows
-venv\Scripts\Activate
+.\venv\Scripts\activate
 # macOS/Linux
 source venv/bin/activate
 
-# Run the automated workflow
-python -m src.workflow.ocr_workflow
+# Run the main evaluation pipeline
+python -m src.mainpipeline
 ```
 
 This will:
-- ✅ **Auto-discover** all supported documents in the `samples/` directory
-- 🇫🇮 **Auto-detect** Finnish documents and apply specialized processing
-- 📄 **Extract text** from PDFs, DOCX, DOC, and image files
-- 💾 **Save results** to `processedData/text_files/`
-- 📊 **Generate reports** with language statistics and processing summaries
-- 🔍 **Create logs** for debugging and monitoring
+- ✅ **Guide you through** document selection, degree choice, and training type selection
+- 🤖 **Process documents** through the 4-stage AI evaluation pipeline
+- 🎓 **Analyze work experience** against degree-specific criteria
+- 📋 **Provide clear decisions** (ACCEPTED/REJECTED) with justifications
+- 💡 **Offer recommendations** for rejected cases
+- 💾 **Save results** to `processedData/[document_name]/`
+- 📊 **Generate comprehensive reports** with evaluation details
 
 #### 📁 Directory Structure
 
@@ -154,39 +199,92 @@ backend/
 │   ├── finnish-cert.pdf
 │   └── internship-letter.docx
 ├── processedData/             # 📤 Output directory
-│   ├── text_files/           # 📄 Extracted text files
-│   │   ├── certificate1.txt
-│   │   ├── finnish-cert.txt
-│   │   └── internship-letter.txt
+│   ├── [document_name]/      # 📄 Per-document results
+│   │   ├── ocr_output_[document].txt
+│   │   └── aiworkflow_output_[document]_[timestamp].json
 │   ├── reports/              # 📊 Processing reports
-│   │   ├── processing_report_20240108_143022.json
-│   │   └── summary_20240108_143022.txt
 │   └── logs/                 # 🔍 Application logs
-└── src/workflow/ocr_workflow.py
+└── src/mainpipeline.py       # 🎯 Main evaluation interface
 ```
 
-#### 🎯 Advanced Workflow Usage
+#### 🎯 Decision and Recommendation System
+
+The system provides clear, actionable results:
+
+**For ACCEPTED Cases:**
+```bash
+🎯 DECISION: ACCEPTED (Student receives 30.0 ECTS as PROFESSIONAL training)
+📋 JUSTIFICATION: The work experience meets the criteria for professional training...
+```
+
+**For REJECTED Cases:**
+```bash
+🎯 DECISION: REJECTED
+📋 JUSTIFICATION: The work experience does not meet the criteria for professional training...
+💡 RECOMMENDATION: Apply this work experience as general training. The experience provides valuable transferable skills but does not meet the criteria for professional training in this degree program.
+```
+
+#### 🎯 Advanced Pipeline Usage
 
 ```python
-from src.workflow.ocr_workflow import run_ocr_workflow
+from src.workflow.ai_workflow import LLMOrchestrator
 
-# Run with custom configuration
-summary = run_ocr_workflow(
-    samples_dir="my_documents",      # Custom input directory
-    output_dir="results",            # Custom output directory
-    language="fin",                  # Force Finnish language
-    use_finnish_detection=True       # Enable smart Finnish detection
+# Initialize the AI orchestrator
+orchestrator = LLMOrchestrator()
+
+# Process a work certificate
+results = orchestrator.process_work_certificate(
+    text="Work certificate text...",
+    student_degree="Information Technology",
+    requested_training_type="professional"
 )
 
-# Access processing results
-print(f"Processed {summary['total_documents']} documents")
-print(f"Success rate: {summary['success_rate']}%")
-print(f"Finnish documents found: {summary['finnish_documents_count']}")
+# Access evaluation results
+evaluation = results['evaluation_results']['results']
+print(f"Decision: {evaluation['decision']}")
+print(f"Credits: {evaluation['credits_qualified']} ECTS")
+print(f"Justification: {evaluation['justification']}")
+if evaluation.get('recommendation'):
+    print(f"Recommendation: {evaluation['recommendation']}")
+```
+
+#### 📊 Evaluation Results Structure
+
+The system generates comprehensive evaluation reports:
+
+**Main Evaluation Results** (`aiworkflow_output_[document]_[timestamp].json`):
+```json
+{
+  "success": true,
+  "file_path": "samples/certificate.pdf",
+  "student_degree": "Information Technology",
+  "student_email": "student@students.oamk.fi",
+  "requested_training_type": "professional",
+  "processing_time": 15.2,
+  "ocr_results": {
+    "success": true,
+    "engine": "Tesseract",
+    "confidence": 95.5,
+    "text_length": 1250
+  },
+  "llm_results": {
+    "evaluation_results": {
+      "success": true,
+      "results": {
+        "decision": "ACCEPTED",
+        "justification": "The work experience meets the criteria...",
+        "credits_calculated": 38.0,
+        "credits_qualified": 30.0,
+        "degree_relevance": "high"
+      }
+    }
+  }
+}
 ```
 
 #### 🔍 Language Detection & Finnish Optimization
 
-The workflow includes **intelligent language detection**:
+The system includes **intelligent language detection** for OCR processing:
 
 ```python
 # Auto-detect Finnish documents based on:
@@ -200,95 +298,19 @@ The workflow includes **intelligent language detection**:
 # ✅ Success: certificate.pdf -> certificate.txt (1245 chars, 23 Finnish chars, lang: fin)
 ```
 
-#### 📊 Processing Reports
-
-The workflow generates detailed reports:
-
-**JSON Report** (`processing_report_YYYYMMDD_HHMMSS.json`):
-```json
-{
-  "total_documents": 10,
-  "successful": 9,
-  "failed": 1,
-  "success_rate": 90.0,
-  "total_finnish_characters": 156,
-  "finnish_documents_count": 3,
-  "language_statistics": {
-    "fin": 3,
-    "eng": 5,
-    "auto": 1
-  },
-  "finnish_documents": [
-    {
-      "file": "finnish-cert.pdf",
-      "finnish_chars": 89,
-      "language": "fin"
-    }
-  ]
-}
-```
-
-**Human-Readable Summary** (`summary_YYYYMMDD_HHMMSS.txt`):
-```
-OCR PROCESSING SUMMARY
-==================================================
-
-Processing completed: 2024-01-08T14:30:22.123456
-Total documents: 10
-Successful: 9
-Failed: 1
-Success rate: 90.0%
-Total processing time: 45.2s
-Average processing time: 4.5s
-Total text extracted: 12,456 characters
-
-LANGUAGE ANALYSIS:
---------------------
-Language mode: auto
-Finnish detection: Enabled
-Finnish documents found: 3
-Total Finnish characters: 156
-
-🇫🇮 FINNISH DOCUMENTS:
---------------------
-🇫🇮 finnish-cert.pdf - 89 Finnish chars (lang: fin)
-🇫🇮 työtodistus.pdf - 45 Finnish chars (lang: fin)
-🇫🇮 harjoittelu.pdf - 22 Finnish chars (lang: fin)
-```
-
-#### 🛠️ Workflow Configuration Options
-
-```python
-from src.workflow.ocr_workflow import OCRWorkflow
-
-# Create workflow with custom settings
-workflow = OCRWorkflow(
-    samples_dir="documents",           # Input directory
-    output_dir="extracted_text",       # Output directory
-    language="auto",                   # Language mode: "auto", "eng", "fin", "eng+fin"
-    use_finnish_detection=True         # Auto-detect Finnish documents
-)
-
-# Process all documents
-summary = workflow.process_all_documents()
-
-# Process individual document
-result = workflow.process_document(Path("document.pdf"))
-```
-
 #### 🔧 Command Line Options
 
 ```bash
-# Basic usage - processes samples/ directory
+# Basic usage - interactive document processing
+python -m src.mainpipeline
+
+# Batch processing with OCR workflow
 python -m src.workflow.ocr_workflow
 
 # Set custom directories via environment variables
 export OCR_SAMPLES_DIR="my_documents"
 export OCR_OUTPUT_DIR="results"
 python -m src.workflow.ocr_workflow
-
-# Run with specific language
-python -c "from src.workflow.ocr_workflow import run_ocr_workflow; run_ocr_workflow(language='fin')"
 ```
 
 #### 🎯 Production Batch Processing
@@ -358,120 +380,126 @@ print(f"📊 Processing completed: {summary['success_rate']}% success rate")
 
 ## 💻 Manual Usage Examples
 
-### Basic Certificate Processing
+### Basic AI Evaluation Processing
 
 ```python
+from src.workflow.ai_workflow import LLMOrchestrator
 from src.ocr.cert_extractor import extract_certificate_text
 
-# Process different file types
-pdf_text = extract_certificate_text("certificates/internship_cert.pdf")
-docx_text = extract_certificate_text("certificates/letter.docx") 
-image_text = extract_certificate_text("certificates/scanned_cert.jpg")
+# Extract text from document
+text = extract_certificate_text("certificates/internship_cert.pdf")
 
-print("Extracted text:", pdf_text)
+# Initialize AI orchestrator
+orchestrator = LLMOrchestrator()
 
-# Enhanced word spacing for scanned documents
-scanned_text = extract_certificate_text("certificates/scanned_cert.pdf")
-print("Scanned with proper word spacing:", scanned_text)
-```
-
-### Advanced OCR with Custom Settings
-
-```python
-from src.ocr.ocr import ocr_processor
-from PIL import Image
-
-# Load and process image with custom configuration
-image = Image.open("certificate.png")
-
-# Extract text with Finnish language support
-finnish_text = ocr_processor.extract_text(
-    image, 
-    lang="fin",  # Finnish OCR
-    config="--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖäö0123456789.,: "
+# Process through AI evaluation pipeline
+results = orchestrator.process_work_certificate(
+    text=text,
+    student_degree="Information Technology",
+    requested_training_type="professional"
 )
 
-# Get detailed OCR data with coordinates and confidence scores
-ocr_data = ocr_processor.extract_data(image, lang="eng")
-for i, text in enumerate(ocr_data['text']):
-    if text.strip():
-        confidence = ocr_data['conf'][i]
-        x, y, w, h = ocr_data['left'][i], ocr_data['top'][i], ocr_data['width'][i], ocr_data['height'][i]
-        print(f"Text: '{text}' | Confidence: {confidence}% | Position: ({x},{y},{w},{h})")
+# Access results
+if results['success']:
+    evaluation = results['llm_results']['evaluation_results']['results']
+    print(f"Decision: {evaluation['decision']}")
+    print(f"Credits: {evaluation['credits_qualified']} ECTS")
+    print(f"Justification: {evaluation['justification']}")
 ```
 
-### Batch Processing Multiple Files
+### Advanced AI Evaluation with Custom Settings
 
 ```python
-import os
+from src.workflow.ai_workflow import LLMOrchestrator
+from src.llm.degree_evaluator import DegreeEvaluator
+
+# Initialize components
+orchestrator = LLMOrchestrator()
+degree_evaluator = DegreeEvaluator()
+
+# Get supported degree programs
+supported_degrees = degree_evaluator.get_supported_degree_programs()
+print("Supported degrees:", supported_degrees)
+
+# Process with custom degree
+results = orchestrator.process_work_certificate(
+    text="Work certificate text...",
+    student_degree="Business Administration",
+    requested_training_type="general"
+)
+
+# Analyze results
+evaluation = results['llm_results']['evaluation_results']['results']
+print(f"Degree relevance: {evaluation['degree_relevance']}")
+print(f"Calculation breakdown: {evaluation['calculation_breakdown']}")
+```
+
+### Batch Processing with OCR Workflow
+
+```python
+from src.workflow.ocr_workflow import OCRWorkflow
 from pathlib import Path
-from src.ocr.cert_extractor import extract_certificate_text
 
-def process_certificate_folder(folder_path: str) -> dict[str, str]:
-    """Process all certificate files in a folder."""
-    results = {}
-    folder = Path(folder_path)
-    
-    # Supported file extensions
-    supported_exts = {'.pdf', '.docx', '.doc', '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
-    
-    for file_path in folder.iterdir():
-        if file_path.suffix.lower() in supported_exts:
-            try:
-                text = extract_certificate_text(file_path)
-                results[file_path.name] = text
-                print(f"✅ Processed: {file_path.name}")
-            except Exception as e:
-                results[file_path.name] = f"Error: {e}"
-                print(f"❌ Failed: {file_path.name} - {e}")
-    
-    return results
+# Create OCR workflow for batch processing
+workflow = OCRWorkflow(
+    samples_dir="documents",
+    output_dir="extracted_text",
+    language="auto",
+    use_finnish_detection=True
+)
 
-# Process all certificates in samples folder
-results = process_certificate_folder("samples/")
+# Process all documents
+summary = workflow.process_all_documents()
+print(f"Processed {summary['total_documents']} documents")
+print(f"Success rate: {summary['success_rate']}%")
 ```
 
 ### Real-time Processing with Error Handling
 
 ```python
-from src.ocr.cert_extractor import extract_certificate_text
+from src.workflow.ai_workflow import LLMOrchestrator
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-def safe_extract_text(file_path: str) -> tuple[str, bool, str]:
+def safe_ai_evaluation(text: str, degree: str, training_type: str) -> tuple[dict, bool, str]:
     """
-    Safely extract text with comprehensive error handling.
+    Safely process work certificate through AI evaluation.
     
     Returns:
-        tuple: (extracted_text, success_flag, error_message)
+        tuple: (results, success_flag, error_message)
     """
     try:
-        text = extract_certificate_text(file_path)
+        orchestrator = LLMOrchestrator()
         
-        if not text.strip():
-            return "", False, "No text could be extracted from the document"
+        if not orchestrator.is_available():
+            return {}, False, "AI orchestrator not available - check API key"
         
-        # Validate extracted text quality
-        if len(text) < 10:
-            logger.warning(f"Very short text extracted from {file_path}: '{text}'")
+        results = orchestrator.process_work_certificate(
+            text=text,
+            student_degree=degree,
+            requested_training_type=training_type
+        )
         
-        return text, True, ""
+        if not results.get('success'):
+            return results, False, results.get('error', 'Unknown error')
         
-    except ValueError as e:
-        return "", False, f"Unsupported file format: {e}"
-    except FileNotFoundError:
-        return "", False, f"File not found: {file_path}"
+        return results, True, ""
+        
     except Exception as e:
-        logger.exception(f"Unexpected error processing {file_path}")
-        return "", False, f"Processing error: {e}"
+        logger.exception(f"Unexpected error in AI evaluation")
+        return {}, False, f"Processing error: {e}"
 
 # Usage
-text, success, error = safe_extract_text("certificate.pdf")
+results, success, error = safe_ai_evaluation(
+    "Work certificate text...",
+    "Information Technology",
+    "professional"
+)
 if success:
-    print(f"Extracted: {text[:100]}...")
+    print("✅ AI evaluation completed successfully")
 else:
-    print(f"Error: {error}")
+    print(f"❌ Error: {error}")
 ```
 
 ## ⚙️ Configuration
@@ -481,14 +509,34 @@ else:
 Create a `.env` file for custom configuration:
 
 ```env
-# Tesseract Configuration
+# AI API Configuration
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Tesseract Configuration (optional)
 TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe  # Windows custom path
 # TESSERACT_CMD=/usr/local/bin/tesseract                    # macOS custom path
 
 # Application Settings  
 DEBUG=true
 ENVIRONMENT=development
-APP_NAME=OCR Certificate Processor
+APP_NAME=AI Academic Credit Evaluator
+```
+
+### AI Model Configuration
+
+```python
+from src.workflow.ai_workflow import LLMOrchestrator
+
+# Check AI orchestrator availability
+orchestrator = LLMOrchestrator()
+print(f"AI orchestrator available: {orchestrator.is_available()}")
+print(f"Current model: {orchestrator.get_stats()['current_model']}")
+
+# Get supported degree programs
+from src.llm.degree_evaluator import DegreeEvaluator
+evaluator = DegreeEvaluator()
+degrees = evaluator.get_supported_degree_programs()
+print("Supported degrees:", degrees)
 ```
 
 ### OCR Language Support
@@ -710,17 +758,18 @@ pytesseract==0.3.13          # Tesseract Python wrapper
 opencv-python==4.11.0.86     # Image preprocessing
 Pillow==11.2.1                # Image handling
 
+# AI and LLM Processing
+google-generativeai==0.8.3    # Gemini AI API client
+pydantic==2.11.7              # Data validation and settings
+pydantic-settings==2.10.1     # Environment-based config
+
 # Document Processing  
 pdf2image==1.17.0             # PDF to image conversion
 python-docx==1.2.0            # Word document processing
 docx2txt==0.9                 # Text extraction from DOCX
 
-# Configuration Management
-pydantic==2.11.7              # Settings validation
-pydantic-settings==2.10.1     # Environment-based config
+# Configuration and Utilities
 python-dotenv==1.1.1          # .env file support
-
-# Utilities
 numpy==2.3.1                  # Numerical operations
 ```
 
@@ -743,9 +792,20 @@ mypy src/
 pytest tests/ -v --cov=src --cov-report=html
 ```
 
+## 🎓 Academic Use
+
+This system is designed for academic institutions to evaluate work certificates and determine practical training credits. It follows Finnish higher education standards and the ECTS credit system. The AI-powered evaluation provides evidence-based recommendations while maintaining human oversight for final decisions.
+
+### Key Academic Features:
+- **Degree-Specific Evaluation**: Custom criteria for different academic programs
+- **ECTS Credit Calculation**: Standard European credit calculation (1 ECTS = 27 hours)
+- **Training Type Classification**: Professional vs General training assessment
+- **Evidence-Based Decisions**: Clear justifications for all recommendations
+- **Human Oversight**: AI recommendations support human evaluators
+
 ## 📄 License
 
-This project is developed for OAMK internship workflow automation.
+This project is developed for OAMK academic credit evaluation workflow automation.
 
 ---
 
