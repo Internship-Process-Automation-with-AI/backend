@@ -25,6 +25,72 @@ The system processes work certificates through a sophisticated pipeline that:
 - **⚙️ Smart Configuration**: Auto-detection of Tesseract installation across platforms
 - **🛠️ Production Ready**: Type-safe, well-documented, and comprehensively tested
 
+## 🚀 Quick Start
+
+### Prerequisites
+1. **Python 3.8+** with virtual environment
+2. **Tesseract OCR** installed (see Installation section below)
+3. **Gemini API key** for AI evaluation
+
+### Setup & Run (5 minutes)
+```bash
+# 1. Navigate to backend directory
+cd backend
+
+# 2. Create and activate virtual environment
+python -m venv venv
+# Windows:
+.\venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Set up API key
+export GEMINI_API_KEY="your_gemini_api_key_here"
+# Windows: set GEMINI_API_KEY=your_gemini_api_key_here
+
+# 5. Run the main pipeline
+python -m src.mainpipeline
+```
+
+### What Happens When You Run It
+1. **📁 File Selection**: Choose from documents in `samples/` folder
+2. **🎓 Degree Selection**: Pick your degree program from the list
+3. **📋 Training Type**: Choose "general" or "professional" training
+4. **📧 Email Entry**: Enter your OAMK student email
+5. **🤖 AI Processing**: Watch the 4-stage pipeline process your document
+6. **📊 Results**: Get decision (ACCEPTED/REJECTED), justification, and recommendations
+
+### Sample Output
+```
+🎯 DECISION: ACCEPTED (Student receives 15.0 ECTS as PROFESSIONAL training)
+
+📋 JUSTIFICATION: The work experience demonstrates strong relevance to the 
+Information Technology degree program. The software development role involved 
+technical skills directly applicable to the curriculum...
+
+📁 Output saved to: processedData/document_name/
+   ├── ocr_output_document_name.txt     (Extracted text)
+   └── aiworkflow_output_document_name_*.json     (Complete results)
+```
+
+### Alternative: OCR-Only Processing
+```bash
+# Process documents with OCR only (no AI evaluation)
+python -m src.workflow.ocr_workflow
+
+# Process single file with Python
+python -c "
+from src.ocr.cert_extractor import extract_certificate_text
+text = extract_certificate_text('samples/document.pdf')
+print(f'Extracted {len(text)} characters')
+"
+```
+
+---
+
 ## 📁 System Architecture
 
 ```
