@@ -10,14 +10,13 @@ import time
 from typing import Any, Dict, Optional
 
 import google.generativeai as genai
-
-from src.config import settings
-from src.llm.degree_evaluator import DegreeEvaluator
-from src.llm.models import (
+from config import settings
+from llm.degree_evaluator import DegreeEvaluator
+from llm.models import (
     validate_evaluation_results,
     validate_extraction_results,
 )
-from src.llm.prompts import (
+from llm.prompts import (
     CORRECTION_PROMPT,
     EVALUATION_PROMPT,
     EXTRACTION_PROMPT,
@@ -600,12 +599,16 @@ class LLMOrchestrator:
             json_str = response_text[start_idx:end_idx]
 
             try:
-                return json.loads(json_str)
+                parsed_data = json.loads(json_str)
+                # Convert any Finnish format dates to ISO format
+                return self._convert_finnish_dates(parsed_data)
             except json.JSONDecodeError:
                 # Try to fix common JSON issues
                 fixed_json = self._fix_common_json_issues(json_str)
                 try:
-                    return json.loads(fixed_json)
+                    parsed_data = json.loads(fixed_json)
+                    # Convert any Finnish format dates to ISO format
+                    return self._convert_finnish_dates(parsed_data)
                 except json.JSONDecodeError:
                     # Create fallback response
                     return self._create_fallback_response(json_str)
@@ -613,6 +616,51 @@ class LLMOrchestrator:
         except Exception as e:
             logger.error(f"Failed to parse LLM response: {e}")
             return self._create_fallback_response("")
+
+    def _convert_finnish_dates(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert Finnish format dates (DD.MM.YYYY) to ISO format (YYYY-MM-DD)."""
+        import re
+        from datetime import datetime
+
+        def convert_date(date_str: str) -> str:
+            """Convert DD.MM.YYYY to YYYY-MM-DD."""
+            if not date_str or date_str == "null":
+                return date_str
+
+            # Check if it's already in ISO format
+            if re.match(r"^\d{4}-\d{2}-\d{2}$", date_str):
+                return date_str
+
+            # Check if it's in Finnish format DD.MM.YYYY
+            finnish_match = re.match(r"^(\d{1,2})\.(\d{1,2})\.(\d{4})$", date_str)
+            if finnish_match:
+                day, month, year = finnish_match.groups()
+                try:
+                    # Validate the date
+                    datetime(int(year), int(month), int(day))
+                    return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+                except ValueError:
+                    logger.warning(f"Invalid Finnish date format: {date_str}")
+                    return date_str
+
+            return date_str
+
+        # Convert certificate issue date
+        if "certificate_issue_date" in data and data["certificate_issue_date"]:
+            data["certificate_issue_date"] = convert_date(
+                data["certificate_issue_date"]
+            )
+
+        # Convert dates in positions
+        if "positions" in data and isinstance(data["positions"], list):
+            for position in data["positions"]:
+                if isinstance(position, dict):
+                    if "start_date" in position:
+                        position["start_date"] = convert_date(position["start_date"])
+                    if "end_date" in position:
+                        position["end_date"] = convert_date(position["end_date"])
+
+        return data
 
     def _fix_common_json_issues(self, json_str: str) -> str:
         """Fix common JSON formatting issues."""

@@ -3,10 +3,10 @@ Prompts package for LLM-based work certificate processing.
 Contains extraction and evaluation prompts.
 """
 
-from src.llm.prompts.correction import CORRECTION_PROMPT
-from src.llm.prompts.evaluation import EVALUATION_PROMPT
-from src.llm.prompts.extraction import EXTRACTION_PROMPT
-from src.llm.prompts.validation import VALIDATION_PROMPT
+from .correction import CORRECTION_PROMPT
+from .evaluation import EVALUATION_PROMPT
+from .extraction import EXTRACTION_PROMPT
+from .validation import VALIDATION_PROMPT
 
 __all__ = [
     "EXTRACTION_PROMPT",

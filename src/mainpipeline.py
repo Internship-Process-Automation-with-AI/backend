@@ -27,7 +27,7 @@ try:
     from workflow.ai_workflow import LLMOrchestrator
     from workflow.ocr_workflow import OCRWorkflow
 except ImportError as e:
-    print(f"❌ Import error: {e}")
+    print(f"ERROR: Import error: {e}")
     print(f"   Error type: {type(e)}")
     print(f"   Error details: {e.__class__.__name__}: {e}")
     import traceback
@@ -237,6 +237,12 @@ class DocumentPipeline:
                 "text_length": ocr_result.get("text_length", 0),
                 "detected_language": ocr_result.get("detected_language", "unknown"),
                 "finnish_chars_count": ocr_result.get("finnish_chars_count", 0),
+                "extracted_text": ocr_result.get(
+                    "extracted_text", ""
+                ),  # Add the actual text
+                "text": ocr_result.get(
+                    "extracted_text", ""
+                ),  # Also add as "text" for compatibility
             }
 
             if not ocr_result["success"] or not ocr_result.get("extracted_text"):
@@ -266,6 +272,14 @@ class DocumentPipeline:
             print("\n🤖 Step 3: LLM Processing")
             print(f"   Degree: {student_degree}")
             print(f"   Requested Training Type: {training_type}")
+
+            # Check if LLM orchestrator is available
+            if not self.orchestrator or not self.orchestrator.is_available():
+                print("   ❌ LLM orchestrator not available")
+                results["error"] = (
+                    "LLM processing not available - check API key configuration"
+                )
+                return results
 
             llm_results = self.orchestrator.process_work_certificate(
                 cleaned_text, student_degree, training_type
@@ -308,19 +322,9 @@ class DocumentPipeline:
     def save_ocr_text(self, text: str, file_path: str) -> str:
         """Save OCR text to organized output directory."""
         try:
-            base_name = os.path.splitext(os.path.basename(file_path))[0]
-            output_dir = os.path.join(
-                os.path.dirname(__file__), "..", "processedData", base_name
-            )
-            os.makedirs(output_dir, exist_ok=True)
-
-            output_filename = f"ocr_output_{base_name}.txt"
-            output_path = os.path.join(output_dir, output_filename)
-
-            with open(output_path, "w", encoding="utf-8") as f:
-                f.write(text)
-
-            return output_path
+            # Don't save OCR text here - it will be saved by the file manager
+            # This method is kept for compatibility but doesn't save to processedData
+            return ""
         except Exception as e:
             logger.error(f"Error saving OCR text: {e}")
             return ""

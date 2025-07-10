@@ -12,9 +12,9 @@ import numpy as np
 from docx import Document
 from pdf2image import convert_from_path
 from PIL import Image
+from utils.logger import get_logger
 
-from src.ocr.ocr import ocr_processor
-from src.utils.logger import get_logger
+from ocr.ocr import ocr_processor
 
 logger = get_logger(__name__)
 
