@@ -156,11 +156,6 @@ async def process_document(
             file_content=content, original_filename=file.filename, date=processing_date
         )
 
-        # Create temporary file for processing (from the saved file)
-        temp_file_path = file_manager.create_temp_file(
-            file_content=content, suffix=file_extension
-        )
-
         logger.info(f"Processing file: {file.filename}")
         logger.info(f"Saved to: {saved_file_path}")
         logger.info(f"Student degree: {student_degree}")
@@ -174,22 +169,22 @@ async def process_document(
         else:
             print("❌ LLM Orchestrator not initialized")
 
-        # Process the document using the pipeline
+        # Process the document using the pipeline (directly from saved file)
         results = pipeline.process_document(
-            file_path=str(temp_file_path),
+            file_path=str(saved_file_path),
             student_degree=student_degree,
             student_email=student_email,
             training_type=training_type,
         )
 
-        # Clean up temporary file
-        file_manager.cleanup_temp_file(temp_file_path)
-
         # Ensure OCR text is included in results for file manager
-        if "ocr_results" in results and "extracted_text" not in results["ocr_results"]:
-            # Get the extracted text from the OCR workflow
-            ocr_text = results["ocr_results"].get("text", "")
-            if ocr_text:
+        if "ocr_results" in results:
+            ocr_results = results["ocr_results"]
+            # Get the extracted text from the correct field
+            ocr_text = ocr_results.get("extracted_text", "") or ocr_results.get(
+                "text", ""
+            )
+            if ocr_text and "extracted_text" not in ocr_results:
                 results["ocr_results"]["extracted_text"] = ocr_text
 
         # Save processing results alongside the uploaded file
@@ -205,7 +200,21 @@ async def process_document(
             "student_email": student_email,
             "requested_training_type": training_type,
             "processing_time": results.get("processing_time", 0),
-            "ocr_results": results.get("ocr_results", {}),
+            "ocr_results": {
+                "success": results.get("ocr_results", {}).get("success", False),
+                "engine": results.get("ocr_results", {}).get("engine", ""),
+                "confidence": results.get("ocr_results", {}).get("confidence", 0),
+                "processing_time": results.get("ocr_results", {}).get(
+                    "processing_time", 0
+                ),
+                "text_length": results.get("ocr_results", {}).get("text_length", 0),
+                "detected_language": results.get("ocr_results", {}).get(
+                    "detected_language", ""
+                ),
+                "finnish_chars_count": results.get("ocr_results", {}).get(
+                    "finnish_chars_count", 0
+                ),
+            },
             "llm_results": results.get("llm_results", {}),
             "storage_info": {
                 "document_folder": str(
@@ -224,11 +233,99 @@ async def process_document(
         raise
     except Exception as e:
         logger.error(f"Error processing document: {e}")
-        # Clean up temporary file if it exists
-        if "temp_file_path" in locals():
-            file_manager.cleanup_temp_file(temp_file_path)
-
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+
+
+@app.get("/api/detect-language")
+async def detect_language(file: UploadFile = File(...)):
+    """
+    Detect the language of an uploaded document.
+
+    Args:
+        file: The uploaded document file
+
+    Returns:
+        Language detection results
+    """
+    try:
+        # Validate file type
+        allowed_extensions = {".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".docx"}
+        file_extension = Path(file.filename).suffix.lower()
+
+        if file_extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type. Allowed: {', '.join(allowed_extensions)}",
+            )
+
+        # Read file content
+        content = await file.read()
+
+        # Save file temporarily for language detection
+        processing_date = datetime.now()
+        saved_file_path, unique_filename = file_manager.save_uploaded_file(
+            file_content=content, original_filename=file.filename, date=processing_date
+        )
+
+        try:
+            # Use OCR workflow to detect language
+            if pipeline.ocr_workflow:
+                file_path = Path(saved_file_path)
+                detected_lang = pipeline.ocr_workflow._detect_language(file_path)
+
+                # Also try content-based detection
+                try:
+                    from ocr.cert_extractor import extract_certificate_text
+
+                    quick_text = extract_certificate_text(file_path, language="fin")
+                    finnish_chars = sum(1 for c in quick_text.lower() if c in "äöå")
+
+                    return {
+                        "filename": file.filename,
+                        "filename_based_detection": detected_lang,
+                        "content_based_detection": {
+                            "finnish_characters": finnish_chars,
+                            "suggests_finnish": finnish_chars > 0,
+                            "text_preview": quick_text[:200] + "..."
+                            if len(quick_text) > 200
+                            else quick_text,
+                        },
+                        "recommended_language": "fin"
+                        if finnish_chars > 0
+                        else detected_lang,
+                    }
+                except Exception as e:
+                    return {
+                        "filename": file.filename,
+                        "filename_based_detection": detected_lang,
+                        "content_based_detection": {"error": str(e)},
+                        "recommended_language": detected_lang,
+                    }
+            else:
+                raise HTTPException(
+                    status_code=500, detail="OCR workflow not initialized"
+                )
+        finally:
+            # Clean up the saved file since this is just for language detection
+            try:
+                if saved_file_path.exists():
+                    saved_file_path.unlink()
+                    # Also clean up the directory if it's empty
+                    document_folder = file_manager.get_document_folder(
+                        file.filename, processing_date
+                    )
+                    if document_folder.exists() and not any(document_folder.iterdir()):
+                        document_folder.rmdir()
+            except Exception as e:
+                logger.warning(f"Failed to cleanup language detection file: {e}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error detecting language: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Language detection failed: {str(e)}"
+        )
 
 
 @app.get("/api/health")
@@ -287,20 +384,6 @@ async def get_storage_stats():
         return stats
     except Exception as e:
         logger.error(f"Error getting storage stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/files/cleanup")
-async def cleanup_temp_files():
-    """Clean up old temporary files."""
-    try:
-        cleaned_count = file_manager.cleanup_old_temp_files(max_age_hours=24)
-        return {
-            "message": f"Cleaned up {cleaned_count} temporary files",
-            "cleaned_count": cleaned_count,
-        }
-    except Exception as e:
-        logger.error(f"Error cleaning up temp files: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

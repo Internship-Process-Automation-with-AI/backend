@@ -1,42 +1,31 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-File Manager for OAMK Work Certificate Processor
-Handles file storage, organization, and cleanup in the uploads directory.
+File management utilities for handling uploaded documents and processing results.
 """
 
-import logging
 import os
-import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
 
-logger = logging.getLogger(__name__)
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class FileManager:
-    """Manages file storage and organization in the uploads directory."""
+    """Manages file operations for uploaded documents and processing results."""
 
     def __init__(self, uploads_base_dir: str = "uploads"):
         """
-        Initialize the file manager.
+        Initialize file manager.
 
         Args:
-            uploads_base_dir: Base directory for uploads (relative to backend)
+            uploads_base_dir: Base directory for uploads
         """
-        # Get the backend directory (parent of src)
-        backend_dir = Path(__file__).parent.parent
-        self.uploads_base = backend_dir / uploads_base_dir
-        self.temp_dir = self.uploads_base / "temp"
-
-        # Create directories if they don't exist
+        self.uploads_base = Path(uploads_base_dir)
         self.uploads_base.mkdir(exist_ok=True)
-        self.temp_dir.mkdir(exist_ok=True)
-
-        logger.info(
-            f"File manager initialized with uploads directory: {self.uploads_base}"
-        )
 
     def get_date_based_path(self, date: Optional[datetime] = None) -> Path:
         """
@@ -224,93 +213,21 @@ class FileManager:
         if date is None:
             date = datetime.now()
 
-        date_path = self.get_date_based_path(date)
-        timestamp = date.strftime("%Y%m%d_%H%M%S")
+        # Get the document folder path
+        document_folder = self.get_document_folder(original_filename, date)
         base_name = Path(original_filename).stem
+        timestamp = date.strftime("%Y%m%d_%H%M%S")
 
-        # Generate expected filenames
-        unique_filename = self.generate_unique_filename(original_filename, date)
-        results_base = f"{timestamp}_{base_name}"
-
+        # Generate expected filenames based on actual structure
         files = {
-            "folder": date_path,
-            "original": date_path / "original" / unique_filename,
-            "results_json": date_path
-            / "results"
-            / f"{results_base}_complete_results.json",
-            "ocr_text": date_path / "results" / f"{results_base}_ocr_text.txt",
+            "folder": document_folder,
+            "original": document_folder / original_filename,
+            "results_json": document_folder
+            / f"aiworkflow_output_{base_name}_{timestamp}.json",
+            "ocr_text": document_folder / f"ocr_output_{base_name}.txt",
         }
 
         return files
-
-    def create_temp_file(self, file_content: bytes, suffix: str = "") -> Path:
-        """
-        Create a temporary file for processing.
-
-        Args:
-            file_content: File content as bytes
-            suffix: File suffix (e.g., '.pdf')
-
-        Returns:
-            Path to temporary file
-        """
-        temp_file = tempfile.NamedTemporaryFile(
-            delete=False, suffix=suffix, dir=self.temp_dir
-        )
-
-        with temp_file:
-            temp_file.write(file_content)
-
-        logger.info(f"Created temporary file: {temp_file.name}")
-        return Path(temp_file.name)
-
-    def cleanup_temp_file(self, file_path: Path) -> bool:
-        """
-        Clean up a temporary file.
-
-        Args:
-            file_path: Path to temporary file
-
-        Returns:
-            True if cleanup successful, False otherwise
-        """
-        try:
-            if file_path.exists():
-                file_path.unlink()
-                logger.info(f"Cleaned up temporary file: {file_path}")
-                return True
-        except Exception as e:
-            logger.warning(f"Failed to cleanup temporary file {file_path}: {e}")
-
-        return False
-
-    def cleanup_old_temp_files(self, max_age_hours: int = 24) -> int:
-        """
-        Clean up old temporary files.
-
-        Args:
-            max_age_hours: Maximum age of temp files in hours
-
-        Returns:
-            Number of files cleaned up
-        """
-        if not self.temp_dir.exists():
-            return 0
-
-        cutoff_time = datetime.now().timestamp() - (max_age_hours * 3600)
-        cleaned_count = 0
-
-        for temp_file in self.temp_dir.iterdir():
-            if temp_file.is_file():
-                try:
-                    if temp_file.stat().st_mtime < cutoff_time:
-                        temp_file.unlink()
-                        cleaned_count += 1
-                        logger.info(f"Cleaned up old temp file: {temp_file}")
-                except Exception as e:
-                    logger.warning(f"Failed to cleanup old temp file {temp_file}: {e}")
-
-        return cleaned_count
 
     def get_file_info(self, file_path: Path) -> dict:
         """
@@ -338,7 +255,7 @@ class FileManager:
         self, date: Optional[datetime] = None, limit: int = 100
     ) -> list:
         """
-        List uploaded files in date-based directory.
+        List uploaded files in document-specific folders.
 
         Args:
             date: Date to list files for (defaults to current date)
@@ -350,16 +267,23 @@ class FileManager:
         if date is None:
             date = datetime.now()
 
-        date_path = self.get_date_based_path(date)
-        original_dir = date_path / "original"
-
-        if not original_dir.exists():
-            return []
-
         files = []
-        for file_path in original_dir.iterdir():
-            if file_path.is_file() and len(files) < limit:
-                files.append(self.get_file_info(file_path))
+
+        # Look for document-specific folders in uploads directory
+        for item in self.uploads_base.iterdir():
+            if item.is_dir() and len(files) < limit:
+                # Check if this is a document folder (format: YYYYMMDD_HHMMSS_filename)
+                if "_" in item.name and len(item.name.split("_")) >= 3:
+                    # Look for the original file in this folder
+                    for file_path in item.iterdir():
+                        if file_path.is_file() and not file_path.name.startswith(
+                            ("aiworkflow_output_", "ocr_output_")
+                        ):
+                            # This is the original uploaded file
+                            file_info = self.get_file_info(file_path)
+                            file_info["document_folder"] = str(item)
+                            files.append(file_info)
+                            break  # Only get the first file (original) from each folder
 
         # Sort by creation time (newest first)
         files.sort(key=lambda x: x["created"], reverse=True)
