@@ -6,6 +6,8 @@ Provides REST API endpoints for the frontend to interact with the document proce
 """
 
 import logging
+import os
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -15,9 +17,14 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-# Local imports using relative imports
-from .file_manager import file_manager
-from .mainpipeline import DocumentPipeline
+# Add current directory to path for local imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+# Local imports - ruff: noqa: E402
+from file_manager import file_manager  # noqa: E402
+from mainpipeline import DocumentPipeline  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
