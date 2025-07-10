@@ -14,7 +14,9 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from config.settings import settings
+from PIL import Image
+
+from src.config import settings
 from src.ocr.cert_extractor import (
     SUPPORTED_DOC_FORMATS,
     SUPPORTED_IMAGE_FORMATS,
@@ -68,7 +70,6 @@ class OCRWorkflow:
         self.output_dir.mkdir(exist_ok=True)
 
         # Create subdirectories for organization
-        (self.output_dir / "text_files").mkdir(exist_ok=True)
         (self.output_dir / "logs").mkdir(exist_ok=True)
         (self.output_dir / "reports").mkdir(exist_ok=True)
 
@@ -77,7 +78,7 @@ class OCRWorkflow:
     def _verify_ocr_setup(self) -> None:
         """Verify OCR configuration is working."""
         try:
-            tesseract_path = settings.tesseract_executable
+            tesseract_path = settings.TESSERACT_CMD or "tesseract"
             logger.info(f"✅ OCR setup verified. Tesseract at: {tesseract_path}")
 
             # Check for Finnish language support if using auto-detection
@@ -210,7 +211,13 @@ class OCRWorkflow:
             Dictionary containing processing results
         """
         start_time = time.time()
-        relative_path = file_path.relative_to(self.samples_dir)
+
+        # Handle files that may be outside the samples directory
+        try:
+            relative_path = file_path.relative_to(self.samples_dir)
+        except ValueError:
+            # If file is not in samples directory, use the filename as relative path
+            relative_path = Path(file_path.name)
 
         result = {
             "file_path": str(relative_path),
@@ -223,6 +230,7 @@ class OCRWorkflow:
             "processing_time": 0.0,
             "detected_language": None,
             "finnish_chars_count": 0,
+            "confidence": 0.0,  # Add confidence field
             "error": None,
             "output_file": None,
         }
@@ -237,9 +245,18 @@ class OCRWorkflow:
                 # Count Finnish characters
                 finnish_chars = sum(1 for c in extracted_text.lower() if c in "äöå")
 
-                # Save text to file
-                output_filename = self._generate_output_filename(file_path)
-                output_path = self.output_dir / "text_files" / output_filename
+                # Calculate confidence score using OCR data
+                confidence_score = self._calculate_confidence_score(
+                    file_path, detected_lang
+                )
+
+                # Save text to file in document-specific directory
+                base_name = file_path.stem
+                document_dir = self.output_dir / base_name
+                document_dir.mkdir(exist_ok=True)
+
+                output_filename = f"ocr_output_{base_name}.txt"
+                output_path = document_dir / output_filename
 
                 with open(output_path, "w", encoding="utf-8") as f:
                     f.write(extracted_text)
@@ -250,12 +267,14 @@ class OCRWorkflow:
                         "text_length": len(extracted_text),
                         "detected_language": detected_lang,
                         "finnish_chars_count": finnish_chars,
+                        "confidence": confidence_score,  # Add confidence to result
                         "output_file": str(output_filename),
+                        "extracted_text": extracted_text,
                     },
                 )
 
                 logger.info(
-                    f"✅ Success: {relative_path} -> {output_filename} ({len(extracted_text)} chars, {finnish_chars} Finnish chars, lang: {detected_lang})",
+                    f"✅ Success: {relative_path} -> {output_filename} ({len(extracted_text)} chars, {finnish_chars} Finnish chars, lang: {detected_lang}, confidence: {confidence_score:.1f}%)",
                 )
             else:
                 result["error"] = "No text extracted from document"
@@ -269,6 +288,67 @@ class OCRWorkflow:
             result["processing_time"] = round(time.time() - start_time, 2)
 
         return result
+
+    def _calculate_confidence_score(self, file_path: Path, detected_lang: str) -> float:
+        """
+        Calculate confidence score for OCR results.
+
+        Args:
+            file_path: Path to the document
+            detected_lang: Detected language
+
+        Returns:
+            Average confidence score (0-100)
+        """
+        try:
+            from src.ocr.ocr import ocr_processor
+
+            # Convert file to image for confidence calculation
+            if file_path.suffix.lower() in {
+                ".jpg",
+                ".jpeg",
+                ".png",
+                ".bmp",
+                ".tiff",
+                ".tif",
+            }:
+                # Direct image file
+                image = Image.open(file_path)
+            elif file_path.suffix.lower() == ".pdf":
+                # Convert PDF to image
+                from pdf2image import convert_from_path
+
+                images = convert_from_path(str(file_path))
+                if images:
+                    image = images[0]  # Use first page for confidence calculation
+                else:
+                    return 0.0
+            elif file_path.suffix.lower() in {".docx", ".doc"}:
+                # For DOCX, we'll use a default confidence since we extract text directly
+                # DOCX files typically have high confidence as they contain native text
+                return 95.0
+            else:
+                return 0.0
+
+            # Extract detailed OCR data with confidence scores
+            ocr_data = ocr_processor.extract_data(
+                image, lang=detected_lang if detected_lang != "auto" else "eng"
+            )
+
+            # Calculate average confidence from all detected text
+            confidences = [
+                conf for conf in ocr_data["conf"] if conf > 0
+            ]  # Filter out -1 (no text)
+
+            if confidences:
+                avg_confidence = sum(confidences) / len(confidences)
+                return round(avg_confidence, 1)
+            else:
+                return 0.0
+
+        except Exception as e:
+            logger.warning(f"Could not calculate confidence score: {e}")
+            return 0.0
 
     def _generate_output_filename(self, input_path: Path) -> str:
         """
@@ -284,14 +364,18 @@ class OCRWorkflow:
         base_name = input_path.stem
 
         # Handle subdirectories by replacing path separators
-        relative_path = input_path.relative_to(self.samples_dir)
-        if relative_path.parent != Path():
-            # Include subdirectory in filename
-            base_name = (
-                str(relative_path.parent).replace("/", "_").replace("\\", "_")
-                + "_"
-                + base_name
-            )
+        try:
+            relative_path = input_path.relative_to(self.samples_dir)
+            if relative_path.parent != Path():
+                # Include subdirectory in filename
+                base_name = (
+                    str(relative_path.parent).replace("/", "_").replace("\\", "_")
+                    + "_"
+                    + base_name
+                )
+        except ValueError:
+            # If file is not in samples directory, use just the filename
+            pass
 
         return f"{base_name}.txt"
 

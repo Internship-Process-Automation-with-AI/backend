@@ -1,27 +1,72 @@
+# Core FastAPI dependencies
+fastapi>=0.104.1,<1.0.0
+uvicorn[standard]>=0.24.0,<1.0.0
+python-multipart>=0.0.6,<1.0.0
+
 # OCR and Image Processing
-pytesseract==0.3.13
-opencv-python==4.11.0.86
-Pillow==11.2.1
+pytesseract>=0.3.10,<1.0.0
+Pillow>=10.1.0,<12.0.0
+opencv-python>=4.8.1.78,<5.0.0
+PyMuPDF>=1.23.8,<2.0.0
+numpy>=1.24.3,<2.0.0
+
+# Google Cloud Vision API (fallback OCR)
+google-cloud-vision>=3.4.4,<4.0.0
+
+# Google Generative AI (Gemini LLM)
+google-generativeai>=0.3.0,<1.0.0
 
 # Document Processing
-pdf2image==1.17.0
-python-docx==1.2.0
-docx2txt==0.9
+python-docx>=0.8.11,<1.0.0
+pdf2image>=1.17.0,<2.0.0
+docx2txt>=0.9,<1.0.0
 
-# Configuration and Settings
-pydantic==2.11.7
-pydantic-settings==2.10.1
-python-dotenv==1.1.1
+# Information Extraction
+python-dateutil>=2.8.2,<3.0.0
 
-# Web Framework (for future API development)
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
+# File handling and utilities
+python-magic>=0.4.27,<1.0.0
+aiofiles>=23.2.1,<24.0.0
 
-# Data Processing
-numpy==2.3.1
+# Environment and configuration
+python-dotenv>=1.0.0,<2.0.0
+pydantic>=2.5.0,<3.0.0
+pydantic-settings>=2.1.0,<3.0.0
+
+# Logging and monitoring
+loguru>=0.7.2,<1.0.0
 
 # HTTP Client
-httpx==0.26.0
+httpx>=0.26.0,<1.0.0
 
-# Development Dependencies (optional - install separately)
-ruff==0.1.14
+# Development dependencies
+pytest>=7.4.3,<8.0.0
+pytest-asyncio>=0.21.1,<1.0.0
+pre-commit>=3.5.0,<4.0.0
+ruff>=0.1.14,<1.0.0
+
+# System Dependencies (must be installed separately)
+# Tesseract OCR Engine: https://github.com/tesseract-ocr/tesseract
+#   - Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
+#     After installation, add to PATH or set environment variable:
+#     set TESSERACT_PATH=C:\Program Files\Tesseract-OCR\tesseract.exe
+#     Finnish language is usually included, but verify with:
+#     tesseract --list-langs
+#     If 'fin' is not listed, download fin.traineddata from:
+#     https://github.com/tesseract-ocr/tessdata
+#     and place it in C:\Program Files\Tesseract-OCR\tessdata\
+#   - macOS: brew install tesseract
+#     Verify installation: tesseract --version
+#   - Ubuntu/Debian: sudo apt-get install tesseract-ocr
+#     For Finnish language: sudo apt-get install tesseract-ocr-fin
+#     Verify installation: tesseract --version
+#
+# Poppler (for PDF processing): https://poppler.freedesktop.org/
+#   - Windows: Download from https://github.com/oschwartz10612/poppler-windows/releases
+#     Extract to C:\poppler and add to PATH:
+#     set PATH=%PATH%;C:\poppler\Library\bin
+#   - macOS: brew install poppler
+#     Verify installation: pdftoppm -h
+#   - Ubuntu/Debian: sudo apt-get install poppler-utils
+#     Verify installation: pdftoppm -h
+

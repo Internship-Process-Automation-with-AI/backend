@@ -38,3 +38,5 @@ env/
 *.log
 logs/
 
+# processedData
+processedData/
