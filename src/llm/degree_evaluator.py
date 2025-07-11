@@ -6,7 +6,7 @@ This module handles different degree programs and their specific evaluation crit
 import logging
 from typing import Any, Dict, List
 
-from src.llm.degree_programs_data import DEGREE_PROGRAMS
+from .degree_programs_data import DEGREE_PROGRAMS
 
 logger = logging.getLogger(__name__)
 

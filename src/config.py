@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "OAMK Internship Certificate Processor"
 
     # OCR Configuration
-    TESSERACT_CMD: Optional[str] = None  # Path to tesseract executable
+    tesseract_executable: Optional[str] = None  # Path to tesseract executable
     GOOGLE_CLOUD_CREDENTIALS: Optional[str] = (
         None  # Path to Google Cloud credentials JSON
     )
@@ -49,3 +49,10 @@ class Settings(BaseSettings):
 
 # Global settings instance
 settings = Settings()
+
+# Debug: Print API key status (without exposing the actual key)
+if settings.GEMINI_API_KEY:
+    print(f"✅ Gemini API key loaded: {settings.GEMINI_API_KEY[:10]}...")
+else:
+    print("❌ Gemini API key not found. Please check your .env file")
+    print("   Expected format: GEMINI_API_KEY=your_api_key_here")

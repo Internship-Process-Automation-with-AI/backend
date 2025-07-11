@@ -14,17 +14,15 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from PIL import Image
-
-from src.config import settings
-from src.ocr.cert_extractor import (
+from config import settings
+from ocr.cert_extractor import (
     SUPPORTED_DOC_FORMATS,
     SUPPORTED_IMAGE_FORMATS,
     SUPPORTED_PDF_FORMATS,
     extract_certificate_text,
     extract_finnish_certificate,
 )
-from src.utils.logger import get_logger
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -32,6 +30,17 @@ logger = get_logger(__name__)
 SUPPORTED_FORMATS = (
     SUPPORTED_IMAGE_FORMATS | SUPPORTED_DOC_FORMATS | SUPPORTED_PDF_FORMATS
 )
+
+# Finnish keywords for content-based detection
+FINNISH_KEYWORDS = [
+    "finnish",
+    "suomi",
+    "työtodistus",
+    "todistus",
+    "harjoittelu",
+    "kesätyö",
+    "työ",
+]
 
 
 class OCRWorkflow:
@@ -70,6 +79,7 @@ class OCRWorkflow:
         self.output_dir.mkdir(exist_ok=True)
 
         # Create subdirectories for organization
+        (self.output_dir / "text_files").mkdir(exist_ok=True)
         (self.output_dir / "logs").mkdir(exist_ok=True)
         (self.output_dir / "reports").mkdir(exist_ok=True)
 
@@ -78,12 +88,12 @@ class OCRWorkflow:
     def _verify_ocr_setup(self) -> None:
         """Verify OCR configuration is working."""
         try:
-            tesseract_path = settings.TESSERACT_CMD or "tesseract"
+            tesseract_path = settings.tesseract_executable
             logger.info(f"✅ OCR setup verified. Tesseract at: {tesseract_path}")
 
             # Check for Finnish language support if using auto-detection
             if self.use_finnish_detection or self.language in ["fin", "eng+fin"]:
-                from src.ocr.ocr import ocr_processor
+                from ocr import ocr_processor
 
                 available_langs = ocr_processor.get_available_languages()
                 if "fin" in available_langs:
@@ -147,6 +157,41 @@ class OCRWorkflow:
         )
 
         try:
+            # First, try a quick OCR scan to detect language from content
+            if self.use_finnish_detection and detected_lang == "auto":
+                logger.info(
+                    f"🔍 Performing content-based language detection for: {file_path.name}"
+                )
+
+                # Try quick Finnish OCR first
+                try:
+                    quick_finnish_text = extract_certificate_text(
+                        file_path, language="fin"
+                    )
+                    finnish_chars = sum(
+                        1 for c in quick_finnish_text.lower() if c in "äöå"
+                    )
+                    finnish_keywords = sum(
+                        1
+                        for keyword in FINNISH_KEYWORDS
+                        if keyword.lower() in quick_finnish_text.lower()
+                    )
+
+                    # If we find Finnish indicators, use Finnish extraction
+                    if finnish_chars > 0 or finnish_keywords > 0:
+                        logger.info(
+                            f"🇫🇮 Content-based detection: Found {finnish_chars} Finnish chars and {finnish_keywords} Finnish keywords"
+                        )
+                        detected_lang = "fin"
+                    else:
+                        logger.info(
+                            "🌐 Content-based detection: No Finnish indicators found, using auto-detection"
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"Content-based detection failed: {e}, falling back to filename-based detection"
+                    )
+
             # Use Finnish-specific extraction for Finnish documents
             if detected_lang == "fin" or (
                 self.use_finnish_detection and "finnish" in file_path.name.lower()
@@ -154,8 +199,24 @@ class OCRWorkflow:
                 logger.info(
                     f"📄 Using Finnish-specific extraction for: {file_path.name}"
                 )
-                text = extract_finnish_certificate(file_path)
-                return text, "fin"
+                try:
+                    text = extract_finnish_certificate(file_path)
+                    if text and len(text.strip()) > 10:
+                        return text, "fin"
+                    else:
+                        logger.warning(
+                            "Finnish extraction returned empty/poor text, trying fallback"
+                        )
+                        # Fallback to regular extraction with Finnish language
+                        text = extract_certificate_text(file_path, language="fin")
+                        return text, "fin"
+                except Exception as fin_error:
+                    logger.warning(
+                        f"Finnish extraction failed: {fin_error}, trying fallback"
+                    )
+                    # Fallback to regular extraction with Finnish language
+                    text = extract_certificate_text(file_path, language="fin")
+                    return text, "fin"
 
             # Use regular extraction with language specification
             elif detected_lang == "auto":
@@ -212,11 +273,12 @@ class OCRWorkflow:
         """
         start_time = time.time()
 
-        # Handle files that may be outside the samples directory
+        # Handle files from any directory (not just samples)
         try:
+            # Try to get relative path from samples directory if possible
             relative_path = file_path.relative_to(self.samples_dir)
         except ValueError:
-            # If file is not in samples directory, use the filename as relative path
+            # If file is not in samples directory, use the filename
             relative_path = Path(file_path.name)
 
         result = {
@@ -230,9 +292,9 @@ class OCRWorkflow:
             "processing_time": 0.0,
             "detected_language": None,
             "finnish_chars_count": 0,
-            "confidence": 0.0,  # Add confidence field
             "error": None,
             "output_file": None,
+            "extracted_text": "",  # Add the actual extracted text
         }
 
         try:
@@ -245,18 +307,9 @@ class OCRWorkflow:
                 # Count Finnish characters
                 finnish_chars = sum(1 for c in extracted_text.lower() if c in "äöå")
 
-                # Calculate confidence score using OCR data
-                confidence_score = self._calculate_confidence_score(
-                    file_path, detected_lang
-                )
-
-                # Save text to file in document-specific directory
-                base_name = file_path.stem
-                document_dir = self.output_dir / base_name
-                document_dir.mkdir(exist_ok=True)
-
-                output_filename = f"ocr_output_{base_name}.txt"
-                output_path = document_dir / output_filename
+                # Save text to file
+                output_filename = self._generate_output_filename(file_path)
+                output_path = self.output_dir / "text_files" / output_filename
 
                 with open(output_path, "w", encoding="utf-8") as f:
                     f.write(extracted_text)
@@ -267,14 +320,13 @@ class OCRWorkflow:
                         "text_length": len(extracted_text),
                         "detected_language": detected_lang,
                         "finnish_chars_count": finnish_chars,
-                        "confidence": confidence_score,  # Add confidence to result
                         "output_file": str(output_filename),
-                        "extracted_text": extracted_text,
+                        "extracted_text": extracted_text,  # Add the actual extracted text
                     },
                 )
 
                 logger.info(
-                    f"✅ Success: {relative_path} -> {output_filename} ({len(extracted_text)} chars, {finnish_chars} Finnish chars, lang: {detected_lang}, confidence: {confidence_score:.1f}%)",
+                    f"✅ Success: {relative_path} -> {output_filename} ({len(extracted_text)} chars, {finnish_chars} Finnish chars, lang: {detected_lang})",
                 )
             else:
                 result["error"] = "No text extracted from document"
@@ -288,67 +340,6 @@ class OCRWorkflow:
             result["processing_time"] = round(time.time() - start_time, 2)
 
         return result
-
-    def _calculate_confidence_score(self, file_path: Path, detected_lang: str) -> float:
-        """
-        Calculate confidence score for OCR results.
-
-        Args:
-            file_path: Path to the document
-            detected_lang: Detected language
-
-        Returns:
-            Average confidence score (0-100)
-        """
-        try:
-            from src.ocr.ocr import ocr_processor
-
-            # Convert file to image for confidence calculation
-            if file_path.suffix.lower() in {
-                ".jpg",
-                ".jpeg",
-                ".png",
-                ".bmp",
-                ".tiff",
-                ".tif",
-            }:
-                # Direct image file
-                image = Image.open(file_path)
-            elif file_path.suffix.lower() == ".pdf":
-                # Convert PDF to image
-                from pdf2image import convert_from_path
-
-                images = convert_from_path(str(file_path))
-                if images:
-                    image = images[0]  # Use first page for confidence calculation
-                else:
-                    return 0.0
-            elif file_path.suffix.lower() in {".docx", ".doc"}:
-                # For DOCX, we'll use a default confidence since we extract text directly
-                # DOCX files typically have high confidence as they contain native text
-                return 95.0
-            else:
-                return 0.0
-
-            # Extract detailed OCR data with confidence scores
-            ocr_data = ocr_processor.extract_data(
-                image, lang=detected_lang if detected_lang != "auto" else "eng"
-            )
-
-            # Calculate average confidence from all detected text
-            confidences = [
-                conf for conf in ocr_data["conf"] if conf > 0
-            ]  # Filter out -1 (no text)
-
-            if confidences:
-                avg_confidence = sum(confidences) / len(confidences)
-                return round(avg_confidence, 1)
-            else:
-                return 0.0
-
-        except Exception as e:
-            logger.warning(f"Could not calculate confidence score: {e}")
-            return 0.0
 
     def _generate_output_filename(self, input_path: Path) -> str:
         """
@@ -375,6 +366,7 @@ class OCRWorkflow:
                 )
         except ValueError:
             # If file is not in samples directory, use just the filename
+            # This handles files from uploads directory
             pass
 
         return f"{base_name}.txt"
