@@ -11,7 +11,7 @@ PyMuPDF>=1.23.8,<2.0.0
 numpy>=1.24.3,<2.0.0
 
 # Google Cloud Vision API (fallback OCR)
-google-cloud-vision>=3.4.4,<4.0.0
+# google-cloud-vision>=3.4.4,<4.0.0
 
 # Google Generative AI (Gemini LLM)
 google-generativeai>=0.3.0,<1.0.0
