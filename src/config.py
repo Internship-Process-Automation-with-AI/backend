@@ -41,6 +41,14 @@ class Settings(BaseSettings):
     OCR_CONFIDENCE_THRESHOLD: float = 50.0  # Minimum confidence for OCR results
     IMAGE_PREPROCESSING_ENABLED: bool = True
 
+    # Database Configuration
+    DATABASE_HOST: Optional[str] = None
+    DATABASE_PORT: Optional[int] = None
+    DATABASE_NAME: Optional[str] = None
+    DATABASE_USER: Optional[str] = None
+    DATABASE_PASSWORD: Optional[str] = None
+    DATABASE_ECHO: Optional[bool] = None
+
     class Config:
         env_file = ".env"
         case_sensitive = True
@@ -50,9 +58,16 @@ class Settings(BaseSettings):
 # Global settings instance
 settings = Settings()
 
-# Debug: Print API key status (without exposing the actual key)
+# Debug: Print configuration status
 if settings.GEMINI_API_KEY:
     print(f"✅ Gemini API key loaded: {settings.GEMINI_API_KEY[:10]}...")
 else:
     print("❌ Gemini API key not found. Please check your .env file")
     print("   Expected format: GEMINI_API_KEY=your_api_key_here")
+
+# Debug: Print database configuration status
+print("🗄️  Database configuration:")
+print(f"   Host: {settings.DATABASE_HOST}:{settings.DATABASE_PORT}")
+print(f"   Database: {settings.DATABASE_NAME}")
+print(f"   User: {settings.DATABASE_USER}")
+print(f"   Echo SQL: {settings.DATABASE_ECHO}")

@@ -10,7 +10,8 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
+from uuid import UUID
 
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
@@ -23,6 +24,22 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 # Local imports - ruff: noqa: E402
+from database import (  # noqa: E402
+    check_database_health,
+    create_certificate,
+    create_decision,
+    create_student,
+    get_certificate_by_id,
+    get_certificates,
+    get_decision_by_id,
+    get_decisions,
+    get_statistics,
+    get_student_by_email,
+    get_student_with_certificates,
+    get_students,
+    init_database,
+)
+from database.models import DecisionStatus, TrainingType  # noqa: E402
 from file_manager import file_manager  # noqa: E402
 from mainpipeline import DocumentPipeline  # noqa: E402
 
@@ -69,14 +86,75 @@ class ProcessingResponse(BaseModel):
     error: Optional[str] = None
 
 
+# Database response models
+class StudentResponse(BaseModel):
+    student_id: UUID
+    email: str
+    degree: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CertificateResponse(BaseModel):
+    certificate_id: UUID
+    student_id: UUID
+    training_type: str
+    filename: str
+    filetype: str
+    uploaded_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DecisionResponse(BaseModel):
+    decision_id: UUID
+    certificate_id: UUID
+    ocr_output: Optional[str]
+    decision: str
+    justification: str
+    created_at: datetime
+    assigned_reviewer: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+
+class StudentWithCertificates(BaseModel):
+    student_id: UUID
+    email: str
+    degree: str
+    created_at: datetime
+    updated_at: datetime
+    certificates: List[CertificateResponse]
+
+    class Config:
+        from_attributes = True
+
+
 @app.on_event("startup")
 async def startup_event():
-    """Initialize the pipeline on startup."""
+    """Initialize the pipeline and database on startup."""
     logger.info("Initializing document processing pipeline...")
     if not pipeline.initialize_services():
         logger.error("Failed to initialize pipeline services")
         raise RuntimeError("Pipeline initialization failed")
     logger.info("Pipeline initialized successfully")
+
+    # Initialize database
+    logger.info("Initializing database...")
+    try:
+        if init_database():
+            logger.info("Database initialized successfully")
+        else:
+            logger.error("Database initialization failed")
+            raise RuntimeError("Database initialization failed")
+    except Exception as e:
+        logger.error(f"Database initialization error: {e}")
+        raise RuntimeError(f"Database initialization failed: {e}")
 
 
 @app.get("/")
@@ -191,6 +269,53 @@ async def process_document(
         results_path, ocr_text_path = file_manager.save_processing_results(
             results=results, original_filename=file.filename, date=processing_date
         )
+
+        # Save data to database
+        try:
+            # Create or get student
+            student = get_student_by_email(student_email)
+            if not student:
+                student = create_student(email=student_email, degree=student_degree)
+
+            # Create certificate record
+            certificate = create_certificate(
+                student_id=student.student_id,
+                training_type=TrainingType.PROFESSIONAL
+                if training_type == "professional"
+                else TrainingType.GENERAL,
+                filename=file.filename,
+                filetype=file_extension.lstrip("."),
+            )
+
+            # Create decision record if LLM processing was successful
+            if "llm_results" in results and results["llm_results"].get("success"):
+                llm_evaluation = (
+                    results["llm_results"]
+                    .get("evaluation_results", {})
+                    .get("results", {})
+                )
+                decision_status = (
+                    DecisionStatus.ACCEPTED
+                    if llm_evaluation.get("decision") == "ACCEPTED"
+                    else DecisionStatus.REJECTED
+                )
+
+                decision = create_decision(
+                    certificate_id=certificate.certificate_id,
+                    ocr_output=results.get("ocr_results", {}).get("extracted_text", ""),
+                    decision=decision_status,
+                    justification=llm_evaluation.get(
+                        "justification", "Processing completed"
+                    ),
+                    assigned_reviewer="AI System",
+                )
+
+            logger.info(f"Saved data to database for student: {student_email}")
+            logger.info(f"Decision: {decision}")
+
+        except Exception as e:
+            logger.error(f"Error saving to database: {e}")
+            # Continue processing - don't fail the API call if database save fails
 
         # Format response
         response_data = {
@@ -339,16 +464,30 @@ async def health_check():
         )
         degree_available = pipeline.degree_evaluator is not None
 
+        # Check database health
+        db_health = check_database_health()
+        database_available = db_health["status"] == "healthy"
+
         return {
-            "status": "healthy",
+            "status": "healthy"
+            if (
+                ocr_available
+                and llm_available
+                and degree_available
+                and database_available
+            )
+            else "unhealthy",
             "components": {
                 "ocr_workflow": ocr_available,
                 "llm_orchestrator": llm_available,
                 "degree_evaluator": degree_available,
+                "database": database_available,
             },
+            "database_info": db_health,
             "all_components_healthy": ocr_available
             and llm_available
-            and degree_available,
+            and degree_available
+            and database_available,
         }
     except Exception as e:
         logger.error(f"Health check failed: {e}")
@@ -422,6 +561,113 @@ async def get_document_files(filename: str, date: Optional[str] = None):
         return {"filename": filename, "date": date or "current", "files": file_status}
     except Exception as e:
         logger.error(f"Error getting document files: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Database endpoints
+@app.get("/api/students", response_model=List[StudentResponse])
+async def get_students_endpoint(skip: int = 0, limit: int = 100):
+    """Get list of students."""
+    try:
+        students = get_students(skip=skip, limit=limit)
+        return [student.to_dict() for student in students]
+    except Exception as e:
+        logger.error(f"Error getting students: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/students/{student_id}", response_model=StudentWithCertificates)
+async def get_student_endpoint(student_id: UUID):
+    """Get student by ID with their certificates."""
+    try:
+        student = get_student_with_certificates(student_id)
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+        return student.to_dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting student: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/students/email/{email}", response_model=StudentWithCertificates)
+async def get_student_by_email_endpoint(email: str):
+    """Get student by email with their certificates."""
+    try:
+        student = get_student_by_email(email)
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+
+        # Get student with certificates
+        student_with_certs = get_student_with_certificates(student.student_id)
+        return student_with_certs.to_dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting student by email: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/certificates", response_model=List[CertificateResponse])
+async def get_certificates_endpoint(skip: int = 0, limit: int = 100):
+    """Get list of certificates."""
+    try:
+        certificates = get_certificates(skip=skip, limit=limit)
+        return [certificate.to_dict() for certificate in certificates]
+    except Exception as e:
+        logger.error(f"Error getting certificates: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/certificates/{certificate_id}", response_model=CertificateResponse)
+async def get_certificate_endpoint(certificate_id: UUID):
+    """Get certificate by ID."""
+    try:
+        certificate = get_certificate_by_id(certificate_id)
+        if not certificate:
+            raise HTTPException(status_code=404, detail="Certificate not found")
+        return certificate.to_dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting certificate: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/decisions", response_model=List[DecisionResponse])
+async def get_decisions_endpoint(skip: int = 0, limit: int = 100):
+    """Get list of decisions."""
+    try:
+        decisions = get_decisions(skip=skip, limit=limit)
+        return [decision.to_dict() for decision in decisions]
+    except Exception as e:
+        logger.error(f"Error getting decisions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/decisions/{decision_id}", response_model=DecisionResponse)
+async def get_decision_endpoint(decision_id: UUID):
+    """Get decision by ID."""
+    try:
+        decision = get_decision_by_id(decision_id)
+        if not decision:
+            raise HTTPException(status_code=404, detail="Decision not found")
+        return decision.to_dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting decision: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/statistics")
+async def get_statistics_endpoint():
+    """Get system statistics."""
+    try:
+        return get_statistics()
+    except Exception as e:
+        logger.error(f"Error getting statistics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
