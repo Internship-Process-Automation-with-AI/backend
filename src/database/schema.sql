@@ -10,21 +10,29 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create ENUM types only if they don't already exist
 DO $$ BEGIN
-    CREATE TYPE training_type AS ENUM ('general', 'professional');
+    CREATE TYPE training_type AS ENUM ('GENERAL', 'PROFESSIONAL');
 
 EXCEPTION WHEN duplicate_object THEN NULL;
 
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE decision_status AS ENUM ('accepted', 'rejected');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+    CREATE TYPE decision_status AS ENUM ('ACCEPTED', 'REJECTED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE review_status AS ENUM ('PENDING', 'REVIEWED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Create Students table
 CREATE TABLE IF NOT EXISTS students (
     student_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE NOT NULL,
     degree VARCHAR(255) NOT NULL,
+    first_name VARCHAR(255),
+    last_name VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
@@ -40,6 +48,8 @@ CREATE TABLE IF NOT EXISTS certificates (
     training_type training_type NOT NULL,
     filename VARCHAR(255) NOT NULL,
     filetype VARCHAR(50) NOT NULL,
+    filepath TEXT, -- Path or link to the uploaded file
+    ocr_output TEXT,
     uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
 -- Constraints
@@ -51,14 +61,16 @@ CONSTRAINT certificates_filename_check CHECK (LENGTH(filename) > 0),
 CREATE TABLE IF NOT EXISTS decisions (
     decision_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     certificate_id UUID NOT NULL REFERENCES certificates(certificate_id) ON DELETE CASCADE,
-    ocr_output TEXT,
-    decision decision_status NOT NULL,
-    justification TEXT NOT NULL,
+    ai_justification TEXT NOT NULL,
+    ai_decision decision_status NOT NULL, -- AI decision: ACCEPTED or REJECTED
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    assigned_reviewer VARCHAR(255),
+    student_feedback TEXT, -- Student feedback for rejected applications
+    review_status review_status NOT NULL DEFAULT 'PENDING',
+    reviewer_comment TEXT, -- Reviewer's comments
+    reviewed_at TIMESTAMP WITH TIME ZONE, -- When the review was completed
 
 -- Constraints
-CONSTRAINT decisions_justification_check CHECK (LENGTH(justification) > 0)
+CONSTRAINT decisions_ai_justification_check CHECK (LENGTH(ai_justification) > 0)
 );
 
 -- Create indexes for better performance (only if they don't exist)
@@ -74,9 +86,13 @@ CREATE INDEX IF NOT EXISTS idx_certificates_uploaded_at ON certificates (uploade
 
 CREATE INDEX IF NOT EXISTS idx_decisions_certificate_id ON decisions (certificate_id);
 
-CREATE INDEX IF NOT EXISTS idx_decisions_decision ON decisions (decision);
+CREATE INDEX IF NOT EXISTS idx_decisions_ai_decision ON decisions (ai_decision);
+
+CREATE INDEX IF NOT EXISTS idx_decisions_review_status ON decisions (review_status);
 
 CREATE INDEX IF NOT EXISTS idx_decisions_created_at ON decisions (created_at);
+
+CREATE INDEX IF NOT EXISTS idx_decisions_reviewed_at ON decisions (reviewed_at);
 
 -- Create function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -94,3 +110,38 @@ CREATE TRIGGER update_students_updated_at
     BEFORE UPDATE ON students 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
+
+-- Migration script to update existing data if needed
+-- Uncomment and run these if you have existing data that needs to be migrated
+
+-- Add new columns to existing tables if they don't exist
+-- DO $$ BEGIN
+--     ALTER TABLE certificates ADD COLUMN IF NOT EXISTS filepath TEXT;
+-- EXCEPTION WHEN duplicate_column THEN NULL;
+-- END $$;
+
+-- DO $$ BEGIN
+--     ALTER TABLE decisions ADD COLUMN IF NOT EXISTS student_feedback TEXT;
+-- EXCEPTION WHEN duplicate_column THEN NULL;
+-- END $$;
+
+-- DO $$ BEGIN
+--     ALTER TABLE decisions ADD COLUMN IF NOT EXISTS review_status review_status DEFAULT 'PENDING';
+-- EXCEPTION WHEN duplicate_column THEN NULL;
+-- END $$;
+
+-- DO $$ BEGIN
+--     ALTER TABLE decisions ADD COLUMN IF NOT EXISTS reviewer_comment TEXT;
+-- EXCEPTION WHEN duplicate_column THEN NULL;
+-- END $$;
+
+-- DO $$ BEGIN
+--     ALTER TABLE decisions ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP WITH TIME ZONE;
+-- EXCEPTION WHEN duplicate_column THEN NULL;
+-- END $$;
+
+-- Rename 'decision' column to 'ai_decision' if needed
+-- DO $$ BEGIN
+--     ALTER TABLE decisions RENAME COLUMN decision TO ai_decision;
+-- EXCEPTION WHEN undefined_column THEN NULL;
+-- END $$;

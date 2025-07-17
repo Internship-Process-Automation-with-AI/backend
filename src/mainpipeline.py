@@ -85,6 +85,86 @@ class DocumentPipeline:
 
         return True
 
+    def health_check(self) -> Dict[str, Any]:
+        """Check the health status of pipeline components."""
+        status = {
+            "status": "healthy",
+            "components": {},
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        # Check OCR workflow
+        try:
+            if self.ocr_workflow is not None:
+                status["components"]["ocr"] = {"status": "healthy", "available": True}
+            else:
+                status["components"]["ocr"] = {
+                    "status": "unhealthy",
+                    "available": False,
+                    "error": "Not initialized",
+                }
+                status["status"] = "degraded"
+        except Exception as e:
+            status["components"]["ocr"] = {
+                "status": "unhealthy",
+                "available": False,
+                "error": str(e),
+            }
+            status["status"] = "unhealthy"
+
+        # Check LLM orchestrator
+        try:
+            if self.orchestrator is not None:
+                available = (
+                    self.orchestrator.is_available()
+                    if hasattr(self.orchestrator, "is_available")
+                    else True
+                )
+                status["components"]["llm"] = {
+                    "status": "healthy" if available else "degraded",
+                    "available": available,
+                }
+                if not available:
+                    status["status"] = "degraded"
+            else:
+                status["components"]["llm"] = {
+                    "status": "unhealthy",
+                    "available": False,
+                    "error": "Not initialized",
+                }
+                status["status"] = "degraded"
+        except Exception as e:
+            status["components"]["llm"] = {
+                "status": "unhealthy",
+                "available": False,
+                "error": str(e),
+            }
+            status["status"] = "unhealthy"
+
+        # Check degree evaluator
+        try:
+            if self.degree_evaluator is not None:
+                status["components"]["degree_evaluator"] = {
+                    "status": "healthy",
+                    "available": True,
+                }
+            else:
+                status["components"]["degree_evaluator"] = {
+                    "status": "unhealthy",
+                    "available": False,
+                    "error": "Not initialized",
+                }
+                status["status"] = "degraded"
+        except Exception as e:
+            status["components"]["degree_evaluator"] = {
+                "status": "unhealthy",
+                "available": False,
+                "error": str(e),
+            }
+            status["status"] = "unhealthy"
+
+        return status
+
     def list_sample_files(self) -> list:
         """List all available sample files."""
         sample_dir = Path(os.path.join(os.path.dirname(__file__), "..", "samples"))
