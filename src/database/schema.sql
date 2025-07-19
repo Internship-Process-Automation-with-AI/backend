@@ -21,10 +21,21 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- Add/Update ENUM types
+
+-- Create reviewer_decision enum (PASS / FAIL)
 DO $$ BEGIN
-    CREATE TYPE review_status AS ENUM ('PENDING', 'REVIEWED');
+    CREATE TYPE reviewer_decision AS ENUM ('PASS','FAIL');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- Create Reviewer table
+CREATE TABLE IF NOT EXISTS reviewers (
+    reviewer_id UUID PRIMARY KEY DEFAULT uuid_generate_v4 (),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    first_name VARCHAR(255),
+    last_name VARCHAR(255)
+);
 
 -- Create Students table
 CREATE TABLE IF NOT EXISTS students (
@@ -32,9 +43,7 @@ CREATE TABLE IF NOT EXISTS students (
     email VARCHAR(255) UNIQUE NOT NULL,
     degree VARCHAR(255) NOT NULL,
     first_name VARCHAR(255),
-    last_name VARCHAR(255),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_name VARCHAR(255)
 
 -- Constraints
 CONSTRAINT students_email_check CHECK (email ~ '^[A-Za-z0-9._%+-]+@students\.oamk\.fi$'),
@@ -65,7 +74,8 @@ CREATE TABLE IF NOT EXISTS decisions (
     ai_decision decision_status NOT NULL, -- AI decision: ACCEPTED or REJECTED
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     student_feedback TEXT, -- Student feedback for rejected applications
-    review_status review_status NOT NULL DEFAULT 'PENDING',
+    reviewer_id UUID REFERENCES reviewers(reviewer_id),
+    reviewer_decision reviewer_decision,  -- NULL = pending
     reviewer_comment TEXT, -- Reviewer's comments
     reviewed_at TIMESTAMP WITH TIME ZONE, -- When the review was completed
 
@@ -88,7 +98,7 @@ CREATE INDEX IF NOT EXISTS idx_decisions_certificate_id ON decisions (certificat
 
 CREATE INDEX IF NOT EXISTS idx_decisions_ai_decision ON decisions (ai_decision);
 
-CREATE INDEX IF NOT EXISTS idx_decisions_review_status ON decisions (review_status);
+CREATE INDEX IF NOT EXISTS idx_decisions_reviewer_decision ON decisions (reviewer_decision);
 
 CREATE INDEX IF NOT EXISTS idx_decisions_created_at ON decisions (created_at);
 
@@ -104,12 +114,12 @@ END;
 $$ language 'plpgsql';
 
 -- Create trigger to automatically update updated_at for students table (drop and recreate to avoid conflicts)
-DROP TRIGGER IF EXISTS update_students_updated_at ON students;
+-- DROP TRIGGER IF EXISTS update_students_updated_at ON students;
 
-CREATE TRIGGER update_students_updated_at 
-    BEFORE UPDATE ON students 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
+-- CREATE TRIGGER update_students_updated_at
+--     BEFORE UPDATE ON students
+--     FOR EACH ROW
+--     EXECUTE FUNCTION update_updated_at_column();
 
 -- Migration script to update existing data if needed
 -- Uncomment and run these if you have existing data that needs to be migrated

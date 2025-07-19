@@ -24,9 +24,7 @@ from .database import (
     get_pending_applications,
     get_statistics,
     get_student_by_email,
-    get_student_by_id,
     get_student_with_certificates,
-    get_students,
     test_database_connection,
     update_decision_review,
 )
@@ -37,7 +35,7 @@ from .models import (
     Decision,
     DecisionStatus,
     DetailedApplication,
-    ReviewStatus,
+    ReviewerDecision,
     Student,
     StudentWithCertificates,
     TrainingType,
@@ -83,5 +81,5 @@ __all__ = [
     "DetailedApplication",
     "TrainingType",
     "DecisionStatus",
-    "ReviewStatus",
+    "ReviewerDecision",
 ]

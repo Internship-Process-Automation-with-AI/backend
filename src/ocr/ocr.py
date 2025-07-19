@@ -8,9 +8,10 @@ from typing import Union
 import cv2
 import numpy as np
 import pytesseract
-from config import settings
 from PIL import Image
-from utils.logger import get_logger
+
+from src.config import settings
+from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -65,10 +66,10 @@ class OCRProcessor:
         """Configure Tesseract executable path."""
         try:
             pytesseract.pytesseract.tesseract_cmd = (
-                settings.tesseract_executable or "tesseract"
+                settings.TESSERACT_CMD or "tesseract"
             )
             logger.info(
-                f"Tesseract configured at: {settings.tesseract_executable or 'tesseract'}"
+                f"Tesseract configured at: {settings.TESSERACT_CMD or 'tesseract'}"
             )
         except RuntimeError as e:
             logger.exception(f"Failed to configure Tesseract: {e}")

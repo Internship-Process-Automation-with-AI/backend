@@ -6,19 +6,18 @@ and setting up the schema using raw SQL operations.
 """
 
 import logging
+import sys
 from pathlib import Path
 
 import psycopg2
 
 from .database import (
-    create_certificate,
     create_database_if_not_exists,
-    create_decision,
-    create_student,
+    create_sample_reviewers,
+    create_sample_students,
     get_db_connection,
     test_database_connection,
 )
-from .models import DecisionStatus, TrainingType
 
 logger = logging.getLogger(__name__)
 
@@ -221,89 +220,24 @@ def reset_database() -> bool:
         return False
 
 
-def create_sample_data() -> bool:
-    """
-    Create sample data for testing purposes.
-
-    Returns:
-        bool: True if sample data was created successfully, False otherwise
-    """
-    try:
-        # Create sample student
-        student = create_student(
-            email="test.student@students.oamk.fi", degree="Information Technology"
-        )
-
-        # Create sample certificate
-        certificate = create_certificate(
-            student_id=student.student_id,
-            training_type=TrainingType.PROFESSIONAL,
-            filename="sample_certificate.pdf",
-            filetype="pdf",
-        )
-
-        # Create sample decision
-        decision = create_decision(
-            certificate_id=certificate.certificate_id,
-            ocr_output="Sample OCR output text from certificate...",
-            decision=DecisionStatus.ACCEPTED,
-            justification="The work experience demonstrates strong technical skills relevant to the IT degree program.",
-            assigned_reviewer="AI System",
-        )
-
-        logger.info("Sample data created successfully")
-        logger.info(f"Student: {student}")
-        logger.info(f"Certificate: {certificate}")
-        logger.info(f"Decision: {decision}")
-        return True
-
-    except Exception as e:
-        logger.error(f"Failed to create sample data: {e}")
-        return False
-
-
 if __name__ == "__main__":
     """
     Script entry point for database initialization.
-    
     Usage:
         python -m src.database.init_db
     """
-    import sys
 
-    # Configure logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
-
-    # Check command line arguments
-    drop_existing = "--drop" in sys.argv
-    create_samples = "--sample-data" in sys.argv
-    reset_db = "--reset" in sys.argv
-
-    if reset_db:
-        print("🔄 Resetting database...")
-        if reset_database():
-            print("✅ Database reset successful")
-        else:
-            print("❌ Database reset failed")
-            sys.exit(1)
+    print("🔄 Resetting database...")
+    if reset_database():
+        print("✅ Database reset successful")
+        print("👥 Adding sample students...")
+        create_sample_students()
+        print("✅ Sample students added!")
+        create_sample_reviewers()
+        print("✅ Sample reviewers added!")
     else:
-        print("🗄️  Initializing database...")
-        if init_database(drop_existing=drop_existing):
-            print("✅ Database initialization successful")
-
-            # Create sample data if requested
-            if create_samples:
-                print("📝 Creating sample data...")
-                if create_sample_data():
-                    print("✅ Sample data created successfully")
-                else:
-                    print("❌ Failed to create sample data")
-        else:
-            print("❌ Database initialization failed")
-            sys.exit(1)
+        print("❌ Database reset failed")
+        sys.exit(1)
 
     # Display schema information
     print("\n📊 Database Schema Information:")

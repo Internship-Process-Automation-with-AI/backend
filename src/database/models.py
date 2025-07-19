@@ -2,7 +2,7 @@
 Data models for OAMK Work Certificate Processor database.
 
 This module defines the data classes and enums for students, certificates, and decisions
-using raw SQL operations instead of SQLAlchemy ORM.
+using raw SQL operations.
 """
 
 import enum
@@ -26,11 +26,10 @@ class DecisionStatus(str, enum.Enum):
     REJECTED = "REJECTED"
 
 
-class ReviewStatus(str, enum.Enum):
-    """Enumeration for review statuses."""
-
-    PENDING = "PENDING"
-    REVIEWED = "REVIEWED"
+# Outcome of the human review step (None = pending)
+class ReviewerDecision(str, enum.Enum):
+    PASS_ = "PASS"  # Certificate accepted by reviewer
+    FAIL = "FAIL"  # Certificate rejected by reviewer
 
 
 @dataclass
@@ -42,8 +41,8 @@ class Student:
         student_id: Unique identifier for the student (UUID)
         email: Student's email address (must be @students.oamk.fi)
         degree: Student's degree program
-        created_at: Timestamp when the student record was created
-        updated_at: Timestamp when the student record was last updated
+        first_name: Student's first name
+        last_name: Student's last name
     """
 
     student_id: UUID
@@ -51,8 +50,6 @@ class Student:
     degree: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -62,8 +59,33 @@ class Student:
             "degree": self.degree,
             "first_name": self.first_name,
             "last_name": self.last_name,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+        }
+
+
+@dataclass
+class Reviewer:
+    """
+    Reviewer data class representing users who can review certificates.
+
+    Attributes:
+        reviewer_id: Unique identifier for the reviewer (UUID)
+        email: Reviewer's email address
+        first_name: Reviewer's first name
+        last_name: Reviewer's last name
+    """
+
+    reviewer_id: UUID
+    email: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "reviewer_id": str(self.reviewer_id),
+            "email": self.email,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
         }
 
 
@@ -89,17 +111,15 @@ class Certificate:
     filetype: str
     filepath: Optional[str]
     uploaded_at: datetime
+    ocr_output: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
         return {
             "certificate_id": str(self.certificate_id),
-            "student_id": str(self.student_id),
-            "training_type": self.training_type.value,
             "filename": self.filename,
-            "filetype": self.filetype,
-            "filepath": self.filepath,
-            "uploaded_at": self.uploaded_at.isoformat(),
+            "training_type": self.training_type.value,
+            "uploaded_at": str(self.uploaded_at),
         }
 
 
@@ -116,19 +136,20 @@ class Decision:
         ai_justification: Explanation for the AI decision
         created_at: Timestamp when the decision was made
         student_feedback: Student's feedback for rejected applications
-        review_status: Current review status (PENDING/REVIEWED)
+        reviewer_id: Unique identifier for the reviewer (UUID)
+        reviewer_decision: Outcome of the human review step (None = pending)
         reviewer_comment: Reviewer's comments
         reviewed_at: Timestamp when the review was completed
     """
 
     decision_id: UUID
     certificate_id: UUID
-    ocr_output: Optional[str]
-    ai_decision: DecisionStatus
     ai_justification: str
+    ai_decision: DecisionStatus
     created_at: datetime
     student_feedback: Optional[str] = None
-    review_status: ReviewStatus = ReviewStatus.PENDING
+    reviewer_id: Optional[UUID] = None
+    reviewer_decision: Optional[ReviewerDecision] = None  # NULL == pending
     reviewer_comment: Optional[str] = None
     reviewed_at: Optional[datetime] = None
 
@@ -137,12 +158,14 @@ class Decision:
         return {
             "decision_id": str(self.decision_id),
             "certificate_id": str(self.certificate_id),
-            "ocr_output": self.ocr_output,
-            "ai_decision": self.ai_decision.value,
             "ai_justification": self.ai_justification,
+            "ai_decision": self.ai_decision.value,
             "created_at": self.created_at.isoformat(),
             "student_feedback": self.student_feedback,
-            "review_status": self.review_status.value,
+            "reviewer_id": str(self.reviewer_id) if self.reviewer_id else None,
+            "reviewer_decision": self.reviewer_decision.value
+            if self.reviewer_decision
+            else None,
             "reviewer_comment": self.reviewer_comment,
             "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
         }
@@ -157,17 +180,17 @@ class StudentWithCertificates:
         student_id: Unique identifier for the student
         email: Student's email address
         degree: Student's degree program
-        created_at: Timestamp when the student record was created
-        updated_at: Timestamp when the student record was last updated
+        first_name: Student's first name
+        last_name: Student's last name
         certificates: List of certificates uploaded by the student
     """
 
     student_id: UUID
     email: str
     degree: str
-    created_at: datetime
-    updated_at: datetime
-    certificates: List[Certificate]
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    certificates: List[Certificate] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -175,9 +198,11 @@ class StudentWithCertificates:
             "student_id": str(self.student_id),
             "email": self.email,
             "degree": self.degree,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
-            "certificates": [cert.to_dict() for cert in self.certificates],
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "certificates": [cert.to_dict() for cert in self.certificates]
+            if self.certificates
+            else [],
         }
 
 
@@ -195,7 +220,6 @@ class ApplicationSummary:
         filename: Certificate filename
         training_type: Type of training requested
         ai_decision: AI decision result
-        review_status: Current review status
         uploaded_at: When certificate was uploaded
         created_at: When decision was created
         student_feedback: Student's feedback if any
@@ -209,9 +233,9 @@ class ApplicationSummary:
     filename: str
     training_type: TrainingType
     ai_decision: DecisionStatus
-    review_status: ReviewStatus
     uploaded_at: datetime
     created_at: datetime
+    reviewer_decision: Optional[ReviewerDecision] = None
     student_feedback: Optional[str] = None
 
     def to_dict(self) -> dict:
@@ -225,9 +249,11 @@ class ApplicationSummary:
             "filename": self.filename,
             "training_type": self.training_type.value,
             "ai_decision": self.ai_decision.value,
-            "review_status": self.review_status.value,
             "uploaded_at": self.uploaded_at.isoformat(),
             "created_at": self.created_at.isoformat(),
+            "reviewer_decision": self.reviewer_decision.value
+            if self.reviewer_decision
+            else None,
             "student_feedback": self.student_feedback,
         }
 
