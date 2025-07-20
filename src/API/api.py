@@ -9,7 +9,6 @@ from pydantic import BaseModel
 
 from src.database.database import (
     add_student_feedback,
-    create_appeal,
     create_certificate,
     create_decision,
     delete_certificate,
@@ -23,6 +22,7 @@ from src.database.database import (
     get_student_by_email,
     get_student_by_id,
     get_student_with_certificates,
+    submit_appeal,
     update_decision_review,
 )
 from src.database.models import DecisionStatus, ReviewerDecision, TrainingType
@@ -78,10 +78,17 @@ async def get_student_applications(email: str):
                     d.reviewer_id,
                     d.reviewer_decision,
                     r.first_name,
-                    r.last_name
+                    r.last_name,
+                    d.appeal_status,
+                    d.appeal_submitted_at,
+                    d.appeal_review_comment,
+                    d.appeal_reviewed_at,
+                    ar.first_name as appeal_reviewer_first_name,
+                    ar.last_name as appeal_reviewer_last_name
                 FROM certificates c
                 LEFT JOIN decisions d ON c.certificate_id = d.certificate_id
                 LEFT JOIN reviewers r ON d.reviewer_id = r.reviewer_id
+                LEFT JOIN reviewers ar ON d.appeal_reviewer_id = ar.reviewer_id
                 WHERE c.student_id = %s
                 ORDER BY c.uploaded_at DESC
             """,
@@ -104,6 +111,12 @@ async def get_student_applications(email: str):
                     reviewer_decision,
                     reviewer_first_name,
                     reviewer_last_name,
+                    appeal_status,
+                    appeal_submitted_at,
+                    appeal_review_comment,
+                    appeal_reviewed_at,
+                    appeal_reviewer_first_name,
+                    appeal_reviewer_last_name,
                 ) = row
 
                 # Determine status and credits
@@ -128,6 +141,26 @@ async def get_student_applications(email: str):
                 elif reviewer_last_name:
                     reviewer_name = reviewer_last_name
 
+                # Build appeal reviewer name
+                appeal_reviewer_name = None
+                if appeal_reviewer_first_name and appeal_reviewer_last_name:
+                    appeal_reviewer_name = (
+                        f"{appeal_reviewer_first_name} {appeal_reviewer_last_name}"
+                    )
+                elif appeal_reviewer_first_name:
+                    appeal_reviewer_name = appeal_reviewer_first_name
+                elif appeal_reviewer_last_name:
+                    appeal_reviewer_name = appeal_reviewer_last_name
+
+                # Add appeal information to status if appeal exists
+                if appeal_status:
+                    if appeal_status == "PENDING":
+                        status = "APPEAL_PENDING"
+                    elif appeal_status == "APPROVED":
+                        status = "APPEAL_APPROVED"
+                    elif appeal_status == "REJECTED":
+                        status = "APPEAL_REJECTED"
+
                 applications.append(
                     {
                         "certificate_id": str(cert_id),
@@ -143,6 +176,15 @@ async def get_student_applications(email: str):
                         else None,
                         "justification": ai_justification,
                         "reviewer_name": reviewer_name,
+                        "appeal_status": appeal_status,
+                        "appeal_submitted_date": appeal_submitted_at.isoformat()
+                        if appeal_submitted_at
+                        else None,
+                        "appeal_review_comment": appeal_review_comment,
+                        "appeal_reviewed_date": appeal_reviewed_at.isoformat()
+                        if appeal_reviewed_at
+                        else None,
+                        "appeal_reviewer_name": appeal_reviewer_name,
                     }
                 )
 
@@ -430,13 +472,26 @@ async def submit_appeal_endpoint(certificate_id: UUID, payload: AppealRequest):
         )
 
     try:
-        # Create a new appeal record
-        appeal = create_appeal(certificate_id, payload.appeal_reason)
+        # Get the first available reviewer (or you can implement logic to assign to a specific appeals reviewer)
+        reviewers = get_all_reviewers()
+        if not reviewers:
+            raise HTTPException(status_code=500, detail="No reviewers available")
+
+        # Assign to the first reviewer (you can modify this logic)
+        assigned_reviewer = reviewers[0]
+
+        # Submit appeal by updating the decision record
+        success = submit_appeal(
+            certificate_id, payload.appeal_reason, assigned_reviewer.reviewer_id
+        )
+
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to submit appeal")
 
         return {
             "success": True,
             "message": "Appeal submitted successfully",
-            "appeal_id": str(appeal.appeal_id),
+            "assigned_reviewer": assigned_reviewer.to_dict(),
         }
     except Exception as e:
         logger.error(

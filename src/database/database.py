@@ -15,6 +15,7 @@ import psycopg2
 from src.config import settings
 
 from .models import (
+    AppealStatus,
     ApplicationSummary,
     Certificate,
     Decision,
@@ -1176,3 +1177,75 @@ def get_certificates_by_reviewer_id(reviewer_id: UUID) -> List[DetailedApplicati
                 )
                 for row in rows
             ]
+
+
+# Raw SQL operations for Appeals (integrated into decisions table)
+
+
+def submit_appeal(certificate_id: UUID, appeal_reason: str, reviewer_id: UUID) -> bool:
+    """
+    Submit an appeal by updating the decision record.
+
+    Args:
+        certificate_id: Certificate's UUID
+        appeal_reason: Student's reason for appealing
+        reviewer_id: Reviewer's UUID to assign the appeal to
+
+    Returns:
+        bool: True if appeal was submitted successfully
+    """
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            now = datetime.now()
+            cur.execute(
+                """
+                UPDATE decisions 
+                SET appeal_reason = %s, 
+                    appeal_status = %s, 
+                    appeal_submitted_at = %s, 
+                    appeal_reviewer_id = %s
+                WHERE certificate_id = %s
+                """,
+                (
+                    appeal_reason,
+                    AppealStatus.PENDING.value,
+                    now,
+                    str(reviewer_id),
+                    str(certificate_id),
+                ),
+            )
+            conn.commit()
+            return True
+
+
+def get_appeal_by_certificate_id(certificate_id: UUID) -> Optional[dict]:
+    """
+    Get appeal information by certificate ID from decisions table.
+
+    Args:
+        certificate_id: Certificate's UUID
+
+    Returns:
+        Optional[dict]: Appeal information if found, None otherwise
+    """
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT appeal_reason, appeal_status, appeal_submitted_at, 
+                       appeal_reviewer_id, appeal_review_comment, appeal_reviewed_at
+                FROM decisions WHERE certificate_id = %s AND appeal_reason IS NOT NULL
+                """,
+                (str(certificate_id),),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "appeal_reason": row[0],
+                "appeal_status": row[1],
+                "appeal_submitted_at": row[2],
+                "appeal_reviewer_id": row[3],
+                "appeal_review_comment": row[4],
+                "appeal_reviewed_at": row[5],
+            }

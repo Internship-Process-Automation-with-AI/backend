@@ -148,6 +148,12 @@ class Decision:
         reviewer_decision: Outcome of the human review step (None = pending)
         reviewer_comment: Reviewer's comments
         reviewed_at: Timestamp when the review was completed
+        appeal_reason: Student's appeal reason
+        appeal_status: Appeal status (PENDING/APPROVED/REJECTED)
+        appeal_submitted_at: When appeal was submitted
+        appeal_reviewer_id: Reviewer handling the appeal
+        appeal_review_comment: Appeal reviewer's comments
+        appeal_reviewed_at: When appeal was reviewed
     """
 
     decision_id: UUID
@@ -160,6 +166,12 @@ class Decision:
     reviewer_decision: Optional[ReviewerDecision] = None  # NULL == pending
     reviewer_comment: Optional[str] = None
     reviewed_at: Optional[datetime] = None
+    appeal_reason: Optional[str] = None
+    appeal_status: Optional[AppealStatus] = None
+    appeal_submitted_at: Optional[datetime] = None
+    appeal_reviewer_id: Optional[UUID] = None
+    appeal_review_comment: Optional[str] = None
+    appeal_reviewed_at: Optional[datetime] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -176,45 +188,18 @@ class Decision:
             else None,
             "reviewer_comment": self.reviewer_comment,
             "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
-        }
-
-
-@dataclass
-class Appeal:
-    """
-    Appeal data class representing appeals for rejected certificates.
-
-    Attributes:
-        appeal_id: Unique identifier for the appeal (UUID)
-        certificate_id: Foreign key to the certificate being appealed
-        appeal_reason: Student's reason for appealing the decision
-        appeal_status: Current status of the appeal (PENDING/APPROVED/REJECTED)
-        submitted_at: Timestamp when the appeal was submitted
-        reviewed_by: Foreign key to the reviewer who reviewed the appeal
-        review_comment: Reviewer's comments on the appeal
-        reviewed_at: Timestamp when the appeal was reviewed
-    """
-
-    appeal_id: UUID
-    certificate_id: UUID
-    appeal_reason: str
-    appeal_status: AppealStatus
-    submitted_at: datetime
-    reviewed_by: Optional[UUID] = None
-    review_comment: Optional[str] = None
-    reviewed_at: Optional[datetime] = None
-
-    def to_dict(self) -> dict:
-        """Convert to dictionary for JSON serialization."""
-        return {
-            "appeal_id": str(self.appeal_id),
-            "certificate_id": str(self.certificate_id),
             "appeal_reason": self.appeal_reason,
-            "appeal_status": self.appeal_status.value,
-            "submitted_at": self.submitted_at.isoformat(),
-            "reviewed_by": str(self.reviewed_by) if self.reviewed_by else None,
-            "review_comment": self.review_comment,
-            "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
+            "appeal_status": self.appeal_status.value if self.appeal_status else None,
+            "appeal_submitted_at": self.appeal_submitted_at.isoformat()
+            if self.appeal_submitted_at
+            else None,
+            "appeal_reviewer_id": str(self.appeal_reviewer_id)
+            if self.appeal_reviewer_id
+            else None,
+            "appeal_review_comment": self.appeal_review_comment,
+            "appeal_reviewed_at": self.appeal_reviewed_at.isoformat()
+            if self.appeal_reviewed_at
+            else None,
         }
 
 

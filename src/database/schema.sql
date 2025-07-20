@@ -29,7 +29,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
--- Create appeal_status enum
+-- Create appeal_status enum (for decisions table)
 DO $$ BEGIN
     CREATE TYPE appeal_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -84,25 +84,19 @@ CREATE TABLE IF NOT EXISTS decisions (
     reviewer_decision reviewer_decision,  -- NULL = pending
     reviewer_comment TEXT, -- Reviewer's comments
     reviewed_at TIMESTAMP WITH TIME ZONE, -- When the review was completed
+    -- Appeal fields
+    appeal_reason TEXT, -- Student's appeal reason
+    appeal_status appeal_status, -- PENDING, APPROVED, REJECTED
+    appeal_submitted_at TIMESTAMP WITH TIME ZONE, -- When appeal was submitted
+    appeal_reviewer_id UUID REFERENCES reviewers(reviewer_id), -- Reviewer handling the appeal
+    appeal_review_comment TEXT, -- Appeal reviewer's comments
+    appeal_reviewed_at TIMESTAMP WITH TIME ZONE, -- When appeal was reviewed
 
 -- Constraints
 CONSTRAINT decisions_ai_justification_check CHECK (LENGTH(ai_justification) > 0)
 );
 
--- Create Appeals table
-CREATE TABLE IF NOT EXISTS appeals (
-    appeal_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    certificate_id UUID NOT NULL REFERENCES certificates(certificate_id) ON DELETE CASCADE,
-    appeal_reason TEXT NOT NULL,
-    appeal_status appeal_status DEFAULT 'PENDING',
-    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    reviewed_by UUID REFERENCES reviewers(reviewer_id),
-    review_comment TEXT,
-    reviewed_at TIMESTAMP WITH TIME ZONE,
-    
-    -- Constraints
-    CONSTRAINT appeals_reason_check CHECK (LENGTH(appeal_reason) > 0)
-);
+-- Appeals table removed - integrated into decisions table
 
 -- Create indexes for better performance (only if they don't exist)
 CREATE INDEX IF NOT EXISTS idx_students_email ON students (email);
@@ -125,9 +119,8 @@ CREATE INDEX IF NOT EXISTS idx_decisions_created_at ON decisions (created_at);
 
 CREATE INDEX IF NOT EXISTS idx_decisions_reviewed_at ON decisions (reviewed_at);
 
-CREATE INDEX IF NOT EXISTS idx_appeals_certificate_id ON appeals (certificate_id);
-CREATE INDEX IF NOT EXISTS idx_appeals_status ON appeals (appeal_status);
-CREATE INDEX IF NOT EXISTS idx_appeals_submitted_at ON appeals (submitted_at);
+CREATE INDEX IF NOT EXISTS idx_decisions_appeal_status ON decisions (appeal_status);
+CREATE INDEX IF NOT EXISTS idx_decisions_appeal_submitted_at ON decisions (appeal_submitted_at);
 
 -- Create function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
