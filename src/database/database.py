@@ -488,6 +488,14 @@ def create_decision(
     ai_decision: DecisionStatus,
     ai_justification: str,
     student_feedback: Optional[str] = None,
+    total_working_hours: Optional[int] = None,
+    credits_awarded: Optional[int] = None,
+    training_duration: Optional[str] = None,
+    training_institution: Optional[str] = None,
+    degree_relevance: Optional[str] = None,
+    supporting_evidence: Optional[str] = None,
+    challenging_evidence: Optional[str] = None,
+    recommendation: Optional[str] = None,
 ) -> Decision:
     """
     Create a new decision record.
@@ -509,8 +517,12 @@ def create_decision(
 
             cur.execute(
                 """
-                INSERT INTO decisions (decision_id, certificate_id, ai_justification, ai_decision, created_at, student_feedback)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO decisions (
+                    decision_id, certificate_id, ai_justification, ai_decision, created_at, student_feedback,
+                    total_working_hours, credits_awarded, training_duration, training_institution,
+                    degree_relevance, supporting_evidence, challenging_evidence, recommendation
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     str(decision_id),
@@ -519,6 +531,14 @@ def create_decision(
                     ai_decision.value,
                     now,
                     student_feedback,
+                    total_working_hours,
+                    credits_awarded,
+                    training_duration,
+                    training_institution,
+                    degree_relevance,
+                    supporting_evidence,
+                    challenging_evidence,
+                    recommendation,
                 ),
             )
             conn.commit()
@@ -532,6 +552,14 @@ def create_decision(
                 student_feedback=student_feedback,
                 reviewer_decision=None,
                 reviewed_at=None,
+                total_working_hours=total_working_hours,
+                credits_awarded=credits_awarded,
+                training_duration=training_duration,
+                training_institution=training_institution,
+                degree_relevance=degree_relevance,
+                supporting_evidence=supporting_evidence,
+                challenging_evidence=challenging_evidence,
+                recommendation=recommendation,
             )
 
 

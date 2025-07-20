@@ -91,6 +91,15 @@ CREATE TABLE IF NOT EXISTS decisions (
     appeal_reviewer_id UUID REFERENCES reviewers(reviewer_id), -- Reviewer handling the appeal
     appeal_review_comment TEXT, -- Appeal reviewer's comments
     appeal_reviewed_at TIMESTAMP WITH TIME ZONE, -- When appeal was reviewed
+    -- Evaluation details
+    total_working_hours INTEGER, -- Total working hours from certificate
+    credits_awarded INTEGER, -- Credits awarded (ECTS)
+    training_duration TEXT, -- Duration of training (e.g., "3 months")
+    training_institution TEXT, -- Institution where training was conducted
+    degree_relevance TEXT, -- How relevant the training is to the degree
+    supporting_evidence TEXT, -- Supporting evidence for the decision
+    challenging_evidence TEXT, -- Challenging evidence against the decision
+    recommendation TEXT, -- AI recommendation summary
 
 -- Constraints
 CONSTRAINT decisions_ai_justification_check CHECK (LENGTH(ai_justification) > 0)

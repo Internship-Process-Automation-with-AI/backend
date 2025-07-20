@@ -84,7 +84,15 @@ async def get_student_applications(email: str):
                     d.appeal_review_comment,
                     d.appeal_reviewed_at,
                     ar.first_name as appeal_reviewer_first_name,
-                    ar.last_name as appeal_reviewer_last_name
+                    ar.last_name as appeal_reviewer_last_name,
+                    d.total_working_hours,
+                    d.credits_awarded,
+                    d.training_duration,
+                    d.training_institution,
+                    d.degree_relevance,
+                    d.supporting_evidence,
+                    d.challenging_evidence,
+                    d.recommendation
                 FROM certificates c
                 LEFT JOIN decisions d ON c.certificate_id = d.certificate_id
                 LEFT JOIN reviewers r ON d.reviewer_id = r.reviewer_id
@@ -117,6 +125,14 @@ async def get_student_applications(email: str):
                     appeal_reviewed_at,
                     appeal_reviewer_first_name,
                     appeal_reviewer_last_name,
+                    total_working_hours,
+                    credits_awarded,
+                    training_duration,
+                    training_institution,
+                    degree_relevance,
+                    supporting_evidence,
+                    challenging_evidence,
+                    recommendation,
                 ) = row
 
                 # Determine status and credits
@@ -174,6 +190,7 @@ async def get_student_applications(email: str):
                         "decision_date": decision_created_at.isoformat()
                         if decision_created_at
                         else None,
+                        "ai_decision": ai_decision,
                         "justification": ai_justification,
                         "reviewer_name": reviewer_name,
                         "appeal_status": appeal_status,
@@ -185,6 +202,15 @@ async def get_student_applications(email: str):
                         if appeal_reviewed_at
                         else None,
                         "appeal_reviewer_name": appeal_reviewer_name,
+                        # Evaluation details
+                        "total_working_hours": total_working_hours,
+                        "credits_awarded": credits_awarded,
+                        "training_duration": training_duration,
+                        "training_institution": training_institution,
+                        "degree_relevance": degree_relevance,
+                        "supporting_evidence": supporting_evidence,
+                        "challenging_evidence": challenging_evidence,
+                        "recommendation": recommendation,
                     }
                 )
 
@@ -340,12 +366,30 @@ async def process_certificate(certificate_id: UUID):
     # Store decision using evaluation results directly
     evaluation_results = llm_result.get("evaluation_results", {}).get("results", {})
 
+    # Determine credits based on decision
+    ai_decision = evaluation_results.get("decision", "REJECTED")
+    credits_awarded = 0  # Default to 0 for rejected applications
+
+    if ai_decision == "ACCEPTED":
+        # Get credits from LLM response, default to 0 if not provided
+        credits_awarded = evaluation_results.get("credits", 0)
+        if credits_awarded is None:
+            credits_awarded = 0
+
     decision = create_decision(
         certificate_id=certificate_id,
-        ai_decision=DecisionStatus(evaluation_results.get("decision", "REJECTED")),
+        ai_decision=DecisionStatus(ai_decision),
         ai_justification=evaluation_results.get(
             "justification", "LLM processing complete"
         ),
+        total_working_hours=evaluation_results.get("total_working_hours"),
+        credits_awarded=credits_awarded,
+        training_duration=evaluation_results.get("duration"),
+        training_institution=evaluation_results.get("institution"),
+        degree_relevance=evaluation_results.get("degree_relevance"),
+        supporting_evidence=evaluation_results.get("supporting_evidence"),
+        challenging_evidence=evaluation_results.get("challenging_evidence"),
+        recommendation=evaluation_results.get("recommendation"),
     )
 
     return {

@@ -172,6 +172,15 @@ class Decision:
     appeal_reviewer_id: Optional[UUID] = None
     appeal_review_comment: Optional[str] = None
     appeal_reviewed_at: Optional[datetime] = None
+    # Evaluation details
+    total_working_hours: Optional[int] = None
+    credits_awarded: Optional[int] = None
+    training_duration: Optional[str] = None
+    training_institution: Optional[str] = None
+    degree_relevance: Optional[str] = None
+    supporting_evidence: Optional[str] = None
+    challenging_evidence: Optional[str] = None
+    recommendation: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -200,6 +209,15 @@ class Decision:
             "appeal_reviewed_at": self.appeal_reviewed_at.isoformat()
             if self.appeal_reviewed_at
             else None,
+            # Evaluation details
+            "total_working_hours": self.total_working_hours,
+            "credits_awarded": self.credits_awarded,
+            "training_duration": self.training_duration,
+            "training_institution": self.training_institution,
+            "degree_relevance": self.degree_relevance,
+            "supporting_evidence": self.supporting_evidence,
+            "challenging_evidence": self.challenging_evidence,
+            "recommendation": self.recommendation,
         }
 
 
