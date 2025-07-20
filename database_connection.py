@@ -11,11 +11,11 @@ load_dotenv()
 class PostgreSQLConnection:
     def __init__(self):
         self.connection_params = {
-            "host": os.getenv("DB_HOST", "localhost"),
-            "port": os.getenv("DB_PORT", "5432"),
-            "database": os.getenv("DB_NAME", "your_database"),
-            "user": os.getenv("DB_USER", "your_username"),
-            "password": os.getenv("DB_PASSWORD", "your_password"),
+            "host": os.getenv("DATABASE_HOST", "localhost"),
+            "port": os.getenv("DATABASE_PORT", "5432"),
+            "database": os.getenv("DATABASE_NAME", "your_database"),
+            "user": os.getenv("DATABASE_USER", "your_username"),
+            "password": os.getenv("DATABASE_PASSWORD", "your_password"),
         }
 
     def connect(self):

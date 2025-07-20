@@ -237,14 +237,30 @@ class LLMOrchestrator:
             if validation_result.get("success", False) and validation_result[
                 "results"
             ].get("requires_correction", False):
-                correction_result = self._correct_results(
-                    sanitized_text,
-                    extraction_result["results"],
-                    evaluation_result["results"],
-                    validation_result["results"],
-                    student_degree,
-                    requested_training_type,
+                # Additional safeguard: Check if the initial evaluation was actually correct
+                initial_credits = evaluation_result["results"].get(
+                    "credits_qualified", 0
                 )
+                initial_decision = evaluation_result["results"].get("decision", "")
+
+                # If initial evaluation had correct credit caps and valid decision, skip correction
+                if initial_credits <= 30 and initial_decision in [
+                    "ACCEPTED",
+                    "REJECTED",
+                ]:
+                    logger.info(
+                        "Skipping correction - initial evaluation had valid credit caps and decision"
+                    )
+                    correction_result = None
+                else:
+                    correction_result = self._correct_results(
+                        sanitized_text,
+                        extraction_result["results"],
+                        evaluation_result["results"],
+                        validation_result["results"],
+                        student_degree,
+                        requested_training_type,
+                    )
 
             # Stage 4.5: Structural Validation of Correction Results (if correction was performed)
             structural_validation_correction = None

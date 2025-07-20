@@ -23,12 +23,14 @@ CRITICAL VALIDATION RULES:
 - **Validate calculations**: Verify hours and credit calculations are mathematically correct
 - **Allow reasonable hour calculations**: If employment dates are provided, hours can be calculated using standard assumptions (40 hours/week, 8 hours/day)
 - **Allow certificate issue date as end date**: When no explicit end date is provided, using the certificate issue date as the end date is a valid and reasonable assumption
-- **Validate credit limits**: Ensure appropriate limits are applied (10 ECTS for general, 30 ECTS for professional)
+- **Validate credit limits**: Ensure appropriate limits are applied (10 ECTS for general, 30 ECTS for professional). The 30 ECTS cap for professional training is CORRECT and should NOT be flagged as an error.
 - **Focus on factual and logical errors**: Flag issues where the LLM contradicts document content or creates logical inconsistencies
 - **Don't flag reasonable assumptions**: Standard working hour calculations from employment dates and using certificate issue date as end date are valid and should not be flagged as errors
 - **DO NOT validate degree selection**: The student degree provided is the correct degree. Do not flag issues about what degree the student "should" have based on document content.
 - **RESPECT REQUESTED TRAINING TYPE**: The REQUESTED_TRAINING_TYPE is the user's choice and should be respected. Do NOT flag it as an error if it doesn't match the AI's degree relevance assessment. The AI's job is to provide evidence and reasoning for whether the requested type is appropriate, not to override the user's choice.
 - **Validate AI recommendation logic**: Check that the AI's recommendation and reasoning are consistent with the requested training type and degree relevance assessment, but do not force the training type to match the degree relevance.
+- **CREDIT CAPS ARE CORRECT**: The 30 ECTS maximum for professional training and 10 ECTS maximum for general training are established business rules. Do NOT flag these as errors.
+- **DECISION LOGIC IS VALID**: If the AI determines that work experience doesn't meet professional training criteria despite the user's request, this is valid reasoning and should NOT be flagged as an error.
 
 VALIDATION OUTPUT FORMAT:
 Respond with ONLY a valid JSON object containing validation results:

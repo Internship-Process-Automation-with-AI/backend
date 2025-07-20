@@ -23,7 +23,7 @@ CRITICAL CORRECTION RULES:
 - **Use the provided STUDENT DEGREE**: Always use the student degree provided for all degree-related assessments. Do not change the degree based on document content.
 - **Preserve valid calculations**: If hours were calculated from dates, keep them
 - **Preserve valid credit calculations**: If credits were calculated using standard formula, keep them
-- **Preserve credit limits**: The 10 ECTS maximum for general training and 30 ECTS maximum for professional training are established rules
+- **Preserve credit limits**: The 10 ECTS maximum for general training and 30 ECTS maximum for professional training are established rules. NEVER remove these caps.
 - **Preserve hour calculations**: If employment dates are available, calculate and preserve working hours using standard assumptions (40 hours/week)
 - **Preserve certificate issue date as end date**: When no explicit end date is provided, using the certificate issue date as the end date is valid and should be preserved
 - **Fix classification inconsistencies**: 
@@ -34,6 +34,9 @@ CRITICAL CORRECTION RULES:
 - **Don't remove valid hour calculations**: If dates are provided, hours should be calculated and preserved
 - **Don't remove valid end date assumptions**: If certificate issue date was used as end date, preserve this reasonable assumption
 - **DO NOT correct degree selection**: The student degree provided is correct. Do not change it based on document content.
+- **NEVER remove credit caps**: The 30 ECTS maximum for professional training and 10 ECTS maximum for general training are business rules that must be preserved.
+- **Preserve valid decisions**: If the AI correctly determined that work experience doesn't meet professional training criteria, do not override this decision.
+- **Only correct factual errors**: Only correct actual mistakes in extraction or calculation, not valid business logic decisions.
 
 CORRECTION OUTPUT FORMAT:
 Respond with ONLY a valid JSON object containing the corrected results:
