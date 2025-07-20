@@ -13,8 +13,9 @@ from docx import Document
 from pdf2image import convert_from_path
 from PIL import Image
 
-from src.ocr.ocr import ocr_processor
 from src.utils.logger import get_logger
+
+from .ocr import ocr_processor
 
 logger = get_logger(__name__)
 

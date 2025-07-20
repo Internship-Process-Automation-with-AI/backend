@@ -11,7 +11,7 @@ PyMuPDF>=1.23.8,<2.0.0
 numpy>=1.24.3,<2.0.0
 
 # Google Cloud Vision API (fallback OCR)
-google-cloud-vision>=3.4.4,<4.0.0
+# google-cloud-vision>=3.4.4,<4.0.0
 
 # Google Generative AI (Gemini LLM)
 google-generativeai>=0.3.0,<1.0.0
@@ -38,6 +38,10 @@ loguru>=0.7.2,<1.0.0
 
 # HTTP Client
 httpx>=0.26.0,<1.0.0
+
+# Database dependencies
+psycopg2-binary>=2.9.9,<3.0.0
+
 
 # Development dependencies
 pytest>=7.4.3,<8.0.0

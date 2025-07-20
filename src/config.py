@@ -6,15 +6,20 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Application settings and configuration."""
 
+    # Database Configuration
+    DATABASE_HOST: Optional[str] = None
+    DATABASE_PORT: Optional[int] = None
+    DATABASE_NAME: Optional[str] = None
+    DATABASE_USER: Optional[str] = None
+    DATABASE_PASSWORD: Optional[str] = None
+    DATABASE_ECHO: Optional[bool] = None
+
     # API Configuration
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "OAMK Internship Certificate Processor"
 
     # OCR Configuration
     TESSERACT_CMD: Optional[str] = None  # Path to tesseract executable
-    GOOGLE_CLOUD_CREDENTIALS: Optional[str] = (
-        None  # Path to Google Cloud credentials JSON
-    )
 
     # LLM Configuration
     GEMINI_API_KEY: Optional[str] = None  # Gemini API key for LLM evaluation

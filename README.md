@@ -904,4 +904,79 @@ This project is developed for OAMK academic credit evaluation workflow automatio
 - Sample file (if possible)
 - Steps to reproduce the issue
 
+## 🌐 API Endpoints (Backend)
+
+The FastAPI backend exposes several routes; the most commonly used are:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST   | `/student/{email}`                           | Student look-up by email |
+| POST   | `/student/{student_id}/upload-certificate`   | Upload a certificate file |
+| POST   | `/certificate/{certificate_id}/process`      | Run OCR + AI evaluation |
+| GET    | `/certificate/{certificate_id}`              | **Download the raw certificate file** |
+| GET    | `/certificate/{certificate_id}/details`      | Get full metadata (decision, student, certificate) |
+| POST   | `/certificate/{certificate_id}/review`       | Reviewer submits decision/comment |
+| GET    | `/reviewers`                                   | List all reviewers |
+| POST   | `/certificate/{certificate_id}/feedback`       | Student submits feedback (and optional reviewer assignment) |
+| GET    | `/reviewer/{email}`                            | Reviewer lookup by email |
+| GET    | `/reviewer/{reviewer_id}/certificates`         | List certificates assigned to a reviewer |
+
+## 🗄️ Database Schema & Setup
+
+The backend uses **PostgreSQL** (no ORM – raw SQL) with the schema defined in `backend/src/database/schema.sql`.
+
+### Core Objects
+| Table | Purpose | Key Columns |
+|-------|---------|-------------|
+| `students`     | Registered OAMK students                     | `student_id` (UUID PK), `email`, `degree` |
+| `certificates` | Uploaded work-cert files                     | `certificate_id` (UUID PK), `student_id` FK, `training_type`, `filename`, `filepath` |
+| `decisions`    | AI + reviewer evaluation results             | `decision_id` (UUID PK), `certificate_id` FK, `ai_decision`, `reviewer_decision`, timestamps |
+| `reviewers`    | Human reviewers                              | `reviewer_id` (UUID PK), `email`, names |
+
+### Enum Types
+| Enum | Values | Used in |
+|------|--------|---------|
+| `training_type`      | `GENERAL`, `PROFESSIONAL` | `certificates.training_type` |
+| `decision_status`    | `ACCEPTED`, `REJECTED`   | `decisions.ai_decision` |
+| `reviewer_decision`  | `PASS`, `FAIL`           | `decisions.reviewer_decision` (NULL = pending) |
+
+### bootstrap the database
+This creates the schema (if it doesn’t exist), seeds sample students/reviewers, and prints a schema summary.
+```bash
+# Assuming psql available and POSTGRES_USER has rights
+python -m src.database.init_db
+```
+### run FASTAPI
+
+1. Ensure the virtual environment is activated and the `.env` is populated (see previous section).
+
+2. From the `backend/` directory start the development server with auto-reload:
+
+```bash
+# Windows example
+cd backend
+.\venv\Scripts\activate
+
+# Launch FastAPI with Uvicorn
+uvicorn src.API.main:app --reload
+# For production you might use:  uvicorn src.API.main:app --host 0.0.0.0 --port 80
+```
+
+3. Open your browser:
+   • Swagger UI: http://127.0.0.1:8000/docs  
+   • ReDoc:      http://127.0.0.1:8000/redoc
+
+Environment variables for DB connection (and others) go in `.env`:
+
+```env
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=oamk_certificates
+DATABASE_USER=postgres
+DATABASE_PASSWORD=your password here
+```
+
+
+
+
 
