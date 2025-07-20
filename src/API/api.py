@@ -81,6 +81,7 @@ async def get_student_applications(email: str):
                     r.last_name,
                     d.appeal_status,
                     d.appeal_submitted_at,
+                    d.appeal_reason,
                     d.appeal_review_comment,
                     d.appeal_reviewed_at,
                     ar.first_name as appeal_reviewer_first_name,
@@ -121,6 +122,7 @@ async def get_student_applications(email: str):
                     reviewer_last_name,
                     appeal_status,
                     appeal_submitted_at,
+                    appeal_reason,
                     appeal_review_comment,
                     appeal_reviewed_at,
                     appeal_reviewer_first_name,
@@ -197,6 +199,7 @@ async def get_student_applications(email: str):
                         "appeal_submitted_date": appeal_submitted_at.isoformat()
                         if appeal_submitted_at
                         else None,
+                        "appeal_reason": appeal_reason,
                         "appeal_review_comment": appeal_review_comment,
                         "appeal_reviewed_date": appeal_reviewed_at.isoformat()
                         if appeal_reviewed_at
