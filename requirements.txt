@@ -29,7 +29,7 @@ python-magic>=0.4.27,<1.0.0
 aiofiles>=23.2.1,<24.0.0
 
 # Environment and configuration
-python-dotenv>=1.0.0,<2.0.0
+python-dotenv==1.0.0
 pydantic>=2.5.0,<3.0.0
 pydantic-settings>=2.1.0,<3.0.0
 
@@ -40,7 +40,9 @@ loguru>=0.7.2,<1.0.0
 httpx>=0.26.0,<1.0.0
 
 # Database dependencies
-psycopg2-binary>=2.9.9,<3.0.0
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.23
+alembic==1.12.1
 
 
 # Development dependencies
