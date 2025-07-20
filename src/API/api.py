@@ -9,9 +9,12 @@ from pydantic import BaseModel
 
 from src.database.database import (
     add_student_feedback,
+    create_appeal,
     create_certificate,
     create_decision,
+    delete_certificate,
     get_all_reviewers,
+    get_appeal_by_certificate_id,
     get_certificate_by_id,
     get_certificates_by_reviewer_id,
     get_db_connection,
@@ -71,9 +74,14 @@ async def get_student_applications(email: str):
                     c.uploaded_at,
                     d.ai_decision,
                     d.ai_justification,
-                    d.created_at as decision_created_at
+                    d.created_at as decision_created_at,
+                    d.reviewer_id,
+                    d.reviewer_decision,
+                    r.first_name,
+                    r.last_name
                 FROM certificates c
                 LEFT JOIN decisions d ON c.certificate_id = d.certificate_id
+                LEFT JOIN reviewers r ON d.reviewer_id = r.reviewer_id
                 WHERE c.student_id = %s
                 ORDER BY c.uploaded_at DESC
             """,
@@ -92,6 +100,10 @@ async def get_student_applications(email: str):
                     ai_decision,
                     ai_justification,
                     decision_created_at,
+                    reviewer_id,
+                    reviewer_decision,
+                    reviewer_first_name,
+                    reviewer_last_name,
                 ) = row
 
                 # Determine status and credits
@@ -99,10 +111,22 @@ async def get_student_applications(email: str):
                 credits = 0
 
                 if ai_decision:
-                    status = ai_decision
-                    # For now, set credits based on training type and decision
-                    if ai_decision == "ACCEPTED":
-                        credits = 30 if training_type == "PROFESSIONAL" else 10
+                    if reviewer_id and not reviewer_decision:
+                        status = "PENDING_FOR_APPROVAL"
+                    else:
+                        status = ai_decision
+                        # For now, set credits based on training type and decision
+                        if ai_decision == "ACCEPTED":
+                            credits = 30 if training_type == "PROFESSIONAL" else 10
+
+                # Build reviewer name
+                reviewer_name = None
+                if reviewer_first_name and reviewer_last_name:
+                    reviewer_name = f"{reviewer_first_name} {reviewer_last_name}"
+                elif reviewer_first_name:
+                    reviewer_name = reviewer_first_name
+                elif reviewer_last_name:
+                    reviewer_name = reviewer_last_name
 
                 applications.append(
                     {
@@ -118,6 +142,7 @@ async def get_student_applications(email: str):
                         if decision_created_at
                         else None,
                         "justification": ai_justification,
+                        "reviewer_name": reviewer_name,
                     }
                 )
 
@@ -293,6 +318,14 @@ async def get_reviewers():
     """Get all reviewers with their names and IDs."""
     try:
         reviewers = get_all_reviewers()
+
+        # If no reviewers exist, create some sample ones
+        if not reviewers:
+            from src.database.database import create_sample_reviewers
+
+            create_sample_reviewers()
+            reviewers = get_all_reviewers()
+
         return {
             "success": True,
             "reviewers": [reviewer.to_dict() for reviewer in reviewers],
@@ -317,6 +350,99 @@ async def add_feedback_endpoint(certificate_id: UUID, payload: FeedbackRequest):
     if not success:
         raise HTTPException(status_code=404, detail="Certificate not found")
     return {"success": True, "message": "Feedback and reviewer information stored"}
+
+
+@router.delete("/certificate/{certificate_id}", tags=["student"])
+async def delete_certificate_endpoint(certificate_id: UUID):
+    """Delete a certificate and its associated data."""
+    cert = get_certificate_by_id(certificate_id)
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+
+    try:
+        # Delete the certificate and all associated data
+        delete_certificate(certificate_id)
+
+        # Also delete the uploaded file if it exists
+        if cert.filepath and os.path.exists(cert.filepath):
+            os.remove(cert.filepath)
+            # Try to remove the parent directory if it's empty
+            parent_dir = os.path.dirname(cert.filepath)
+            if os.path.exists(parent_dir) and not os.listdir(parent_dir):
+                os.rmdir(parent_dir)
+
+        return {"success": True, "message": "Certificate deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting certificate {certificate_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete certificate")
+
+
+class SendForApprovalRequest(BaseModel):
+    reviewer_id: UUID
+
+
+@router.post("/certificate/{certificate_id}/send-for-approval", tags=["student"])
+async def send_for_approval_endpoint(
+    certificate_id: UUID, payload: SendForApprovalRequest
+):
+    """Send a certificate for approval to a specific reviewer."""
+    cert = get_certificate_by_id(certificate_id)
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+
+    try:
+        # Update the decision record with the reviewer_id
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE decisions SET reviewer_id = %s WHERE certificate_id = %s",
+                    (str(payload.reviewer_id), str(certificate_id)),
+                )
+                conn.commit()
+
+        return {
+            "success": True,
+            "message": "Certificate sent for approval successfully",
+        }
+    except Exception as e:
+        logger.error(
+            f"Error sending certificate {certificate_id} for approval: {str(e)}"
+        )
+        raise HTTPException(status_code=500, detail="Failed to send for approval")
+
+
+class AppealRequest(BaseModel):
+    appeal_reason: str
+
+
+@router.post("/certificate/{certificate_id}/appeal", tags=["student"])
+async def submit_appeal_endpoint(certificate_id: UUID, payload: AppealRequest):
+    """Submit an appeal for a rejected certificate."""
+    cert = get_certificate_by_id(certificate_id)
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+
+    # Check if appeal already exists
+    existing_appeal = get_appeal_by_certificate_id(certificate_id)
+    if existing_appeal:
+        raise HTTPException(
+            status_code=400, detail="Appeal already exists for this certificate"
+        )
+
+    try:
+        # Create a new appeal record
+        appeal = create_appeal(certificate_id, payload.appeal_reason)
+
+        return {
+            "success": True,
+            "message": "Appeal submitted successfully",
+            "appeal_id": str(appeal.appeal_id),
+        }
+    except Exception as e:
+        logger.error(
+            f"Error submitting appeal for certificate {certificate_id}: {str(e)}"
+        )
+        raise HTTPException(status_code=500, detail="Failed to submit appeal")
 
 
 @router.get("/reviewer/{email}", tags=["reviewer"])

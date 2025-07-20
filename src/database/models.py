@@ -32,6 +32,14 @@ class ReviewerDecision(str, enum.Enum):
     FAIL = "FAIL"  # Certificate rejected by reviewer
 
 
+class AppealStatus(str, enum.Enum):
+    """Enumeration for appeal statuses."""
+
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
 @dataclass
 class Student:
     """
@@ -167,6 +175,45 @@ class Decision:
             if self.reviewer_decision
             else None,
             "reviewer_comment": self.reviewer_comment,
+            "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
+        }
+
+
+@dataclass
+class Appeal:
+    """
+    Appeal data class representing appeals for rejected certificates.
+
+    Attributes:
+        appeal_id: Unique identifier for the appeal (UUID)
+        certificate_id: Foreign key to the certificate being appealed
+        appeal_reason: Student's reason for appealing the decision
+        appeal_status: Current status of the appeal (PENDING/APPROVED/REJECTED)
+        submitted_at: Timestamp when the appeal was submitted
+        reviewed_by: Foreign key to the reviewer who reviewed the appeal
+        review_comment: Reviewer's comments on the appeal
+        reviewed_at: Timestamp when the appeal was reviewed
+    """
+
+    appeal_id: UUID
+    certificate_id: UUID
+    appeal_reason: str
+    appeal_status: AppealStatus
+    submitted_at: datetime
+    reviewed_by: Optional[UUID] = None
+    review_comment: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "appeal_id": str(self.appeal_id),
+            "certificate_id": str(self.certificate_id),
+            "appeal_reason": self.appeal_reason,
+            "appeal_status": self.appeal_status.value,
+            "submitted_at": self.submitted_at.isoformat(),
+            "reviewed_by": str(self.reviewed_by) if self.reviewed_by else None,
+            "review_comment": self.review_comment,
             "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
         }
 

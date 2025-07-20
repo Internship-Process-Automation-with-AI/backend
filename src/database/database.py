@@ -441,6 +441,46 @@ def get_certificates(skip: int = 0, limit: int = 100) -> List[Certificate]:
             ]
 
 
+def delete_certificate(certificate_id: UUID) -> bool:
+    """
+    Delete a certificate and all its associated data.
+
+    Args:
+        certificate_id: Certificate ID to delete
+
+    Returns:
+        bool: True if deletion was successful, False otherwise
+    """
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            try:
+                # Delete associated decision first (due to foreign key constraint)
+                cur.execute(
+                    "DELETE FROM decisions WHERE certificate_id = %s",
+                    (str(certificate_id),),
+                )
+
+                # Delete the certificate
+                cur.execute(
+                    "DELETE FROM certificates WHERE certificate_id = %s",
+                    (str(certificate_id),),
+                )
+
+                # Check if any rows were affected
+                if cur.rowcount > 0:
+                    conn.commit()
+                    logger.info(f"Successfully deleted certificate {certificate_id}")
+                    return True
+                else:
+                    logger.warning(f"No certificate found with ID {certificate_id}")
+                    return False
+
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"Error deleting certificate {certificate_id}: {e}")
+                raise
+
+
 # Raw SQL operations for Decisions
 def create_decision(
     certificate_id: UUID,
