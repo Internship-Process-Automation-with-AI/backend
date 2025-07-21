@@ -480,14 +480,32 @@ class DocumentPipeline:
                     f"   • Stages: {', '.join([stage for stage, completed in stages_completed.items() if completed])}"
                 )
 
-            # Show final evaluation results (use corrected results if available)
+            # Show final evaluation results (use corrected results if available and valid)
             correction_results = llm_results.get("correction_results")
+            original_evaluation = llm_results.get("evaluation_results", {})
+
+            # Only use corrected results if they're valid (credits <= 30)
+            use_corrected = False
             if correction_results and correction_results.get("success"):
-                # Use corrected results
-                data = correction_results.get("results", {}).get(
+                corrected_data = correction_results.get("results", {}).get(
                     "evaluation_results", {}
                 )
-                print("\n🎓 FINAL EVALUATION (CORRECTED):")
+                corrected_credits = corrected_data.get("credits_qualified", 0)
+
+                # Only use corrected results if they respect credit limits
+                if corrected_credits <= 30:
+                    use_corrected = True
+                    data = corrected_data
+                    print("\n🎓 FINAL EVALUATION (CORRECTED):")
+                else:
+                    print(
+                        "⚠️  Skipping corrected results - invalid credit calculation detected"
+                    )
+
+            if not use_corrected and original_evaluation.get("success"):
+                # Use original evaluation results
+                data = original_evaluation.get("results", {})
+                print("\n🎓 FINAL EVALUATION (ORIGINAL):")
                 print(f"   • Document: {os.path.basename(results['file_path'])}")
                 print(f"   • Degree: {results['student_degree']}")
                 if results.get("student_email"):

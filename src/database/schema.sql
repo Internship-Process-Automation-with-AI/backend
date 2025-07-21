@@ -29,12 +29,20 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- Create appeal_status enum (for decisions table)
+DO $$ BEGIN
+    CREATE TYPE appeal_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- Create Reviewer table
 CREATE TABLE IF NOT EXISTS reviewers (
     reviewer_id UUID PRIMARY KEY DEFAULT uuid_generate_v4 (),
     email VARCHAR(255) UNIQUE NOT NULL,
     first_name VARCHAR(255),
-    last_name VARCHAR(255)
+    last_name VARCHAR(255),
+    position VARCHAR(255),
+    department VARCHAR(255)
 );
 
 -- Create Students table
@@ -78,10 +86,28 @@ CREATE TABLE IF NOT EXISTS decisions (
     reviewer_decision reviewer_decision,  -- NULL = pending
     reviewer_comment TEXT, -- Reviewer's comments
     reviewed_at TIMESTAMP WITH TIME ZONE, -- When the review was completed
+    -- Appeal fields
+    appeal_reason TEXT, -- Student's appeal reason
+    appeal_status appeal_status, -- PENDING, APPROVED, REJECTED
+    appeal_submitted_at TIMESTAMP WITH TIME ZONE, -- When appeal was submitted
+    appeal_reviewer_id UUID REFERENCES reviewers(reviewer_id), -- Reviewer handling the appeal
+    appeal_review_comment TEXT, -- Appeal reviewer's comments
+    appeal_reviewed_at TIMESTAMP WITH TIME ZONE, -- When appeal was reviewed
+    -- Evaluation details
+    total_working_hours INTEGER, -- Total working hours from certificate
+    credits_awarded INTEGER, -- Credits awarded (ECTS)
+    training_duration TEXT, -- Duration of training (e.g., "3 months")
+    training_institution TEXT, -- Institution where training was conducted
+    degree_relevance TEXT, -- How relevant the training is to the degree
+    supporting_evidence TEXT, -- Supporting evidence for the decision
+    challenging_evidence TEXT, -- Challenging evidence against the decision
+    recommendation TEXT, -- AI recommendation summary
 
 -- Constraints
 CONSTRAINT decisions_ai_justification_check CHECK (LENGTH(ai_justification) > 0)
 );
+
+-- Appeals table removed - integrated into decisions table
 
 -- Create indexes for better performance (only if they don't exist)
 CREATE INDEX IF NOT EXISTS idx_students_email ON students (email);
@@ -103,6 +129,9 @@ CREATE INDEX IF NOT EXISTS idx_decisions_reviewer_decision ON decisions (reviewe
 CREATE INDEX IF NOT EXISTS idx_decisions_created_at ON decisions (created_at);
 
 CREATE INDEX IF NOT EXISTS idx_decisions_reviewed_at ON decisions (reviewed_at);
+
+CREATE INDEX IF NOT EXISTS idx_decisions_appeal_status ON decisions (appeal_status);
+CREATE INDEX IF NOT EXISTS idx_decisions_appeal_submitted_at ON decisions (appeal_submitted_at);
 
 -- Create function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

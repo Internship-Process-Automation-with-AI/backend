@@ -15,6 +15,7 @@ import psycopg2
 from src.config import settings
 
 from .models import (
+    AppealStatus,
     ApplicationSummary,
     Certificate,
     Decision,
@@ -441,12 +442,60 @@ def get_certificates(skip: int = 0, limit: int = 100) -> List[Certificate]:
             ]
 
 
+def delete_certificate(certificate_id: UUID) -> bool:
+    """
+    Delete a certificate and all its associated data.
+
+    Args:
+        certificate_id: Certificate ID to delete
+
+    Returns:
+        bool: True if deletion was successful, False otherwise
+    """
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            try:
+                # Delete associated decision first (due to foreign key constraint)
+                cur.execute(
+                    "DELETE FROM decisions WHERE certificate_id = %s",
+                    (str(certificate_id),),
+                )
+
+                # Delete the certificate
+                cur.execute(
+                    "DELETE FROM certificates WHERE certificate_id = %s",
+                    (str(certificate_id),),
+                )
+
+                # Check if any rows were affected
+                if cur.rowcount > 0:
+                    conn.commit()
+                    logger.info(f"Successfully deleted certificate {certificate_id}")
+                    return True
+                else:
+                    logger.warning(f"No certificate found with ID {certificate_id}")
+                    return False
+
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"Error deleting certificate {certificate_id}: {e}")
+                raise
+
+
 # Raw SQL operations for Decisions
 def create_decision(
     certificate_id: UUID,
     ai_decision: DecisionStatus,
     ai_justification: str,
     student_feedback: Optional[str] = None,
+    total_working_hours: Optional[int] = None,
+    credits_awarded: Optional[int] = None,
+    training_duration: Optional[str] = None,
+    training_institution: Optional[str] = None,
+    degree_relevance: Optional[str] = None,
+    supporting_evidence: Optional[str] = None,
+    challenging_evidence: Optional[str] = None,
+    recommendation: Optional[str] = None,
 ) -> Decision:
     """
     Create a new decision record.
@@ -468,8 +517,12 @@ def create_decision(
 
             cur.execute(
                 """
-                INSERT INTO decisions (decision_id, certificate_id, ai_justification, ai_decision, created_at, student_feedback)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO decisions (
+                    decision_id, certificate_id, ai_justification, ai_decision, created_at, student_feedback,
+                    total_working_hours, credits_awarded, training_duration, training_institution,
+                    degree_relevance, supporting_evidence, challenging_evidence, recommendation
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     str(decision_id),
@@ -478,6 +531,14 @@ def create_decision(
                     ai_decision.value,
                     now,
                     student_feedback,
+                    total_working_hours,
+                    credits_awarded,
+                    training_duration,
+                    training_institution,
+                    degree_relevance,
+                    supporting_evidence,
+                    challenging_evidence,
+                    recommendation,
                 ),
             )
             conn.commit()
@@ -491,6 +552,14 @@ def create_decision(
                 student_feedback=student_feedback,
                 reviewer_decision=None,
                 reviewed_at=None,
+                total_working_hours=total_working_hours,
+                credits_awarded=credits_awarded,
+                training_duration=training_duration,
+                training_institution=training_institution,
+                degree_relevance=degree_relevance,
+                supporting_evidence=supporting_evidence,
+                challenging_evidence=challenging_evidence,
+                recommendation=recommendation,
             )
 
 
@@ -509,7 +578,9 @@ def get_decision_by_id(decision_id: UUID) -> Optional[Decision]:
             cur.execute(
                 """
                 SELECT decision_id, certificate_id, ocr_output, ai_justification, ai_decision, created_at,
-                       student_feedback, reviewer_decision, reviewer_comment, reviewed_at
+                       student_feedback, reviewer_decision, reviewer_comment, reviewed_at,
+                       total_working_hours, credits_awarded, training_duration, training_institution,
+                       degree_relevance, supporting_evidence, challenging_evidence, recommendation
                 FROM decisions WHERE decision_id = %s
                 """,
                 (str(decision_id),),
@@ -526,7 +597,16 @@ def get_decision_by_id(decision_id: UUID) -> Optional[Decision]:
                 created_at=row[5],
                 student_feedback=row[6],
                 reviewer_decision=ReviewerDecision(row[7]) if row[7] else None,
+                reviewer_comment=row[8],
                 reviewed_at=row[9],
+                total_working_hours=row[10],
+                credits_awarded=row[11],
+                training_duration=row[12],
+                training_institution=row[13],
+                degree_relevance=row[14],
+                supporting_evidence=row[15],
+                challenging_evidence=row[16],
+                recommendation=row[17],
             )
 
 
@@ -546,7 +626,9 @@ def get_decisions(skip: int = 0, limit: int = 100) -> List[Decision]:
             cur.execute(
                 """
                 SELECT decision_id, certificate_id, ocr_output, ai_justification, ai_decision, created_at,
-                       student_feedback, reviewer_decision, reviewer_comment, reviewed_at
+                       student_feedback, reviewer_decision, reviewer_comment, reviewed_at,
+                       total_working_hours, credits_awarded, training_duration, training_institution,
+                       degree_relevance, supporting_evidence, challenging_evidence, recommendation
                 FROM decisions ORDER BY created_at DESC OFFSET %s LIMIT %s
                 """,
                 (skip, limit),
@@ -563,7 +645,16 @@ def get_decisions(skip: int = 0, limit: int = 100) -> List[Decision]:
                     created_at=row[5],
                     student_feedback=row[6],
                     reviewer_decision=ReviewerDecision(row[7]) if row[7] else None,
+                    reviewer_comment=row[8],
                     reviewed_at=row[9],
+                    total_working_hours=row[10],
+                    credits_awarded=row[11],
+                    training_duration=row[12],
+                    training_institution=row[13],
+                    degree_relevance=row[14],
+                    supporting_evidence=row[15],
+                    challenging_evidence=row[16],
+                    recommendation=row[17],
                 )
                 for row in rows
             ]
@@ -1006,16 +1097,25 @@ def create_reviewer(
     email: str,
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
+    position: Optional[str] = None,
+    department: Optional[str] = None,
 ):
-    """Create a reviewer record if not exists."""
+    """
+    Create a new reviewer in the database.
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            reviewer_id = uuid4()
             cur.execute(
-                "INSERT INTO reviewers (reviewer_id, email, first_name, last_name) VALUES (%s, %s, %s, %s) ON CONFLICT (email) DO NOTHING",
-                (str(reviewer_id), email, first_name, last_name),
+                """
+                INSERT INTO reviewers (email, first_name, last_name, position, department)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING reviewer_id
+                """,
+                (email, first_name, last_name, position, department),
             )
+            reviewer_id = cur.fetchone()[0]
             conn.commit()
+            return reviewer_id
 
 
 def get_reviewer_by_email(email: str):
@@ -1046,7 +1146,7 @@ def get_all_reviewers():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT reviewer_id, email, first_name, last_name FROM reviewers ORDER BY first_name, last_name"
+                "SELECT reviewer_id, email, first_name, last_name, position, department FROM reviewers ORDER BY first_name, last_name"
             )
             rows = cur.fetchall()
             return [
@@ -1055,6 +1155,8 @@ def get_all_reviewers():
                     email=row[1],
                     first_name=row[2],
                     last_name=row[3],
+                    position=row[4],
+                    department=row[5],
                 )
                 for row in rows
             ]
@@ -1062,15 +1164,39 @@ def get_all_reviewers():
 
 def create_sample_reviewers():
     sample_reviewers = [
-        ("laura.koskinen@oamk.fi", "Laura", "Koskinen"),
-        ("jukka.virtanen@oamk.fi", "Jukka", "Virtanen"),
-        ("emilia.makela@oamk.fi", "Emilia", "Mäkelä"),
-        ("antti.lehtinen@oamk.fi", "Antti", "Lehtinen"),
-        ("sanna.nieminen@oamk.fi", "Sanna", "Nieminen"),
+        (
+            "laura.koskinen@oamk.fi",
+            "Laura",
+            "Koskinen",
+            "Senior Lecturer",
+            "Health Sciences",
+        ),
+        ("jukka.virtanen@oamk.fi", "Jukka", "Virtanen", "Program Director", "Nursing"),
+        (
+            "emilia.makela@oamk.fi",
+            "Emilia",
+            "Mäkelä",
+            "Faculty Coordinator",
+            "Midwifery",
+        ),
+        (
+            "antti.lehtinen@oamk.fi",
+            "Antti",
+            "Lehtinen",
+            "Department Head",
+            "Health Care",
+        ),
+        (
+            "sanna.nieminen@oamk.fi",
+            "Sanna",
+            "Nieminen",
+            "Academic Coordinator",
+            "Student Services",
+        ),
     ]
-    for email, first_name, last_name in sample_reviewers:
+    for email, first_name, last_name, position, department in sample_reviewers:
         if not get_reviewer_by_email(email):
-            create_reviewer(email, first_name, last_name)
+            create_reviewer(email, first_name, last_name, position, department)
 
 
 def get_certificates_by_reviewer_id(reviewer_id: UUID) -> List[DetailedApplication]:
@@ -1136,3 +1262,75 @@ def get_certificates_by_reviewer_id(reviewer_id: UUID) -> List[DetailedApplicati
                 )
                 for row in rows
             ]
+
+
+# Raw SQL operations for Appeals (integrated into decisions table)
+
+
+def submit_appeal(certificate_id: UUID, appeal_reason: str, reviewer_id: UUID) -> bool:
+    """
+    Submit an appeal by updating the decision record.
+
+    Args:
+        certificate_id: Certificate's UUID
+        appeal_reason: Student's reason for appealing
+        reviewer_id: Reviewer's UUID to assign the appeal to
+
+    Returns:
+        bool: True if appeal was submitted successfully
+    """
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            now = datetime.now()
+            cur.execute(
+                """
+                UPDATE decisions 
+                SET appeal_reason = %s, 
+                    appeal_status = %s, 
+                    appeal_submitted_at = %s, 
+                    appeal_reviewer_id = %s
+                WHERE certificate_id = %s
+                """,
+                (
+                    appeal_reason,
+                    AppealStatus.PENDING.value,
+                    now,
+                    str(reviewer_id),
+                    str(certificate_id),
+                ),
+            )
+            conn.commit()
+            return True
+
+
+def get_appeal_by_certificate_id(certificate_id: UUID) -> Optional[dict]:
+    """
+    Get appeal information by certificate ID from decisions table.
+
+    Args:
+        certificate_id: Certificate's UUID
+
+    Returns:
+        Optional[dict]: Appeal information if found, None otherwise
+    """
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT appeal_reason, appeal_status, appeal_submitted_at, 
+                       appeal_reviewer_id, appeal_review_comment, appeal_reviewed_at
+                FROM decisions WHERE certificate_id = %s AND appeal_reason IS NOT NULL
+                """,
+                (str(certificate_id),),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "appeal_reason": row[0],
+                "appeal_status": row[1],
+                "appeal_submitted_at": row[2],
+                "appeal_reviewer_id": row[3],
+                "appeal_review_comment": row[4],
+                "appeal_reviewed_at": row[5],
+            }

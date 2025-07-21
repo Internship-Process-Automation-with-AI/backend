@@ -32,6 +32,14 @@ class ReviewerDecision(str, enum.Enum):
     FAIL = "FAIL"  # Certificate rejected by reviewer
 
 
+class AppealStatus(str, enum.Enum):
+    """Enumeration for appeal statuses."""
+
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
 @dataclass
 class Student:
     """
@@ -72,12 +80,16 @@ class Reviewer:
         email: Reviewer's email address
         first_name: Reviewer's first name
         last_name: Reviewer's last name
+        position: Reviewer's position
+        department: Reviewer's department
     """
 
     reviewer_id: UUID
     email: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    position: Optional[str] = None
+    department: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -86,6 +98,8 @@ class Reviewer:
             "email": self.email,
             "first_name": self.first_name,
             "last_name": self.last_name,
+            "position": self.position,
+            "department": self.department,
         }
 
 
@@ -140,6 +154,12 @@ class Decision:
         reviewer_decision: Outcome of the human review step (None = pending)
         reviewer_comment: Reviewer's comments
         reviewed_at: Timestamp when the review was completed
+        appeal_reason: Student's appeal reason
+        appeal_status: Appeal status (PENDING/APPROVED/REJECTED)
+        appeal_submitted_at: When appeal was submitted
+        appeal_reviewer_id: Reviewer handling the appeal
+        appeal_review_comment: Appeal reviewer's comments
+        appeal_reviewed_at: When appeal was reviewed
     """
 
     decision_id: UUID
@@ -152,6 +172,21 @@ class Decision:
     reviewer_decision: Optional[ReviewerDecision] = None  # NULL == pending
     reviewer_comment: Optional[str] = None
     reviewed_at: Optional[datetime] = None
+    appeal_reason: Optional[str] = None
+    appeal_status: Optional[AppealStatus] = None
+    appeal_submitted_at: Optional[datetime] = None
+    appeal_reviewer_id: Optional[UUID] = None
+    appeal_review_comment: Optional[str] = None
+    appeal_reviewed_at: Optional[datetime] = None
+    # Evaluation details
+    total_working_hours: Optional[int] = None
+    credits_awarded: Optional[int] = None
+    training_duration: Optional[str] = None
+    training_institution: Optional[str] = None
+    degree_relevance: Optional[str] = None
+    supporting_evidence: Optional[str] = None
+    challenging_evidence: Optional[str] = None
+    recommendation: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -168,6 +203,27 @@ class Decision:
             else None,
             "reviewer_comment": self.reviewer_comment,
             "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
+            "appeal_reason": self.appeal_reason,
+            "appeal_status": self.appeal_status.value if self.appeal_status else None,
+            "appeal_submitted_at": self.appeal_submitted_at.isoformat()
+            if self.appeal_submitted_at
+            else None,
+            "appeal_reviewer_id": str(self.appeal_reviewer_id)
+            if self.appeal_reviewer_id
+            else None,
+            "appeal_review_comment": self.appeal_review_comment,
+            "appeal_reviewed_at": self.appeal_reviewed_at.isoformat()
+            if self.appeal_reviewed_at
+            else None,
+            # Evaluation details
+            "total_working_hours": self.total_working_hours,
+            "credits_awarded": self.credits_awarded,
+            "training_duration": self.training_duration,
+            "training_institution": self.training_institution,
+            "degree_relevance": self.degree_relevance,
+            "supporting_evidence": self.supporting_evidence,
+            "challenging_evidence": self.challenging_evidence,
+            "recommendation": self.recommendation,
         }
 
 
