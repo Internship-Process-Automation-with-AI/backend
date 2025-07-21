@@ -139,16 +139,13 @@ async def get_student_applications(email: str):
 
                 # Determine status and credits
                 status = "PENDING"
-                credits = 0
+                credits = credits_awarded or 0  # Use actual credits from database
 
                 if ai_decision:
                     if reviewer_id and not reviewer_decision:
                         status = "PENDING_FOR_APPROVAL"
                     else:
                         status = ai_decision
-                        # For now, set credits based on training type and decision
-                        if ai_decision == "ACCEPTED":
-                            credits = 30 if training_type == "PROFESSIONAL" else 10
 
                 # Build reviewer name
                 reviewer_name = None
@@ -375,7 +372,7 @@ async def process_certificate(certificate_id: UUID):
 
     if ai_decision == "ACCEPTED":
         # Get credits from LLM response, default to 0 if not provided
-        credits_awarded = evaluation_results.get("credits", 0)
+        credits_awarded = evaluation_results.get("credits_qualified", 0)
         if credits_awarded is None:
             credits_awarded = 0
 

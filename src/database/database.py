@@ -578,7 +578,9 @@ def get_decision_by_id(decision_id: UUID) -> Optional[Decision]:
             cur.execute(
                 """
                 SELECT decision_id, certificate_id, ocr_output, ai_justification, ai_decision, created_at,
-                       student_feedback, reviewer_decision, reviewer_comment, reviewed_at
+                       student_feedback, reviewer_decision, reviewer_comment, reviewed_at,
+                       total_working_hours, credits_awarded, training_duration, training_institution,
+                       degree_relevance, supporting_evidence, challenging_evidence, recommendation
                 FROM decisions WHERE decision_id = %s
                 """,
                 (str(decision_id),),
@@ -595,7 +597,16 @@ def get_decision_by_id(decision_id: UUID) -> Optional[Decision]:
                 created_at=row[5],
                 student_feedback=row[6],
                 reviewer_decision=ReviewerDecision(row[7]) if row[7] else None,
+                reviewer_comment=row[8],
                 reviewed_at=row[9],
+                total_working_hours=row[10],
+                credits_awarded=row[11],
+                training_duration=row[12],
+                training_institution=row[13],
+                degree_relevance=row[14],
+                supporting_evidence=row[15],
+                challenging_evidence=row[16],
+                recommendation=row[17],
             )
 
 
@@ -615,7 +626,9 @@ def get_decisions(skip: int = 0, limit: int = 100) -> List[Decision]:
             cur.execute(
                 """
                 SELECT decision_id, certificate_id, ocr_output, ai_justification, ai_decision, created_at,
-                       student_feedback, reviewer_decision, reviewer_comment, reviewed_at
+                       student_feedback, reviewer_decision, reviewer_comment, reviewed_at,
+                       total_working_hours, credits_awarded, training_duration, training_institution,
+                       degree_relevance, supporting_evidence, challenging_evidence, recommendation
                 FROM decisions ORDER BY created_at DESC OFFSET %s LIMIT %s
                 """,
                 (skip, limit),
@@ -632,7 +645,16 @@ def get_decisions(skip: int = 0, limit: int = 100) -> List[Decision]:
                     created_at=row[5],
                     student_feedback=row[6],
                     reviewer_decision=ReviewerDecision(row[7]) if row[7] else None,
+                    reviewer_comment=row[8],
                     reviewed_at=row[9],
+                    total_working_hours=row[10],
+                    credits_awarded=row[11],
+                    training_duration=row[12],
+                    training_institution=row[13],
+                    degree_relevance=row[14],
+                    supporting_evidence=row[15],
+                    challenging_evidence=row[16],
+                    recommendation=row[17],
                 )
                 for row in rows
             ]
