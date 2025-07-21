@@ -40,7 +40,9 @@ CREATE TABLE IF NOT EXISTS reviewers (
     reviewer_id UUID PRIMARY KEY DEFAULT uuid_generate_v4 (),
     email VARCHAR(255) UNIQUE NOT NULL,
     first_name VARCHAR(255),
-    last_name VARCHAR(255)
+    last_name VARCHAR(255),
+    position VARCHAR(255),
+    department VARCHAR(255)
 );
 
 -- Create Students table
