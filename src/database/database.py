@@ -1075,16 +1075,25 @@ def create_reviewer(
     email: str,
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
+    position: Optional[str] = None,
+    department: Optional[str] = None,
 ):
-    """Create a reviewer record if not exists."""
+    """
+    Create a new reviewer in the database.
+    """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            reviewer_id = uuid4()
             cur.execute(
-                "INSERT INTO reviewers (reviewer_id, email, first_name, last_name) VALUES (%s, %s, %s, %s) ON CONFLICT (email) DO NOTHING",
-                (str(reviewer_id), email, first_name, last_name),
+                """
+                INSERT INTO reviewers (email, first_name, last_name, position, department)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING reviewer_id
+                """,
+                (email, first_name, last_name, position, department),
             )
+            reviewer_id = cur.fetchone()[0]
             conn.commit()
+            return reviewer_id
 
 
 def get_reviewer_by_email(email: str):
@@ -1115,7 +1124,7 @@ def get_all_reviewers():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT reviewer_id, email, first_name, last_name FROM reviewers ORDER BY first_name, last_name"
+                "SELECT reviewer_id, email, first_name, last_name, position, department FROM reviewers ORDER BY first_name, last_name"
             )
             rows = cur.fetchall()
             return [
@@ -1124,6 +1133,8 @@ def get_all_reviewers():
                     email=row[1],
                     first_name=row[2],
                     last_name=row[3],
+                    position=row[4],
+                    department=row[5],
                 )
                 for row in rows
             ]
@@ -1131,15 +1142,39 @@ def get_all_reviewers():
 
 def create_sample_reviewers():
     sample_reviewers = [
-        ("laura.koskinen@oamk.fi", "Laura", "Koskinen"),
-        ("jukka.virtanen@oamk.fi", "Jukka", "Virtanen"),
-        ("emilia.makela@oamk.fi", "Emilia", "Mäkelä"),
-        ("antti.lehtinen@oamk.fi", "Antti", "Lehtinen"),
-        ("sanna.nieminen@oamk.fi", "Sanna", "Nieminen"),
+        (
+            "laura.koskinen@oamk.fi",
+            "Laura",
+            "Koskinen",
+            "Senior Lecturer",
+            "Health Sciences",
+        ),
+        ("jukka.virtanen@oamk.fi", "Jukka", "Virtanen", "Program Director", "Nursing"),
+        (
+            "emilia.makela@oamk.fi",
+            "Emilia",
+            "Mäkelä",
+            "Faculty Coordinator",
+            "Midwifery",
+        ),
+        (
+            "antti.lehtinen@oamk.fi",
+            "Antti",
+            "Lehtinen",
+            "Department Head",
+            "Health Care",
+        ),
+        (
+            "sanna.nieminen@oamk.fi",
+            "Sanna",
+            "Nieminen",
+            "Academic Coordinator",
+            "Student Services",
+        ),
     ]
-    for email, first_name, last_name in sample_reviewers:
+    for email, first_name, last_name, position, department in sample_reviewers:
         if not get_reviewer_by_email(email):
-            create_reviewer(email, first_name, last_name)
+            create_reviewer(email, first_name, last_name, position, department)
 
 
 def get_certificates_by_reviewer_id(reviewer_id: UUID) -> List[DetailedApplication]:

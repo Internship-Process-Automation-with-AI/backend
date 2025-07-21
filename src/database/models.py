@@ -80,12 +80,16 @@ class Reviewer:
         email: Reviewer's email address
         first_name: Reviewer's first name
         last_name: Reviewer's last name
+        position: Reviewer's position
+        department: Reviewer's department
     """
 
     reviewer_id: UUID
     email: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    position: Optional[str] = None
+    department: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -94,6 +98,8 @@ class Reviewer:
             "email": self.email,
             "first_name": self.first_name,
             "last_name": self.last_name,
+            "position": self.position,
+            "department": self.department,
         }
 
 
