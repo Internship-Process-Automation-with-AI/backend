@@ -101,7 +101,7 @@ class OCRWorkflow:
 
     def _detect_language(self, file_path: Path) -> str:
         """
-        Detect the appropriate language for a document based on filename and content.
+        Detect the appropriate language for a document based on content.
 
         Args:
             file_path: Path to the document
@@ -109,26 +109,49 @@ class OCRWorkflow:
         Returns:
             Detected language code ("fin", "eng", "eng+fin", or "auto")
         """
-        filename_lower = file_path.name.lower()
+        if not self.use_finnish_detection:
+            return self.language
 
-        # Check for Finnish indicators in filename
-        finnish_indicators = [
-            "finnish",
-            "finn",
-            "suomi",
-            "työtodistus",
-            "todistus",
-            "harjoittelu",
-            "kesätyö",
-            "työ",
-        ]
+        try:
+            # Do a quick OCR scan to detect language
+            from src.ocr.cert_extractor import extract_certificate_text
 
-        if any(indicator in filename_lower for indicator in finnish_indicators):
-            logger.info(f"🇫🇮 Detected Finnish document from filename: {file_path.name}")
-            return "fin"
+            # Extract text with English first (faster)
+            sample_text = extract_certificate_text(
+                file_path, language="eng", enhance_finnish=False
+            )
 
-        # Default to auto-detection
-        return self.language
+            if sample_text:
+                text_lower = sample_text.lower()
+
+                # Count Finnish characters
+                finnish_chars = sum(1 for c in text_lower if c in "äöå")
+
+                # Count Finnish keywords
+                finnish_keywords = [
+                    "työtodistus",
+                    "todistus",
+                    "yrityksessämme",
+                    "välisenä",
+                    "tehtävissä",
+                ]
+                finnish_keyword_count = sum(
+                    1 for keyword in finnish_keywords if keyword in text_lower
+                )
+
+                # If we find Finnish indicators, use Finnish
+                if finnish_chars > 0 or finnish_keyword_count >= 1:
+                    logger.info(f"🇫🇮 Detected Finnish content: {file_path.name}")
+                    return "fin"
+                else:
+                    logger.info(f"🇺🇸 Detected English content: {file_path.name}")
+                    return "eng"
+
+        except Exception as e:
+            logger.warning(f"⚠️  Language detection failed for {file_path.name}: {e}")
+
+        # Fallback to auto-detection
+        return "auto"
 
     def _extract_text_smart(self, file_path: Path) -> tuple[str, str]:
         """
@@ -148,9 +171,7 @@ class OCRWorkflow:
 
         try:
             # Use Finnish-specific extraction for Finnish documents
-            if detected_lang == "fin" or (
-                self.use_finnish_detection and "finnish" in file_path.name.lower()
-            ):
+            if detected_lang == "fin":
                 logger.info(
                     f"📄 Using Finnish-specific extraction for: {file_path.name}"
                 )

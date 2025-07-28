@@ -398,29 +398,32 @@ async def process_certificate(certificate_id: UUID):
                 },
             }
 
-        # Store decision using evaluation results directly
+        # Store decision using evaluation results directly from LLM
         evaluation_results = llm_result.get("evaluation_results", {}).get("results", {})
         extraction_results = llm_result.get("extraction_results", {}).get("results", {})
 
-        # Fix the decision logic: if credits are awarded, it should be ACCEPTED
-        credits_awarded = evaluation_results.get("credits_qualified", 0)
+        # Get values directly from LLM results - no decision processing in API
         llm_decision = evaluation_results.get("decision", "PENDING")
+        credits_awarded = evaluation_results.get("credits_qualified", 0)
+        total_working_hours = evaluation_results.get("total_working_hours", 0)
+        training_duration = extraction_results.get(
+            "total_employment_period", "Not specified"
+        )
+        training_institution = extraction_results.get("employer", "Not specified")
+        ai_justification = evaluation_results.get(
+            "justification", "No justification provided"
+        )
+        degree_relevance = evaluation_results.get("degree_relevance", "Not specified")
+        supporting_evidence = evaluation_results.get("supporting_evidence", "")
+        challenging_evidence = evaluation_results.get("challenging_evidence", "")
+        recommendation = evaluation_results.get("recommendation", "")
 
-        # Determine the correct decision based on credits awarded
-        if credits_awarded > 0:
-            # If credits are awarded, it should be ACCEPTED regardless of LLM decision
-            final_decision = DecisionStatus.ACCEPTED
-            if llm_decision != "ACCEPTED":
-                logger.warning(
-                    f"LLM decision was {llm_decision} but {credits_awarded} credits awarded - overriding to ACCEPTED"
-                )
-        else:
-            # If no credits awarded, use the LLM decision
-            final_decision = (
-                DecisionStatus.ACCEPTED
-                if llm_decision == "ACCEPTED"
-                else DecisionStatus.REJECTED
-            )
+        # Convert LLM decision string to DecisionStatus enum for database storage
+        final_decision = (
+            DecisionStatus.ACCEPTED
+            if llm_decision == "ACCEPTED"
+            else DecisionStatus.REJECTED
+        )
 
         # Create complete AI workflow JSON output (like the old aiworkflow_output files)
         complete_workflow_json = {
@@ -431,18 +434,12 @@ async def process_certificate(certificate_id: UUID):
             "ocr_results": ocr_result,
             "llm_results": llm_result,
             "decision": {
-                "ai_decision": final_decision.value,  # Use the corrected decision
-                "ai_justification": evaluation_results.get(
-                    "justification", "No justification provided"
-                ),
+                "ai_decision": llm_decision,  # Use LLM's decision string directly
+                "ai_justification": ai_justification,
                 "credits_awarded": credits_awarded,
-                "total_working_hours": evaluation_results.get("total_working_hours", 0),
-                "training_duration": extraction_results.get(
-                    "total_employment_period", "Not specified"
-                ),
-                "training_institution": extraction_results.get(
-                    "employer", "Not specified"
-                ),
+                "total_working_hours": total_working_hours,
+                "training_duration": training_duration,
+                "training_institution": training_institution,
             },
         }
 
@@ -453,25 +450,19 @@ async def process_certificate(certificate_id: UUID):
             complete_workflow_json, indent=2, ensure_ascii=False
         )
 
-        # Create decision record
+        # Create decision record - store LLM results directly
         decision = create_decision(
             certificate_id=certificate_id,
-            ai_decision=final_decision,
-            ai_justification=evaluation_results.get(
-                "justification", "No justification provided"
-            ),
-            total_working_hours=evaluation_results.get("total_working_hours", 0),
+            ai_decision=final_decision,  # Enum for database storage
+            ai_justification=ai_justification,
+            total_working_hours=total_working_hours,
             credits_awarded=credits_awarded,
-            training_duration=extraction_results.get(
-                "total_employment_period", "Not specified"
-            ),
-            training_institution=extraction_results.get("employer", "Not specified"),
-            degree_relevance=evaluation_results.get(
-                "degree_relevance", "Not specified"
-            ),
-            supporting_evidence=evaluation_results.get("supporting_evidence", ""),
-            challenging_evidence=evaluation_results.get("challenging_evidence", ""),
-            recommendation=evaluation_results.get("recommendation", ""),
+            training_duration=training_duration,
+            training_institution=training_institution,
+            degree_relevance=degree_relevance,
+            supporting_evidence=supporting_evidence,
+            challenging_evidence=challenging_evidence,
+            recommendation=recommendation,
             ai_workflow_json=ai_workflow_json_string,
         )
 
