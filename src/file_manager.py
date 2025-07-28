@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 File management utilities for handling uploaded documents and processing results.
+Now works with database-stored files instead of file system storage.
 """
 
 import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
@@ -22,14 +24,150 @@ class FileManager:
         Initialize file manager.
 
         Args:
-            uploads_base_dir: Base directory for uploads
+            uploads_base_dir: Base directory for uploads (kept for backward compatibility)
         """
         self.uploads_base = Path(uploads_base_dir)
-        self.uploads_base.mkdir(exist_ok=True)
+        # Note: We no longer create uploads directory since files are stored in database
+        # But we keep this for any legacy file operations that might still be needed
 
+    def create_temp_file_from_content(
+        self, file_content: bytes, file_extension: str
+    ) -> Tuple[Path, str]:
+        """
+        Create a temporary file from database-stored content for processing.
+
+        Args:
+            file_content: File content as bytes from database
+            file_extension: File extension (e.g., 'pdf', 'docx')
+
+        Returns:
+            Tuple of (temp_file_path, temp_filename)
+        """
+        try:
+            # Create temporary file with proper extension
+            with tempfile.NamedTemporaryFile(
+                delete=False, suffix=f".{file_extension}"
+            ) as temp_file:
+                temp_file.write(file_content)
+                temp_file_path = Path(temp_file.name)
+                temp_filename = temp_file_path.name
+
+            logger.info(f"Created temporary file: {temp_filename}")
+            return temp_file_path, temp_filename
+
+        except Exception as e:
+            logger.error(f"Error creating temporary file: {e}")
+            raise
+
+    def cleanup_temp_file(self, temp_file_path: Path) -> bool:
+        """
+        Clean up a temporary file.
+
+        Args:
+            temp_file_path: Path to the temporary file
+
+        Returns:
+            bool: True if cleanup was successful, False otherwise
+        """
+        try:
+            if temp_file_path.exists():
+                os.unlink(temp_file_path)
+                logger.info(f"Cleaned up temporary file: {temp_file_path}")
+                return True
+            return False
+        except Exception as e:
+            logger.warning(f"Failed to clean up temporary file {temp_file_path}: {e}")
+            return False
+
+    def get_file_info_from_content(self, file_content: bytes, filename: str) -> dict:
+        """
+        Get information about a file from its content.
+
+        Args:
+            file_content: File content as bytes
+            filename: Original filename
+
+        Returns:
+            Dictionary with file information
+        """
+        return {
+            "filename": filename,
+            "size": len(file_content),
+            "size_mb": round(len(file_content) / (1024 * 1024), 2),
+            "created": datetime.now(),
+            "modified": datetime.now(),
+        }
+
+    def validate_file_size(self, file_content: bytes, max_size_mb: int = 10) -> bool:
+        """
+        Validate file size.
+
+        Args:
+            file_content: File content as bytes
+            max_size_mb: Maximum file size in MB
+
+        Returns:
+            bool: True if file size is valid, False otherwise
+        """
+        file_size_mb = len(file_content) / (1024 * 1024)
+        return file_size_mb <= max_size_mb
+
+    def get_supported_extensions(self) -> set:
+        """
+        Get list of supported file extensions.
+
+        Returns:
+            Set of supported file extensions
+        """
+        return {
+            ".pdf",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".tiff",
+            ".bmp",
+            ".docx",
+            ".doc",
+        }
+
+    def validate_file_extension(self, filename: str) -> bool:
+        """
+        Validate file extension.
+
+        Args:
+            filename: Original filename
+
+        Returns:
+            bool: True if file extension is supported, False otherwise
+        """
+        file_ext = Path(filename).suffix.lower()
+        return file_ext in self.get_supported_extensions()
+
+    def get_media_type(self, file_extension: str) -> str:
+        """
+        Get media type for a file extension.
+
+        Args:
+            file_extension: File extension (e.g., '.pdf', '.docx')
+
+        Returns:
+            str: Media type string
+        """
+        media_types = {
+            ".pdf": "application/pdf",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".doc": "application/msword",
+        }
+        return media_types.get(file_extension.lower(), "application/octet-stream")
+
+    # Legacy methods kept for backward compatibility but marked as deprecated
     def get_date_based_path(self, date: Optional[datetime] = None) -> Path:
         """
         Get the date-based directory path for organizing files.
+        DEPRECATED: Files are now stored in database.
 
         Args:
             date: Date to use (defaults to current date)
@@ -37,6 +175,9 @@ class FileManager:
         Returns:
             Path to the date-based directory
         """
+        logger.warning(
+            "get_date_based_path is deprecated - files are now stored in database"
+        )
         if date is None:
             date = datetime.now()
 
@@ -49,34 +190,6 @@ class FileManager:
 
         return date_path
 
-    def generate_unique_filename(
-        self, original_filename: str, date: Optional[datetime] = None
-    ) -> str:
-        """
-        Generate a unique filename with timestamp prefix.
-
-        Args:
-            original_filename: Original filename from user
-            date: Date to use for timestamp (defaults to current date)
-
-        Returns:
-            Unique filename with timestamp prefix
-        """
-        if date is None:
-            date = datetime.now()
-
-        # Get file extension
-        file_ext = Path(original_filename).suffix
-
-        # Generate timestamp prefix
-        timestamp = date.strftime("%Y%m%d_%H%M%S")
-
-        # Create unique filename
-        base_name = Path(original_filename).stem
-        unique_filename = f"{timestamp}_{base_name}{file_ext}"
-
-        return unique_filename
-
     def save_uploaded_file(
         self,
         file_content: bytes,
@@ -85,6 +198,7 @@ class FileManager:
     ) -> Tuple[Path, str]:
         """
         Save an uploaded file to the organized uploads directory.
+        DEPRECATED: Files are now stored in database.
 
         Args:
             file_content: File content as bytes
@@ -94,32 +208,19 @@ class FileManager:
         Returns:
             Tuple of (file_path, unique_filename)
         """
-        if date is None:
-            date = datetime.now()
-
-        # Create document-specific folder (like processedData structure)
-        base_name = Path(original_filename).stem
-        timestamp = date.strftime("%Y%m%d_%H%M%S")
-        document_folder_name = f"{timestamp}_{base_name}"
-
-        # Create document folder in uploads
-        document_folder = self.uploads_base / document_folder_name
-        document_folder.mkdir(exist_ok=True)
-
-        # Save original file in document folder
-        file_path = document_folder / original_filename
-        with open(file_path, "wb") as f:
-            f.write(file_content)
-
-        logger.info(f"Saved uploaded file: {original_filename} -> {file_path}")
-
-        return file_path, original_filename
+        logger.warning(
+            "save_uploaded_file is deprecated - files are now stored in database"
+        )
+        # This method is kept for backward compatibility but should not be used
+        # Files should be stored directly in the database using create_certificate
+        raise NotImplementedError("Files are now stored in database, not file system")
 
     def save_processing_results(
         self, results: dict, original_filename: str, date: Optional[datetime] = None
     ) -> Tuple[Path, Path]:
         """
         Save processing results (OCR + LLM) alongside the uploaded file.
+        DEPRECATED: Results are now stored in database.
 
         Args:
             results: Complete processing results dictionary
@@ -129,193 +230,9 @@ class FileManager:
         Returns:
             Tuple of (results_path, ocr_text_path)
         """
-        if date is None:
-            date = datetime.now()
-
-        # Create document-specific folder (same as save_uploaded_file)
-        base_name = Path(original_filename).stem
-        timestamp = date.strftime("%Y%m%d_%H%M%S")
-        document_folder_name = f"{timestamp}_{base_name}"
-        document_folder = self.uploads_base / document_folder_name
-
-        # Ensure the document folder exists
-        document_folder.mkdir(parents=True, exist_ok=True)
-
-        # Save complete results JSON
-        results_filename = f"aiworkflow_output_{base_name}_{timestamp}.json"
-        results_path = document_folder / results_filename
-
-        with open(results_path, "w", encoding="utf-8") as f:
-            import json
-
-            json.dump(results, f, indent=2, ensure_ascii=False)
-
-        # Save OCR text separately for easy reading
-        ocr_text_filename = f"ocr_output_{base_name}.txt"
-        ocr_text_path = document_folder / ocr_text_filename
-
-        # Get OCR text from results
-        ocr_text = ""
-        if "ocr_results" in results:
-            # Try to get text from different possible locations
-            ocr_results = results["ocr_results"]
-            if "extracted_text" in ocr_results:
-                ocr_text = ocr_results["extracted_text"]
-            elif "text" in ocr_results:
-                ocr_text = ocr_results["text"]
-
-        if ocr_text:
-            with open(ocr_text_path, "w", encoding="utf-8") as f:
-                f.write(ocr_text)
-
-        logger.info(f"Saved processing results: {results_path}")
-        logger.info(f"Saved OCR text: {ocr_text_path}")
-
-        return results_path, ocr_text_path
-
-    def get_document_folder(
-        self, original_filename: str, date: Optional[datetime] = None
-    ) -> Path:
-        """
-        Get the folder path where a document and its results are stored.
-
-        Args:
-            original_filename: Original filename from user
-            date: Date to use for organization (defaults to current date)
-
-        Returns:
-            Path to the document folder
-        """
-        if date is None:
-            date = datetime.now()
-
-        # Create document-specific folder path
-        base_name = Path(original_filename).stem
-        timestamp = date.strftime("%Y%m%d_%H%M%S")
-        document_folder_name = f"{timestamp}_{base_name}"
-        document_folder = self.uploads_base / document_folder_name
-
-        return document_folder
-
-    def get_document_files(
-        self, original_filename: str, date: Optional[datetime] = None
-    ) -> dict:
-        """
-        Get all files related to a specific document.
-
-        Args:
-            original_filename: Original filename from user
-            date: Date to use for organization (defaults to current date)
-
-        Returns:
-            Dictionary with paths to all related files
-        """
-        if date is None:
-            date = datetime.now()
-
-        # Get the document folder path
-        document_folder = self.get_document_folder(original_filename, date)
-        base_name = Path(original_filename).stem
-        timestamp = date.strftime("%Y%m%d_%H%M%S")
-
-        # Generate expected filenames based on actual structure
-        files = {
-            "folder": document_folder,
-            "original": document_folder / original_filename,
-            "results_json": document_folder
-            / f"aiworkflow_output_{base_name}_{timestamp}.json",
-            "ocr_text": document_folder / f"ocr_output_{base_name}.txt",
-        }
-
-        return files
-
-    def get_file_info(self, file_path: Path) -> dict:
-        """
-        Get information about a stored file.
-
-        Args:
-            file_path: Path to the file
-
-        Returns:
-            Dictionary with file information
-        """
-        if not file_path.exists():
-            return {}
-
-        stat = file_path.stat()
-        return {
-            "path": str(file_path),
-            "size": stat.st_size,
-            "created": datetime.fromtimestamp(stat.st_ctime),
-            "modified": datetime.fromtimestamp(stat.st_mtime),
-            "filename": file_path.name,
-        }
-
-    def list_uploaded_files(
-        self, date: Optional[datetime] = None, limit: int = 100
-    ) -> list:
-        """
-        List uploaded files in document-specific folders.
-
-        Args:
-            date: Date to list files for (defaults to current date)
-            limit: Maximum number of files to return
-
-        Returns:
-            List of file information dictionaries
-        """
-        if date is None:
-            date = datetime.now()
-
-        files = []
-
-        # Look for document-specific folders in uploads directory
-        for item in self.uploads_base.iterdir():
-            if item.is_dir() and len(files) < limit:
-                # Check if this is a document folder (format: YYYYMMDD_HHMMSS_filename)
-                if "_" in item.name and len(item.name.split("_")) >= 3:
-                    # Look for the original file in this folder
-                    for file_path in item.iterdir():
-                        if file_path.is_file() and not file_path.name.startswith(
-                            ("aiworkflow_output_", "ocr_output_")
-                        ):
-                            # This is the original uploaded file
-                            file_info = self.get_file_info(file_path)
-                            file_info["document_folder"] = str(item)
-                            files.append(file_info)
-                            break  # Only get the first file (original) from each folder
-
-        # Sort by creation time (newest first)
-        files.sort(key=lambda x: x["created"], reverse=True)
-
-        return files
-
-    def get_storage_stats(self) -> dict:
-        """
-        Get storage statistics for the uploads directory.
-
-        Returns:
-            Dictionary with storage statistics
-        """
-        total_size = 0
-        total_files = 0
-
-        for root, dirs, files in os.walk(self.uploads_base):
-            for file in files:
-                file_path = Path(root) / file
-                try:
-                    total_size += file_path.stat().st_size
-                    total_files += 1
-                except Exception:
-                    pass
-
-        return {
-            "total_files": total_files,
-            "total_size_bytes": total_size,
-            "total_size_mb": round(total_size / (1024 * 1024), 2),
-            "uploads_directory": str(self.uploads_base),
-        }
-
-
-# Create a singleton instance
-file_manager = FileManager()
+        logger.warning(
+            "save_processing_results is deprecated - results are now stored in database"
+        )
+        # This method is kept for backward compatibility but should not be used
+        # Results should be stored directly in the database
+        raise NotImplementedError("Results are now stored in database, not file system")

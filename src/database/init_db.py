@@ -16,77 +16,71 @@ from .database import (
     create_sample_reviewers,
     create_sample_students,
     get_db_connection,
-    test_database_connection,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def init_database(drop_existing: bool = False) -> bool:
-    """
-    Initialize the database by creating all tables.
-
-    Args:
-        drop_existing: If True, drop existing tables before creating new ones
-
-    Returns:
-        bool: True if initialization was successful, False otherwise
-    """
+def init_database():
+    """Initialize the database with all tables and sample data."""
     try:
-        # First, ensure the database exists (this must be done outside any transaction)
-        if not create_database_if_not_exists():
-            logger.error("Failed to create database")
-            return False
+        # Create database if it doesn't exist
+        create_database_if_not_exists()
 
-        # Test database connection
-        if not test_database_connection():
-            logger.error("Database connection test failed")
-            return False
-
-        # Read and execute schema SQL
-        schema_file = Path(__file__).parent / "schema.sql"
-        if not schema_file.exists():
-            logger.error(f"Schema file not found: {schema_file}")
-            return False
+        # Read and execute schema
+        schema_path = Path(__file__).parent / "schema.sql"
+        with open(schema_path, "r", encoding="utf-8") as f:
+            schema_sql = f.read()
 
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                # Drop existing tables if requested
-                if drop_existing:
-                    logger.warning("Dropping existing tables...")
-                    cur.execute("DROP TABLE IF EXISTS decisions CASCADE")
-                    cur.execute("DROP TABLE IF EXISTS certificates CASCADE")
-                    cur.execute("DROP TABLE IF EXISTS students CASCADE")
-                    cur.execute("DROP TYPE IF EXISTS training_type CASCADE")
-                    cur.execute("DROP TYPE IF EXISTS decision_status CASCADE")
-                    logger.info("Existing tables dropped")
-
-                # Read entire schema file
-                logger.info("Creating database tables...")
-                schema_sql = schema_file.read_text()
-
-                # Execute the full script. Since we made everything idempotent with
-                # IF NOT EXISTS, this should work even if objects already exist.
-                try:
-                    cur.execute(schema_sql)
-                except psycopg2.Error as e:
-                    logger.error(f"Error executing schema SQL: {e}")
-                    raise
-
+                cur.execute(schema_sql)
                 conn.commit()
-                logger.info("Database tables created successfully")
 
-        # Verify tables were created
-        if verify_database_schema():
-            logger.info("Database schema verification successful")
-            return True
-        else:
-            logger.error("Database schema verification failed")
-            return False
+        logger.info("Database schema initialized successfully")
+
+        # Run migration to add file_content column if it doesn't exist
+        migrate_add_file_content_column()
+
+        # Create sample data
+        create_sample_students()
+        create_sample_reviewers()
+
+        logger.info("Database initialization completed successfully")
+        return True
 
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
         return False
+
+
+def migrate_add_file_content_column():
+    """Add file_content column to certificates table if it doesn't exist."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # Check if file_content column exists
+                cur.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'certificates' AND column_name = 'file_content'
+                """)
+
+                if not cur.fetchone():
+                    # Add the column
+                    cur.execute(
+                        "ALTER TABLE certificates ADD COLUMN file_content BYTEA"
+                    )
+                    conn.commit()
+                    logger.info("Added file_content column to certificates table")
+                else:
+                    logger.info(
+                        "file_content column already exists in certificates table"
+                    )
+
+    except Exception as e:
+        logger.error(f"Migration failed: {e}")
+        raise
 
 
 def verify_database_schema() -> bool:

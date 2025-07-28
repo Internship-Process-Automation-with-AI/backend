@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS certificates (
     training_type training_type NOT NULL,
     filename VARCHAR(255) NOT NULL,
     filetype VARCHAR(50) NOT NULL,
-    filepath TEXT, -- Path or link to the uploaded file
+    file_content BYTEA, -- Store the actual file content in the database
     ocr_output TEXT,
     uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
@@ -102,6 +102,8 @@ CREATE TABLE IF NOT EXISTS decisions (
     supporting_evidence TEXT, -- Supporting evidence for the decision
     challenging_evidence TEXT, -- Challenging evidence against the decision
     recommendation TEXT, -- AI recommendation summary
+    -- Complete AI workflow output
+    ai_workflow_json TEXT, -- Complete AI workflow JSON output (like the old aiworkflow_output files)
 
 -- Constraints
 CONSTRAINT decisions_ai_justification_check CHECK (LENGTH(ai_justification) > 0)
