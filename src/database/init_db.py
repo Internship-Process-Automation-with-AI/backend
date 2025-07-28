@@ -39,9 +39,6 @@ def init_database():
 
         logger.info("Database schema initialized successfully")
 
-        # Run migration to add file_content column if it doesn't exist
-        migrate_add_file_content_column()
-
         # Create sample data
         create_sample_students()
         create_sample_reviewers()
@@ -52,35 +49,6 @@ def init_database():
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
         return False
-
-
-def migrate_add_file_content_column():
-    """Add file_content column to certificates table if it doesn't exist."""
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                # Check if file_content column exists
-                cur.execute("""
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'certificates' AND column_name = 'file_content'
-                """)
-
-                if not cur.fetchone():
-                    # Add the column
-                    cur.execute(
-                        "ALTER TABLE certificates ADD COLUMN file_content BYTEA"
-                    )
-                    conn.commit()
-                    logger.info("Added file_content column to certificates table")
-                else:
-                    logger.info(
-                        "file_content column already exists in certificates table"
-                    )
-
-    except Exception as e:
-        logger.error(f"Migration failed: {e}")
-        raise
 
 
 def verify_database_schema() -> bool:
