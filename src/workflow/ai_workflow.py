@@ -323,10 +323,10 @@ class LLMOrchestrator:
                 "validation_results": validation_result,
                 "correction_results": correction_result,
                 "structural_validation": {
-                    "extraction": structural_validation_extraction.dict()
+                    "extraction": structural_validation_extraction.model_dump()
                     if "structural_validation_extraction" in locals()
                     else None,
-                    "evaluation": structural_validation_evaluation.dict()
+                    "evaluation": structural_validation_evaluation.model_dump()
                     if "structural_validation_evaluation" in locals()
                     else None,
                     "correction": structural_validation_correction,
