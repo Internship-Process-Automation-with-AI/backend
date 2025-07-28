@@ -6,7 +6,6 @@ Combines OCR processing and LLM extraction into a single pipeline.
 Processes documents from raw files to final evaluation results.
 """
 
-import json
 import logging
 import os
 import sys
@@ -54,7 +53,6 @@ class DocumentPipeline:
         try:
             self.ocr_workflow = OCRWorkflow(
                 samples_dir="samples",
-                output_dir="processedData",
                 language="auto",
                 use_finnish_detection=True,
             )
@@ -339,9 +337,9 @@ class DocumentPipeline:
                 print(f"   🇫🇮 Finnish characters: {ocr_result['finnish_chars_count']}")
 
             # Save OCR text to organized directory
-            ocr_output_path = self.save_ocr_text(extracted_text, file_path)
-            if ocr_output_path:
-                print(f"   💾 OCR text saved to: {ocr_output_path}")
+            # ocr_output_path = self.save_ocr_text(extracted_text, file_path)
+            # if ocr_output_path:
+            #     print(f"   💾 OCR text saved to: {ocr_output_path}")
 
             # Step 2: Text Cleaning
             print("\n🧹 Step 2: Text Cleaning")
@@ -387,48 +385,20 @@ class DocumentPipeline:
         return results
 
     def clean_results_for_output(self, results: Dict[str, Any]) -> Dict[str, Any]:
-        """Clean up results for cleaner JSON output."""
-        # Create a copy to avoid modifying the original
-        cleaned_results = results.copy()
+        """Clean and format results for output."""
+        # Remove sensitive information and large data
+        cleaned = results.copy()
 
-        # Clean up LLM results
-        if "llm_results" in cleaned_results:
-            # Keep raw_response fields for manual verification and accuracy checking
-            # Raw responses are valuable for debugging and quality assurance
-            pass
+        # Remove large text fields from output
+        if "ocr_results" in cleaned:
+            ocr_results = cleaned["ocr_results"].copy()
+            if "extracted_text" in ocr_results:
+                ocr_results["extracted_text"] = (
+                    f"[{len(ocr_results['extracted_text'])} characters]"
+                )
+            cleaned["ocr_results"] = ocr_results
 
-        return cleaned_results
-
-    def save_ocr_text(self, text: str, file_path: str) -> str:
-        """Save OCR text to organized output directory."""
-        try:
-            # Don't save OCR text here - it will be saved by the file manager
-            # This method is kept for compatibility but doesn't save to processedData
-            return ""
-        except Exception as e:
-            logger.error(f"Error saving OCR text: {e}")
-            return ""
-
-    def save_pipeline_results(self, results: Dict[str, Any]) -> str:
-        """Save complete pipeline results to organized output directory."""
-        try:
-            base_name = os.path.splitext(os.path.basename(results["file_path"]))[0]
-            output_dir = os.path.join(
-                os.path.dirname(__file__), "..", "processedData", base_name
-            )
-            os.makedirs(output_dir, exist_ok=True)
-
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_filename = f"aiworkflow_output_{base_name}_{timestamp}.json"
-            output_path = os.path.join(output_dir, output_filename)
-
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(results, f, indent=2, ensure_ascii=False)
-
-            return output_path
-        except Exception as e:
-            logger.error(f"Error saving results: {e}")
-            return ""
+        return cleaned
 
     def display_pipeline_results(self, results: Dict[str, Any]):
         """Display complete pipeline results."""
@@ -742,19 +712,22 @@ def main():
 
     # Save results
     if results.get("success", False):
-        output_path = pipeline.save_pipeline_results(results)
-        print(f"💾 Complete results saved to: {output_path}")
+        # output_path = pipeline.save_pipeline_results(results)
+        # print(f"💾 Complete results saved to: {output_path}")
 
         # Show the organized output structure
-        base_name = os.path.splitext(os.path.basename(selected_file))[0]
-        output_base_dir = os.path.join(
-            os.path.dirname(__file__), "..", "processedData", base_name
-        )
-        print(f"\n📁 Output organized in: {output_base_dir}")
-        print(f"   ├── ocr_output_{base_name}.txt     (OCR text)")
-        print(
-            f"   └── aiworkflow_output_{base_name}_*.json     (AI workflow evaluation results)"
-        )
+        # base_name = os.path.splitext(os.path.basename(selected_file))[0]
+        # output_base_dir = os.path.join(
+        #     os.path.dirname(__file__), "..", "processedData", base_name
+        # )
+        # print(f"\n📁 Output organized in: {output_base_dir}")
+        # print(f"   ├── ocr_output_{base_name}.txt     (OCR text)")
+        # print(
+        #     f"   └── aiworkflow_output_{base_name}_*.json     (AI workflow evaluation results)"
+        # )
+        print("\n📁 Output organized in: (No disk saving)")
+        print("   ├── OCR text: (stored in DB)")
+        print("   └── AI workflow evaluation results: (stored in DB)")
     else:
         print("⚠️  Pipeline failed - no results to save")
 

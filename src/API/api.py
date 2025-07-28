@@ -4,8 +4,8 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from starlette.responses import Response
 
 from src.database.database import (
     add_student_feedback,
@@ -232,31 +232,80 @@ async def upload_certificate(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid training type")
 
-    # Create timestamped folder
-    from datetime import datetime
+    # Validate filename
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided")
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    folder_name = f"{timestamp}_{file.filename.replace('.', '_')}"
+    # Extract file extension properly
+    file_extension = os.path.splitext(file.filename)[1]
+    if not file_extension:
+        raise HTTPException(status_code=400, detail="File must have an extension")
 
-    uploads_dir = "uploads"
-    os.makedirs(uploads_dir, exist_ok=True)
+    # Remove the dot from extension
+    filetype = file_extension[1:].lower()
 
-    # Create the specific folder for this upload
-    upload_folder = os.path.join(uploads_dir, folder_name)
-    os.makedirs(upload_folder, exist_ok=True)
+    # Validate file type
+    allowed_extensions = {
+        ".pdf",
+        ".docx",
+        ".doc",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".tiff",
+        ".bmp",
+    }
+    if file_extension.lower() not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type {filetype} not supported. Allowed types: {', '.join(allowed_extensions)}",
+        )
 
-    # Save file in the timestamped folder
-    file_location = os.path.join(upload_folder, file.filename)
-    with open(file_location, "wb") as f:
-        f.write(await file.read())
+    # Read file content
+    file_content = await file.read()
 
-    certificate = create_certificate(
-        student_id=student.student_id,
-        training_type=training_type_enum,
-        filename=file.filename,
-        filetype=os.path.splitext(file.filename)[1][1:],
-        filepath=file_location,
+    # Validate file size (10MB limit)
+    if len(file_content) > 10 * 1024 * 1024:  # 10MB
+        raise HTTPException(
+            status_code=400, detail="File size too large. Maximum size is 10MB."
+        )
+
+    # Validate that we actually have content
+    if len(file_content) == 0:
+        raise HTTPException(status_code=400, detail="File is empty")
+
+    logger.info(
+        f"Uploading file: {file.filename}, type: {filetype}, size: {len(file_content)} bytes"
     )
+
+    # Store file in database instead of file system
+    try:
+        certificate = create_certificate(
+            student_id=student.student_id,
+            training_type=training_type_enum,
+            filename=file.filename,
+            filetype=filetype,
+            file_content=file_content,
+        )
+
+        logger.info(f"Certificate created with ID: {certificate.certificate_id}")
+
+        # Verify the certificate was created correctly
+        verification_cert = get_certificate_by_id(certificate.certificate_id)
+        if verification_cert:
+            logger.info(
+                f"Verification - File content size: {len(verification_cert.file_content) if verification_cert.file_content else 0} bytes"
+            )
+            logger.info(f"Verification - File type: {verification_cert.filetype}")
+        else:
+            logger.error("Failed to retrieve certificate after creation")
+
+    except Exception as e:
+        logger.error(f"Error creating certificate: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create certificate: {str(e)}"
+        )
+
     return {
         "success": True,
         "certificate_id": str(certificate.certificate_id),
@@ -264,7 +313,7 @@ async def upload_certificate(
     }
 
 
-ocr_workflow = OCRWorkflow()
+ocr_workflow = OCRWorkflow(language="auto", use_finnish_detection=True)
 llm_orchestrator = LLMOrchestrator()
 
 
@@ -278,125 +327,175 @@ async def process_certificate(certificate_id: UUID):
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    # Get the folder where the file was uploaded
-    file_path = Path(cert.filepath)
-    upload_folder = file_path.parent
+    # Check if file content exists in database
+    if not cert.file_content:
+        raise HTTPException(
+            status_code=404, detail="Certificate file content not found"
+        )
 
-    # Create timestamp for output files
-    from datetime import datetime
+    # Convert memoryview to bytes if necessary
+    if hasattr(cert.file_content, "tobytes"):
+        file_content = cert.file_content.tobytes()
+    else:
+        file_content = cert.file_content
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Create a temporary file for OCR processing
+    import os
+    import tempfile
 
-    # OCR processing
-    ocr_result = ocr_workflow.process_document(file_path)
-    if not ocr_result.get("success"):
-        raise HTTPException(status_code=500, detail="OCR processing failed")
-
-    # Save OCR output to the same folder
-    ocr_output_file = upload_folder / f"ocr_output_{file_path.stem}.txt"
-    with open(ocr_output_file, "w", encoding="utf-8") as f:
-        f.write(ocr_result.get("extracted_text", ""))
-
-    # update certificate table with ocr_output
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "UPDATE certificates SET ocr_output=%s WHERE certificate_id=%s",
-                (ocr_result.get("extracted_text", ""), str(certificate_id)),
-            )
-            conn.commit()
-
-    # Run LLM evaluation
-    cleaned_text = ocr_result.get("extracted_text", "")
+    with tempfile.NamedTemporaryFile(
+        delete=False, suffix=f".{cert.filetype}"
+    ) as temp_file:
+        temp_file.write(file_content)
+        temp_file_path = temp_file.name
 
     try:
-        llm_result = llm_orchestrator.process_work_certificate(
-            cleaned_text,
-            student_degree=student.degree,
-            requested_training_type=cert.training_type.value.lower(),
+        # OCR processing using temporary file
+        ocr_result = ocr_workflow.process_document(Path(temp_file_path))
+        if not ocr_result.get("success"):
+            raise HTTPException(status_code=500, detail="OCR processing failed")
+
+        # Update certificate table with ocr_output
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE certificates SET ocr_output=%s WHERE certificate_id=%s",
+                    (ocr_result.get("extracted_text", ""), str(certificate_id)),
+                )
+                conn.commit()
+
+        # Run LLM evaluation
+        cleaned_text = ocr_result.get("extracted_text", "")
+
+        try:
+            llm_result = llm_orchestrator.process_work_certificate(
+                cleaned_text,
+                student_degree=student.degree,
+                requested_training_type=cert.training_type.value.lower(),
+            )
+
+        except Exception as e:
+            logger.error(f"LLM processing failed: {e}")
+            # Return OCR results with LLM error
+            return {
+                "ocr_results": ocr_result,
+                "llm_results": {
+                    "success": False,
+                    "error": f"LLM processing failed: {str(e)}",
+                    "evaluation_results": {
+                        "results": {
+                            "training_hours": 0,
+                            "credits": 0,
+                            "duration": "Not available",
+                            "institution": "Not available",
+                            "justification": f"LLM processing failed: {str(e)}",
+                        }
+                    },
+                },
+                "decision": {
+                    "ai_decision": "PENDING",
+                    "ai_justification": f"LLM processing failed: {str(e)}",
+                },
+            }
+
+        # Store decision using evaluation results directly from LLM
+        evaluation_results = llm_result.get("evaluation_results", {}).get("results", {})
+        extraction_results = llm_result.get("extraction_results", {}).get("results", {})
+
+        # Get values directly from LLM results - no decision processing in API
+        llm_decision = evaluation_results.get("decision", "PENDING")
+        credits_awarded = evaluation_results.get("credits_qualified", 0)
+        total_working_hours = evaluation_results.get("total_working_hours", 0)
+        training_duration = extraction_results.get(
+            "total_employment_period", "Not specified"
+        )
+        training_institution = extraction_results.get("employer", "Not specified")
+        ai_justification = evaluation_results.get(
+            "justification", "No justification provided"
+        )
+        degree_relevance = evaluation_results.get("degree_relevance", "Not specified")
+        supporting_evidence = evaluation_results.get("supporting_evidence", "")
+        challenging_evidence = evaluation_results.get("challenging_evidence", "")
+        recommendation = evaluation_results.get("recommendation", "")
+
+        # Convert LLM decision string to DecisionStatus enum for database storage
+        final_decision = (
+            DecisionStatus.ACCEPTED
+            if llm_decision == "ACCEPTED"
+            else DecisionStatus.REJECTED
         )
 
-        # Save LLM output to the same folder
-        llm_output_file = (
-            upload_folder / f"aiworkflow_output_{file_path.stem}_{timestamp}.json"
-        )
-        with open(llm_output_file, "w", encoding="utf-8") as f:
-            import json
+        # Create complete AI workflow JSON output (like the old aiworkflow_output files)
+        complete_workflow_json = {
+            "success": True,
+            "certificate_id": str(certificate_id),
+            "student_degree": student.degree,
+            "processing_time": llm_result.get("processing_time", 0),
+            "ocr_results": ocr_result,
+            "llm_results": llm_result,
+            "decision": {
+                "ai_decision": llm_decision,  # Use LLM's decision string directly
+                "ai_justification": ai_justification,
+                "credits_awarded": credits_awarded,
+                "total_working_hours": total_working_hours,
+                "training_duration": training_duration,
+                "training_institution": training_institution,
+            },
+        }
 
-            json.dump(llm_result, f, indent=2, ensure_ascii=False)
+        # Convert to JSON string
+        import json
+
+        ai_workflow_json_string = json.dumps(
+            complete_workflow_json, indent=2, ensure_ascii=False
+        )
+
+        # Create decision record - store LLM results directly
+        decision = create_decision(
+            certificate_id=certificate_id,
+            ai_decision=final_decision,  # Enum for database storage
+            ai_justification=ai_justification,
+            total_working_hours=total_working_hours,
+            credits_awarded=credits_awarded,
+            training_duration=training_duration,
+            training_institution=training_institution,
+            degree_relevance=degree_relevance,
+            supporting_evidence=supporting_evidence,
+            challenging_evidence=challenging_evidence,
+            recommendation=recommendation,
+            ai_workflow_json=ai_workflow_json_string,
+        )
+
+        # Clean up temporary file
+        try:
+            os.unlink(temp_file_path)
+        except Exception as e:
+            logger.warning(f"Failed to clean up temporary file {temp_file_path}: {e}")
+
+        return {
+            "success": True,
+            "certificate_id": str(certificate_id),
+            "ocr_results": ocr_result,
+            "llm_results": llm_result,
+            "decision": {
+                "ai_decision": decision.ai_decision.value,
+                "ai_justification": decision.ai_justification,
+                "credits_awarded": decision.credits_awarded,
+                "total_working_hours": decision.total_working_hours,
+                "training_duration": decision.training_duration,
+                "training_institution": decision.training_institution,
+            },
+        }
 
     except Exception as e:
-        logger.error(f"LLM processing failed: {e}")
-        # Save error information to the same folder
-        error_output_file = (
-            upload_folder / f"llm_error_{file_path.stem}_{timestamp}.json"
-        )
-        error_data = {
-            "error": f"LLM processing failed: {str(e)}",
-            "timestamp": timestamp,
-            "certificate_id": str(certificate_id),
-        }
-        with open(error_output_file, "w", encoding="utf-8") as f:
-            import json
+        # Clean up temporary file on error
+        try:
+            os.unlink(temp_file_path)
+        except Exception:
+            pass
 
-            json.dump(error_data, f, indent=2, ensure_ascii=False)
-
-        # Return OCR results with LLM error
-        return {
-            "ocr_results": ocr_result,
-            "llm_results": {
-                "success": False,
-                "error": f"LLM processing failed: {str(e)}",
-                "evaluation_results": {
-                    "results": {
-                        "training_hours": 0,
-                        "credits": 0,
-                        "duration": "Not available",
-                        "institution": "Not available",
-                        "justification": f"LLM processing failed: {str(e)}",
-                    }
-                },
-            },
-            "decision": {
-                "ai_decision": "PENDING",
-                "ai_justification": f"LLM processing failed: {str(e)}",
-            },
-        }
-
-    # Store decision using evaluation results directly
-    evaluation_results = llm_result.get("evaluation_results", {}).get("results", {})
-
-    # Determine credits based on decision
-    ai_decision = evaluation_results.get("decision", "REJECTED")
-    credits_awarded = 0  # Default to 0 for rejected applications
-
-    if ai_decision == "ACCEPTED":
-        # Get credits from LLM response, default to 0 if not provided
-        credits_awarded = evaluation_results.get("credits_qualified", 0)
-        if credits_awarded is None:
-            credits_awarded = 0
-
-    decision = create_decision(
-        certificate_id=certificate_id,
-        ai_decision=DecisionStatus(ai_decision),
-        ai_justification=evaluation_results.get(
-            "justification", "LLM processing complete"
-        ),
-        total_working_hours=evaluation_results.get("total_working_hours"),
-        credits_awarded=credits_awarded,
-        training_duration=evaluation_results.get("duration"),
-        training_institution=evaluation_results.get("institution"),
-        degree_relevance=evaluation_results.get("degree_relevance"),
-        supporting_evidence=evaluation_results.get("supporting_evidence"),
-        challenging_evidence=evaluation_results.get("challenging_evidence"),
-        recommendation=evaluation_results.get("recommendation"),
-    )
-
-    return {
-        "ocr_results": ocr_result,
-        "llm_results": llm_result,
-        "decision": decision.to_dict(),
-    }
+        logger.error(f"Certificate processing failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
 
 @router.get("/reviewers", tags=["student"])
@@ -448,14 +547,6 @@ async def delete_certificate_endpoint(certificate_id: UUID):
     try:
         # Delete the certificate and all associated data
         delete_certificate(certificate_id)
-
-        # Also delete the uploaded file if it exists
-        if cert.filepath and os.path.exists(cert.filepath):
-            os.remove(cert.filepath)
-            # Try to remove the parent directory if it's empty
-            parent_dir = os.path.dirname(cert.filepath)
-            if os.path.exists(parent_dir) and not os.listdir(parent_dir):
-                os.rmdir(parent_dir)
 
         return {"success": True, "message": "Certificate deleted successfully"}
     except Exception as e:
@@ -570,29 +661,41 @@ async def get_reviewer_certificates(reviewer_id: UUID):
 
 @router.get("/certificate/{certificate_id}", tags=["student"])
 async def download_certificate_file(certificate_id: UUID):
-    """Return the actual certificate file as a download."""
-    logger.info(f"Download request for certificate_id: {certificate_id}")
+    """Return the certificate file for download."""
     cert = get_certificate_by_id(certificate_id)
     if not cert:
-        logger.error(f"Certificate not found for ID: {certificate_id}")
         raise HTTPException(status_code=404, detail="Certificate not found")
-    if not cert.filepath:
-        logger.error(f"Certificate file path not found for ID: {certificate_id}")
-        raise HTTPException(status_code=404, detail="Certificate file path not found")
-    if not os.path.exists(cert.filepath):
-        logger.error(
-            f"Certificate file not found at path: {cert.filepath} for ID: {certificate_id}"
-        )
+    if not cert.file_content:
         raise HTTPException(
-            status_code=404,
-            detail=f"Certificate file not found at path: {cert.filepath}",
+            status_code=404, detail="Certificate file content not found"
         )
 
-    logger.info(f"Serving file: {cert.filepath} for certificate_id: {certificate_id}")
-    return FileResponse(
-        path=cert.filepath,
-        media_type="application/octet-stream",
-        filename=cert.filename,
+    # Convert memoryview to bytes if necessary
+    if hasattr(cert.file_content, "tobytes"):
+        file_content = cert.file_content.tobytes()
+    else:
+        file_content = cert.file_content
+
+    # Determine the media type based on file extension
+    file_extension = cert.filetype.lower()
+    media_type = "application/octet-stream"  # default
+
+    if file_extension in ["pdf"]:
+        media_type = "application/pdf"
+    elif file_extension in ["jpg", "jpeg"]:
+        media_type = "image/jpeg"
+    elif file_extension in ["png"]:
+        media_type = "image/png"
+    elif file_extension in ["doc", "docx"]:
+        media_type = (
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+
+    # Return the file content from database
+    return Response(
+        content=file_content,
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename={cert.filename}"},
     )
 
 
@@ -602,13 +705,16 @@ async def preview_certificate_file(certificate_id: UUID):
     cert = get_certificate_by_id(certificate_id)
     if not cert:
         raise HTTPException(status_code=404, detail="Certificate not found")
-    if not cert.filepath:
-        raise HTTPException(status_code=404, detail="Certificate file path not found")
-    if not os.path.exists(cert.filepath):
+    if not cert.file_content:
         raise HTTPException(
-            status_code=404,
-            detail=f"Certificate file not found at path: {cert.filepath}",
+            status_code=404, detail="Certificate file content not found"
         )
+
+    # Convert memoryview to bytes if necessary
+    if hasattr(cert.file_content, "tobytes"):
+        file_content = cert.file_content.tobytes()
+    else:
+        file_content = cert.file_content
 
     # Determine the media type based on file extension
     file_extension = cert.filetype.lower()
@@ -626,39 +732,11 @@ async def preview_certificate_file(certificate_id: UUID):
         )
 
     # For preview, we want to serve the file inline without forcing download
-    # We'll return the file content directly for certain file types
-    if file_extension in ["pdf"]:
-        # For PDFs, return as inline PDF
-        return FileResponse(
-            path=cert.filepath,
-            media_type=media_type,
-            headers={"Content-Disposition": "inline; filename=" + cert.filename},
-        )
-    elif file_extension in ["jpg", "jpeg", "png"]:
-        # For images, return as inline image
-        return FileResponse(
-            path=cert.filepath,
-            media_type=media_type,
-            headers={"Content-Disposition": "inline; filename=" + cert.filename},
-        )
-    elif file_extension in ["docx", "doc"]:
-        # For Word documents, try to serve as inline
-        # Modern browsers can preview Word documents
-        return FileResponse(
-            path=cert.filepath,
-            media_type=media_type,
-            headers={
-                "Content-Disposition": "inline; filename=" + cert.filename,
-                "X-Content-Type-Options": "nosniff",
-            },
-        )
-    else:
-        # For other file types, return as inline but browser may still download
-        return FileResponse(
-            path=cert.filepath,
-            media_type=media_type,
-            headers={"Content-Disposition": "inline; filename=" + cert.filename},
-        )
+    return Response(
+        content=file_content,
+        media_type=media_type,
+        headers={"Content-Disposition": f"inline; filename={cert.filename}"},
+    )
 
 
 # If the frontend still needs metadata, expose it under a new path

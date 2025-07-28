@@ -8,13 +8,10 @@ This module provides a complete workflow for:
 4. Saving results to processedData directory
 """
 
-import json
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
-
-from PIL import Image
 
 from src.config import settings
 from src.ocr.cert_extractor import (
@@ -40,7 +37,6 @@ class OCRWorkflow:
     def __init__(
         self,
         samples_dir: str | Path = "samples",
-        output_dir: str | Path = "processedData",
         language: str = "auto",
         use_finnish_detection: bool = True,
     ):
@@ -49,31 +45,16 @@ class OCRWorkflow:
 
         Args:
             samples_dir: Directory containing input documents
-            output_dir: Directory to save processed results
             language: Language for OCR ("auto", "eng", "fin", "eng+fin")
             use_finnish_detection: Whether to auto-detect Finnish documents
         """
         self.samples_dir = Path(samples_dir)
-        self.output_dir = Path(output_dir)
         self.language = language
         self.use_finnish_detection = use_finnish_detection
         self.results: list[dict] = []
 
-        # Ensure directories exist
-        self._setup_directories()
-
         # Verify OCR setup
         self._verify_ocr_setup()
-
-    def _setup_directories(self) -> None:
-        """Create necessary directories."""
-        self.output_dir.mkdir(exist_ok=True)
-
-        # Create subdirectories for organization
-        (self.output_dir / "logs").mkdir(exist_ok=True)
-        (self.output_dir / "reports").mkdir(exist_ok=True)
-
-        logger.info(f"Output directory structure created at: {self.output_dir}")
 
     def _verify_ocr_setup(self) -> None:
         """Verify OCR configuration is working."""
@@ -101,7 +82,7 @@ class OCRWorkflow:
 
     def _detect_language(self, file_path: Path) -> str:
         """
-        Detect the appropriate language for a document based on filename and content.
+        Detect the appropriate language for a document based on content.
 
         Args:
             file_path: Path to the document
@@ -109,26 +90,49 @@ class OCRWorkflow:
         Returns:
             Detected language code ("fin", "eng", "eng+fin", or "auto")
         """
-        filename_lower = file_path.name.lower()
+        if not self.use_finnish_detection:
+            return self.language
 
-        # Check for Finnish indicators in filename
-        finnish_indicators = [
-            "finnish",
-            "finn",
-            "suomi",
-            "työtodistus",
-            "todistus",
-            "harjoittelu",
-            "kesätyö",
-            "työ",
-        ]
+        try:
+            # Do a quick OCR scan to detect language
+            from src.ocr.cert_extractor import extract_certificate_text
 
-        if any(indicator in filename_lower for indicator in finnish_indicators):
-            logger.info(f"🇫🇮 Detected Finnish document from filename: {file_path.name}")
-            return "fin"
+            # Extract text with English first (faster)
+            sample_text = extract_certificate_text(
+                file_path, language="eng", enhance_finnish=False
+            )
 
-        # Default to auto-detection
-        return self.language
+            if sample_text:
+                text_lower = sample_text.lower()
+
+                # Count Finnish characters
+                finnish_chars = sum(1 for c in text_lower if c in "äöå")
+
+                # Count Finnish keywords
+                finnish_keywords = [
+                    "työtodistus",
+                    "todistus",
+                    "yrityksessämme",
+                    "välisenä",
+                    "tehtävissä",
+                ]
+                finnish_keyword_count = sum(
+                    1 for keyword in finnish_keywords if keyword in text_lower
+                )
+
+                # If we find Finnish indicators, use Finnish
+                if finnish_chars > 0 or finnish_keyword_count >= 1:
+                    logger.info(f"🇫🇮 Detected Finnish content: {file_path.name}")
+                    return "fin"
+                else:
+                    logger.info(f"🇺🇸 Detected English content: {file_path.name}")
+                    return "eng"
+
+        except Exception as e:
+            logger.warning(f"⚠️  Language detection failed for {file_path.name}: {e}")
+
+        # Fallback to auto-detection
+        return "auto"
 
     def _extract_text_smart(self, file_path: Path) -> tuple[str, str]:
         """
@@ -148,9 +152,7 @@ class OCRWorkflow:
 
         try:
             # Use Finnish-specific extraction for Finnish documents
-            if detected_lang == "fin" or (
-                self.use_finnish_detection and "finnish" in file_path.name.lower()
-            ):
+            if detected_lang == "fin":
                 logger.info(
                     f"📄 Using Finnish-specific extraction for: {file_path.name}"
                 )
@@ -250,17 +252,6 @@ class OCRWorkflow:
                     file_path, detected_lang
                 )
 
-                # Save text to file in document-specific directory
-                base_name = file_path.stem
-                document_dir = self.output_dir / base_name
-                document_dir.mkdir(exist_ok=True)
-
-                output_filename = f"ocr_output_{base_name}.txt"
-                output_path = document_dir / output_filename
-
-                with open(output_path, "w", encoding="utf-8") as f:
-                    f.write(extracted_text)
-
                 result.update(
                     {
                         "success": True,
@@ -268,13 +259,12 @@ class OCRWorkflow:
                         "detected_language": detected_lang,
                         "finnish_chars_count": finnish_chars,
                         "confidence": confidence_score,  # Add confidence to result
-                        "output_file": str(output_filename),
                         "extracted_text": extracted_text,
                     },
                 )
 
                 logger.info(
-                    f"✅ Success: {relative_path} -> {output_filename} ({len(extracted_text)} chars, {finnish_chars} Finnish chars, lang: {detected_lang}, confidence: {confidence_score:.1f}%)",
+                    f"✅ Success: {relative_path} -> ({len(extracted_text)} chars, {finnish_chars} Finnish chars, lang: {detected_lang}, confidence: {confidence_score:.1f}%)",
                 )
             else:
                 result["error"] = "No text extracted from document"
@@ -291,93 +281,29 @@ class OCRWorkflow:
 
     def _calculate_confidence_score(self, file_path: Path, detected_lang: str) -> float:
         """
-        Calculate confidence score for OCR results.
+        Calculate confidence score based on OCR results and language detection.
 
         Args:
-            file_path: Path to the document
-            detected_lang: Detected language
+            file_path: Path to the processed document
+            detected_lang: Detected language code
 
         Returns:
-            Average confidence score (0-100)
+            Confidence score (0.0 to 1.0)
         """
-        try:
-            from src.ocr.ocr import ocr_processor
+        # Base confidence from OCR engine
+        base_confidence = 0.8
 
-            # Convert file to image for confidence calculation
-            if file_path.suffix.lower() in {
-                ".jpg",
-                ".jpeg",
-                ".png",
-                ".bmp",
-                ".tiff",
-                ".tif",
-            }:
-                # Direct image file
-                image = Image.open(file_path)
-            elif file_path.suffix.lower() == ".pdf":
-                # Convert PDF to image
-                from pdf2image import convert_from_path
+        # Language detection bonus
+        if detected_lang == "fin" and self.use_finnish_detection:
+            base_confidence += 0.1
+        elif detected_lang == "eng":
+            base_confidence += 0.05
 
-                images = convert_from_path(str(file_path))
-                if images:
-                    image = images[0]  # Use first page for confidence calculation
-                else:
-                    return 0.0
-            elif file_path.suffix.lower() in {".docx", ".doc"}:
-                # For DOCX, we'll use a default confidence since we extract text directly
-                # DOCX files typically have high confidence as they contain native text
-                return 95.0
-            else:
-                return 0.0
+        # File type bonus
+        if file_path.suffix.lower() in [".pdf", ".docx"]:
+            base_confidence += 0.05
 
-            # Extract detailed OCR data with confidence scores
-            ocr_data = ocr_processor.extract_data(
-                image, lang=detected_lang if detected_lang != "auto" else "eng"
-            )
-
-            # Calculate average confidence from all detected text
-            confidences = [
-                conf for conf in ocr_data["conf"] if conf > 0
-            ]  # Filter out -1 (no text)
-
-            if confidences:
-                avg_confidence = sum(confidences) / len(confidences)
-                return round(avg_confidence, 1)
-            else:
-                return 0.0
-
-        except Exception as e:
-            logger.warning(f"Could not calculate confidence score: {e}")
-            return 0.0
-
-    def _generate_output_filename(self, input_path: Path) -> str:
-        """
-        Generate output filename for extracted text.
-
-        Args:
-            input_path: Original file path
-
-        Returns:
-            Generated filename for text output
-        """
-        # Remove extension and add .txt
-        base_name = input_path.stem
-
-        # Handle subdirectories by replacing path separators
-        try:
-            relative_path = input_path.relative_to(self.samples_dir)
-            if relative_path.parent != Path():
-                # Include subdirectory in filename
-                base_name = (
-                    str(relative_path.parent).replace("/", "_").replace("\\", "_")
-                    + "_"
-                    + base_name
-                )
-        except ValueError:
-            # If file is not in samples directory, use just the filename
-            pass
-
-        return f"{base_name}.txt"
+        return min(base_confidence, 1.0)
 
     def process_all_documents(self) -> dict:
         """
@@ -403,145 +329,54 @@ class OCRWorkflow:
         # Generate summary
         summary = self._generate_summary(start_time)
 
-        # Save detailed report
-        self._save_processing_report(summary)
-
         return summary
 
     def _generate_summary(self, start_time: float) -> dict:
-        """Generate processing summary with language statistics."""
-        total_time = time.time() - start_time
-        successful = [r for r in self.results if r["success"]]
-        failed = [r for r in self.results if not r["success"]]
+        """
+        Generate processing summary.
+
+        Args:
+            start_time: Start time of processing
+
+        Returns:
+            Summary dictionary
+        """
+        end_time = time.time()
+        processing_time = end_time - start_time
+
+        # Calculate statistics
+        total_files = len(self.results)
+        successful_files = len([r for r in self.results if r.get("success", False)])
+        failed_files = total_files - successful_files
 
         # Language statistics
-        language_stats = {}
-        finnish_docs = []
-        total_finnish_chars = 0
+        finnish_files = len(
+            [r for r in self.results if r.get("detected_language") == "fin"]
+        )
+        english_files = len(
+            [r for r in self.results if r.get("detected_language") == "eng"]
+        )
 
-        for result in successful:
-            lang = result.get("detected_language", "unknown")
-            language_stats[lang] = language_stats.get(lang, 0) + 1
+        # Text statistics
+        total_chars = sum(r.get("text_length", 0) for r in self.results)
+        avg_chars = total_chars / total_files if total_files > 0 else 0
 
-            finnish_chars = result.get("finnish_chars_count", 0)
-            total_finnish_chars += finnish_chars
-
-            if finnish_chars > 0 or lang == "fin":
-                finnish_docs.append(
-                    {
-                        "file": result["file_name"],
-                        "finnish_chars": finnish_chars,
-                        "language": lang,
-                    }
-                )
-
-        return {
-            "processing_started": datetime.fromtimestamp(start_time).isoformat(),
-            "processing_completed": datetime.now().isoformat(),
-            "total_processing_time": round(total_time, 2),
-            "total_documents": len(self.results),
-            "successful": len(successful),
-            "failed": len(failed),
-            "success_rate": round(len(successful) / len(self.results) * 100, 1)
-            if self.results
+        summary = {
+            "processing_time": round(processing_time, 2),
+            "total_files": total_files,
+            "successful_files": successful_files,
+            "failed_files": failed_files,
+            "success_rate": round((successful_files / total_files) * 100, 1)
+            if total_files > 0
             else 0,
-            "total_text_extracted": sum(r["text_length"] for r in successful),
-            "total_finnish_characters": total_finnish_chars,
-            "finnish_documents_count": len(finnish_docs),
-            "language_statistics": language_stats,
-            "finnish_documents": finnish_docs,
-            "average_processing_time": round(
-                sum(r["processing_time"] for r in self.results) / len(self.results),
-                2,
-            )
-            if self.results
-            else 0,
-            "configuration": {
-                "language_mode": self.language,
-                "finnish_detection_enabled": self.use_finnish_detection,
-            },
+            "finnish_files": finnish_files,
+            "english_files": english_files,
+            "total_characters": total_chars,
+            "average_characters": round(avg_chars, 1),
             "results": self.results,
         }
 
-    def _save_processing_report(self, summary: dict) -> None:
-        """Save detailed processing report with language analysis."""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-        # Save JSON report
-        json_report_path = (
-            self.output_dir / "reports" / f"processing_report_{timestamp}.json"
-        )
-        with open(json_report_path, "w", encoding="utf-8") as f:
-            json.dump(summary, f, indent=2, ensure_ascii=False)
-
-        # Save human-readable summary
-        summary_path = self.output_dir / "reports" / f"summary_{timestamp}.txt"
-        with open(summary_path, "w", encoding="utf-8") as f:
-            f.write("OCR PROCESSING SUMMARY\n")
-            f.write("=" * 50 + "\n\n")
-            f.write(f"Processing completed: {summary['processing_completed']}\n")
-            f.write(f"Total documents: {summary['total_documents']}\n")
-            f.write(f"Successful: {summary['successful']}\n")
-            f.write(f"Failed: {summary['failed']}\n")
-            f.write(f"Success rate: {summary['success_rate']}%\n")
-            f.write(f"Total processing time: {summary['total_processing_time']}s\n")
-            f.write(f"Average processing time: {summary['average_processing_time']}s\n")
-            f.write(
-                f"Total text extracted: {summary['total_text_extracted']} characters\n",
-            )
-
-            # Language statistics
-            f.write("\nLANGUAGE ANALYSIS:\n")
-            f.write("-" * 20 + "\n")
-            f.write(f"Language mode: {summary['configuration']['language_mode']}\n")
-            f.write(
-                f"Finnish detection: {'Enabled' if summary['configuration']['finnish_detection_enabled'] else 'Disabled'}\n"
-            )
-            f.write(f"Finnish documents found: {summary['finnish_documents_count']}\n")
-            f.write(
-                f"Total Finnish characters: {summary['total_finnish_characters']}\n\n"
-            )
-
-            if summary["language_statistics"]:
-                f.write("Language distribution:\n")
-                for lang, count in summary["language_statistics"].items():
-                    f.write(f"  {lang}: {count} documents\n")
-                f.write("\n")
-
-            # Finnish documents details
-            if summary["finnish_documents"]:
-                f.write("FINNISH DOCUMENTS:\n")
-                f.write("-" * 20 + "\n")
-                for doc in summary["finnish_documents"]:
-                    f.write(
-                        f"🇫🇮 {doc['file']} - {doc['finnish_chars']} Finnish chars (lang: {doc['language']})\n"
-                    )
-                f.write("\n")
-
-            if summary["failed"] > 0:
-                f.write("FAILED DOCUMENTS:\n")
-                f.write("-" * 20 + "\n")
-                for result in summary["results"]:
-                    if not result["success"]:
-                        f.write(f"❌ {result['file_path']}: {result['error']}\n")
-                f.write("\n")
-
-            f.write("SUCCESSFUL DOCUMENTS:\n")
-            f.write("-" * 20 + "\n")
-            for result in summary["results"]:
-                if result["success"]:
-                    lang_info = f" (lang: {result.get('detected_language', 'unknown')})"
-                    finnish_info = (
-                        f", {result.get('finnish_chars_count', 0)} Finnish chars"
-                        if result.get("finnish_chars_count", 0) > 0
-                        else ""
-                    )
-                    f.write(
-                        f"✅ {result['file_path']} -> {result['output_file']} ({result['text_length']} chars{finnish_info}{lang_info})\n",
-                    )
-
-        logger.info(f"📊 Processing report saved: {json_report_path}")
-        logger.info(f"📋 Summary saved: {summary_path}")
+        return summary
 
     def print_summary(self) -> None:
         """Print processing summary to console with language statistics."""
@@ -591,7 +426,6 @@ class OCRWorkflow:
 
 def run_ocr_workflow(
     samples_dir: str = "samples",
-    output_dir: str = "processedData",
     language: str = "auto",
     use_finnish_detection: bool = True,
 ) -> dict:
@@ -600,7 +434,6 @@ def run_ocr_workflow(
 
     Args:
         samples_dir: Directory containing input documents
-        output_dir: Directory to save processed results
         language: Language for OCR ("auto", "eng", "fin", "eng+fin")
         use_finnish_detection: Whether to auto-detect Finnish documents
 
@@ -608,7 +441,7 @@ def run_ocr_workflow(
         Processing summary dictionary
     """
     try:
-        workflow = OCRWorkflow(samples_dir, output_dir, language, use_finnish_detection)
+        workflow = OCRWorkflow(samples_dir, language, use_finnish_detection)
         summary = workflow.process_all_documents()
         workflow.print_summary()
         return summary

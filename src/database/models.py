@@ -114,8 +114,9 @@ class Certificate:
         training_type: Type of training requested (GENERAL/PROFESSIONAL)
         filename: Original filename of the uploaded certificate
         filetype: File type/extension of the certificate
-        filepath: Path or link to the uploaded file
         uploaded_at: Timestamp when the certificate was uploaded
+        file_content: Actual file content stored as bytes in the database
+        ocr_output: OCR extracted text from the certificate
     """
 
     certificate_id: UUID
@@ -123,8 +124,8 @@ class Certificate:
     training_type: TrainingType
     filename: str
     filetype: str
-    filepath: Optional[str]
     uploaded_at: datetime
+    file_content: Optional[bytes] = None
     ocr_output: Optional[str] = None
 
     def to_dict(self) -> dict:
@@ -160,6 +161,7 @@ class Decision:
         appeal_reviewer_id: Reviewer handling the appeal
         appeal_review_comment: Appeal reviewer's comments
         appeal_reviewed_at: When appeal was reviewed
+        ai_workflow_json: Complete AI workflow JSON output (like the old aiworkflow_output files)
     """
 
     decision_id: UUID
@@ -187,6 +189,8 @@ class Decision:
     supporting_evidence: Optional[str] = None
     challenging_evidence: Optional[str] = None
     recommendation: Optional[str] = None
+    # Complete AI workflow output
+    ai_workflow_json: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -224,6 +228,7 @@ class Decision:
             "supporting_evidence": self.supporting_evidence,
             "challenging_evidence": self.challenging_evidence,
             "recommendation": self.recommendation,
+            "ai_workflow_json": self.ai_workflow_json,
         }
 
 
