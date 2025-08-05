@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS certificates (
     training_type training_type NOT NULL,
     filename VARCHAR(255) NOT NULL,
     filetype VARCHAR(50) NOT NULL,
-    filepath TEXT, -- Path or link to the uploaded file
+    file_content BYTEA, -- Store the actual file content in the database
     ocr_output TEXT,
     uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
@@ -102,6 +102,8 @@ CREATE TABLE IF NOT EXISTS decisions (
     supporting_evidence TEXT, -- Supporting evidence for the decision
     challenging_evidence TEXT, -- Challenging evidence against the decision
     recommendation TEXT, -- AI recommendation summary
+    -- Complete AI workflow output
+    ai_workflow_json TEXT, -- Complete AI workflow JSON output (like the old aiworkflow_output files)
 
 -- Constraints
 CONSTRAINT decisions_ai_justification_check CHECK (LENGTH(ai_justification) > 0)
@@ -132,55 +134,3 @@ CREATE INDEX IF NOT EXISTS idx_decisions_reviewed_at ON decisions (reviewed_at);
 
 CREATE INDEX IF NOT EXISTS idx_decisions_appeal_status ON decisions (appeal_status);
 CREATE INDEX IF NOT EXISTS idx_decisions_appeal_submitted_at ON decisions (appeal_submitted_at);
-
--- Create function to automatically update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Create trigger to automatically update updated_at for students table (drop and recreate to avoid conflicts)
--- DROP TRIGGER IF EXISTS update_students_updated_at ON students;
-
--- CREATE TRIGGER update_students_updated_at
---     BEFORE UPDATE ON students
---     FOR EACH ROW
---     EXECUTE FUNCTION update_updated_at_column();
-
--- Migration script to update existing data if needed
--- Uncomment and run these if you have existing data that needs to be migrated
-
--- Add new columns to existing tables if they don't exist
--- DO $$ BEGIN
---     ALTER TABLE certificates ADD COLUMN IF NOT EXISTS filepath TEXT;
--- EXCEPTION WHEN duplicate_column THEN NULL;
--- END $$;
-
--- DO $$ BEGIN
---     ALTER TABLE decisions ADD COLUMN IF NOT EXISTS student_feedback TEXT;
--- EXCEPTION WHEN duplicate_column THEN NULL;
--- END $$;
-
--- DO $$ BEGIN
---     ALTER TABLE decisions ADD COLUMN IF NOT EXISTS review_status review_status DEFAULT 'PENDING';
--- EXCEPTION WHEN duplicate_column THEN NULL;
--- END $$;
-
--- DO $$ BEGIN
---     ALTER TABLE decisions ADD COLUMN IF NOT EXISTS reviewer_comment TEXT;
--- EXCEPTION WHEN duplicate_column THEN NULL;
--- END $$;
-
--- DO $$ BEGIN
---     ALTER TABLE decisions ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP WITH TIME ZONE;
--- EXCEPTION WHEN duplicate_column THEN NULL;
--- END $$;
-
--- Rename 'decision' column to 'ai_decision' if needed
--- DO $$ BEGIN
---     ALTER TABLE decisions RENAME COLUMN decision TO ai_decision;
--- EXCEPTION WHEN undefined_column THEN NULL;
--- END $$;

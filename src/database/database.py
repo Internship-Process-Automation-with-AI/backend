@@ -289,7 +289,7 @@ def get_student_with_certificates(
             # Get certificates
             cur.execute(
                 """
-                SELECT certificate_id, student_id, training_type, filename, filetype, filepath, uploaded_at
+                SELECT certificate_id, student_id, training_type, filename, filetype, uploaded_at
                 FROM certificates WHERE student_id = %s ORDER BY uploaded_at DESC
                 """,
                 (str(student_id),),
@@ -303,8 +303,7 @@ def get_student_with_certificates(
                     training_type=TrainingType(row[2]),
                     filename=row[3],
                     filetype=row[4],
-                    filepath=row[5],
-                    uploaded_at=row[6],
+                    uploaded_at=row[5],
                 )
                 for row in certificate_rows
             ]
@@ -325,17 +324,17 @@ def create_certificate(
     training_type: TrainingType,
     filename: str,
     filetype: str,
-    filepath: Optional[str] = None,
+    file_content: bytes,
 ) -> Certificate:
     """
     Create a new certificate record.
 
     Args:
         student_id: Student's UUID
-        training_type: Type of training requested
+        training_type: Type of training (GENERAL/PROFESSIONAL)
         filename: Original filename
         filetype: File type/extension
-        filepath: Path to the uploaded file
+        file_content: File content as bytes
 
     Returns:
         Certificate: Created certificate object
@@ -347,7 +346,7 @@ def create_certificate(
 
             cur.execute(
                 """
-                INSERT INTO certificates (certificate_id, student_id, training_type, filename, filetype, filepath, uploaded_at)
+                INSERT INTO certificates (certificate_id, student_id, training_type, filename, filetype, file_content, uploaded_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
@@ -356,38 +355,37 @@ def create_certificate(
                     training_type.value,
                     filename,
                     filetype,
-                    filepath,
+                    file_content,
                     now,
                 ),
             )
             conn.commit()
-
             return Certificate(
                 certificate_id=certificate_id,
                 student_id=student_id,
                 training_type=training_type,
                 filename=filename,
                 filetype=filetype,
-                filepath=filepath,
                 uploaded_at=now,
+                file_content=file_content,
             )
 
 
 def get_certificate_by_id(certificate_id: UUID) -> Optional[Certificate]:
     """
-    Get certificate by ID.
+    Get a certificate by its ID.
 
     Args:
         certificate_id: Certificate's UUID
 
     Returns:
-        Optional[Certificate]: Certificate object if found, None otherwise
+        Certificate: Certificate object if found, None otherwise
     """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT certificate_id, student_id, training_type, filename, filetype, filepath, uploaded_at
+                SELECT certificate_id, student_id, training_type, filename, filetype, file_content, ocr_output, uploaded_at
                 FROM certificates WHERE certificate_id = %s
                 """,
                 (str(certificate_id),),
@@ -401,18 +399,18 @@ def get_certificate_by_id(certificate_id: UUID) -> Optional[Certificate]:
                 training_type=TrainingType(row[2]),
                 filename=row[3],
                 filetype=row[4],
-                filepath=row[5],
-                uploaded_at=row[6],
+                file_content=row[5],
+                ocr_output=row[6],
+                uploaded_at=row[7],
             )
 
 
-def get_certificates(skip: int = 0, limit: int = 100) -> List[Certificate]:
+def get_certificates(student_id: UUID) -> List[Certificate]:
     """
-    Get list of certificates with pagination.
+    Get all certificates for a student.
 
     Args:
-        skip: Number of records to skip
-        limit: Maximum number of records to return
+        student_id: Student's UUID
 
     Returns:
         List[Certificate]: List of certificate objects
@@ -421,25 +419,27 @@ def get_certificates(skip: int = 0, limit: int = 100) -> List[Certificate]:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT certificate_id, student_id, training_type, filename, filetype, filepath, uploaded_at
-                FROM certificates ORDER BY uploaded_at DESC OFFSET %s LIMIT %s
+                SELECT certificate_id, student_id, training_type, filename, filetype, ocr_output, uploaded_at
+                FROM certificates WHERE student_id = %s ORDER BY uploaded_at DESC
                 """,
-                (skip, limit),
+                (str(student_id),),
             )
             rows = cur.fetchall()
-
-            return [
-                Certificate(
-                    certificate_id=UUID(row[0]),
-                    student_id=UUID(row[1]),
-                    training_type=TrainingType(row[2]),
-                    filename=row[3],
-                    filetype=row[4],
-                    filepath=row[5],
-                    uploaded_at=row[6],
+            certificates = []
+            for row in rows:
+                certificates.append(
+                    Certificate(
+                        certificate_id=UUID(row[0]),
+                        student_id=UUID(row[1]),
+                        training_type=TrainingType(row[2]),
+                        filename=row[3],
+                        filetype=row[4],
+                        ocr_output=row[5],
+                        uploaded_at=row[6],
+                        file_content=None,  # Don't load file content for list view
+                    )
                 )
-                for row in rows
-            ]
+            return certificates
 
 
 def delete_certificate(certificate_id: UUID) -> bool:
@@ -496,6 +496,7 @@ def create_decision(
     supporting_evidence: Optional[str] = None,
     challenging_evidence: Optional[str] = None,
     recommendation: Optional[str] = None,
+    ai_workflow_json: Optional[str] = None,
 ) -> Decision:
     """
     Create a new decision record.
@@ -503,9 +504,17 @@ def create_decision(
     Args:
         certificate_id: Certificate's UUID
         ai_decision: AI decision status
-        justification: Explanation for the decision
+        ai_justification: Explanation for the decision
         student_feedback: Student's feedback
-        review_status: Review status
+        total_working_hours: Total working hours from certificate
+        credits_awarded: Credits awarded (ECTS)
+        training_duration: Duration of training
+        training_institution: Institution where training was conducted
+        degree_relevance: How relevant the training is to the degree
+        supporting_evidence: Supporting evidence for the decision
+        challenging_evidence: Challenging evidence against the decision
+        recommendation: AI recommendation summary
+        ai_workflow_json: Complete AI workflow JSON output
 
     Returns:
         Decision: Created decision object
@@ -520,9 +529,9 @@ def create_decision(
                 INSERT INTO decisions (
                     decision_id, certificate_id, ai_justification, ai_decision, created_at, student_feedback,
                     total_working_hours, credits_awarded, training_duration, training_institution,
-                    degree_relevance, supporting_evidence, challenging_evidence, recommendation
+                    degree_relevance, supporting_evidence, challenging_evidence, recommendation, ai_workflow_json
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     str(decision_id),
@@ -539,6 +548,7 @@ def create_decision(
                     supporting_evidence,
                     challenging_evidence,
                     recommendation,
+                    ai_workflow_json,
                 ),
             )
             conn.commit()
@@ -560,6 +570,7 @@ def create_decision(
                 supporting_evidence=supporting_evidence,
                 challenging_evidence=challenging_evidence,
                 recommendation=recommendation,
+                ai_workflow_json=ai_workflow_json,
             )
 
 
@@ -782,7 +793,7 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
             # Get certificate
             cur.execute(
                 """
-                SELECT certificate_id, student_id, training_type, filename, filetype, filepath, uploaded_at
+                SELECT certificate_id, student_id, training_type, filename, filetype, uploaded_at
                 FROM certificates WHERE certificate_id = %s
                 """,
                 (str(certificate_id),),
@@ -822,8 +833,7 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
                 training_type=TrainingType(certificate_row[2]),
                 filename=certificate_row[3],
                 filetype=certificate_row[4],
-                filepath=certificate_row[5],
-                uploaded_at=certificate_row[6],
+                uploaded_at=certificate_row[5],
             )
 
             student = Student(
@@ -1216,7 +1226,7 @@ def get_certificates_by_reviewer_id(reviewer_id: UUID) -> List[DetailedApplicati
                 SELECT d.decision_id, d.certificate_id, c.ocr_output, d.ai_justification, 
                        d.ai_decision, d.created_at, d.student_feedback, d.reviewer_decision, 
                        d.reviewer_comment, d.reviewed_at,
-                       c.student_id, c.training_type, c.filename, c.filetype, c.filepath, c.uploaded_at,
+                       c.student_id, c.training_type, c.filename, c.filetype, c.uploaded_at,
                        s.email, s.degree, s.first_name, s.last_name
                 FROM decisions d
                 JOIN certificates c ON d.certificate_id = c.certificate_id
@@ -1248,16 +1258,15 @@ def get_certificates_by_reviewer_id(reviewer_id: UUID) -> List[DetailedApplicati
                         training_type=TrainingType(row[11]),
                         filename=row[12],
                         filetype=row[13],
-                        filepath=row[14],
-                        uploaded_at=row[15],
+                        uploaded_at=row[14],
                         ocr_output=row[2],  # Add ocr_output from certificates table
                     ),
                     student=Student(
                         student_id=UUID(row[10]),
-                        email=row[16],
-                        degree=row[17],
-                        first_name=row[18],
-                        last_name=row[19],
+                        email=row[15],
+                        degree=row[16],
+                        first_name=row[17],
+                        last_name=row[18],
                     ),
                 )
                 for row in rows
