@@ -577,7 +577,7 @@ def get_decision_by_id(decision_id: UUID) -> Optional[Decision]:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT decision_id, certificate_id, ocr_output, ai_justification, ai_decision, created_at,
+                SELECT decision_id, certificate_id, ai_justification, ai_decision, created_at,
                        student_feedback, reviewer_decision, reviewer_comment, reviewed_at,
                        total_working_hours, credits_awarded, training_duration, training_institution,
                        degree_relevance, supporting_evidence, challenging_evidence, recommendation
@@ -591,22 +591,21 @@ def get_decision_by_id(decision_id: UUID) -> Optional[Decision]:
             return Decision(
                 decision_id=UUID(row[0]),
                 certificate_id=UUID(row[1]),
-                ocr_output=row[2],
-                ai_justification=row[3],
-                ai_decision=DecisionStatus(row[4]),
-                created_at=row[5],
-                student_feedback=row[6],
-                reviewer_decision=ReviewerDecision(row[7]) if row[7] else None,
-                reviewer_comment=row[8],
-                reviewed_at=row[9],
-                total_working_hours=row[10],
-                credits_awarded=row[11],
-                training_duration=row[12],
-                training_institution=row[13],
-                degree_relevance=row[14],
-                supporting_evidence=row[15],
-                challenging_evidence=row[16],
-                recommendation=row[17],
+                ai_justification=row[2],
+                ai_decision=DecisionStatus(row[3]),
+                created_at=row[4],
+                student_feedback=row[5],
+                reviewer_decision=ReviewerDecision(row[6]) if row[6] else None,
+                reviewer_comment=row[7],
+                reviewed_at=row[8],
+                total_working_hours=row[9],
+                credits_awarded=row[10],
+                training_duration=row[11],
+                training_institution=row[12],
+                degree_relevance=row[13],
+                supporting_evidence=row[14],
+                challenging_evidence=row[15],
+                recommendation=row[16],
             )
 
 
@@ -625,7 +624,7 @@ def get_decisions(skip: int = 0, limit: int = 100) -> List[Decision]:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT decision_id, certificate_id, ocr_output, ai_justification, ai_decision, created_at,
+                SELECT decision_id, certificate_id, ai_justification, ai_decision, created_at,
                        student_feedback, reviewer_decision, reviewer_comment, reviewed_at,
                        total_working_hours, credits_awarded, training_duration, training_institution,
                        degree_relevance, supporting_evidence, challenging_evidence, recommendation
@@ -639,22 +638,21 @@ def get_decisions(skip: int = 0, limit: int = 100) -> List[Decision]:
                 Decision(
                     decision_id=UUID(row[0]),
                     certificate_id=UUID(row[1]),
-                    ocr_output=row[2],
-                    ai_justification=row[3],
-                    ai_decision=DecisionStatus(row[4]),
-                    created_at=row[5],
-                    student_feedback=row[6],
-                    reviewer_decision=ReviewerDecision(row[7]) if row[7] else None,
-                    reviewer_comment=row[8],
-                    reviewed_at=row[9],
-                    total_working_hours=row[10],
-                    credits_awarded=row[11],
-                    training_duration=row[12],
-                    training_institution=row[13],
-                    degree_relevance=row[14],
-                    supporting_evidence=row[15],
-                    challenging_evidence=row[16],
-                    recommendation=row[17],
+                    ai_justification=row[2],
+                    ai_decision=DecisionStatus(row[3]),
+                    created_at=row[4],
+                    student_feedback=row[5],
+                    reviewer_decision=ReviewerDecision(row[6]) if row[6] else None,
+                    reviewer_comment=row[7],
+                    reviewed_at=row[8],
+                    total_working_hours=row[9],
+                    credits_awarded=row[10],
+                    training_duration=row[11],
+                    training_institution=row[12],
+                    degree_relevance=row[13],
+                    supporting_evidence=row[14],
+                    challenging_evidence=row[15],
+                    recommendation=row[16],
                 )
                 for row in rows
             ]
@@ -766,10 +764,10 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
     """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            # Get decision
+            # Get decision (removed ocr_output as it doesn't exist in decisions table)
             cur.execute(
                 """
-                SELECT decision_id, certificate_id, ocr_output, ai_justification, ai_decision, created_at,
+                SELECT decision_id, certificate_id, ai_justification, ai_decision, created_at,
                        student_feedback, reviewer_decision, reviewer_comment, reviewed_at
                 FROM decisions WHERE certificate_id = %s
                 """,
@@ -779,10 +777,10 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
             if not decision_row:
                 return None
 
-            # Get certificate
+            # Get certificate (including ocr_output if needed)
             cur.execute(
                 """
-                SELECT certificate_id, student_id, training_type, filename, filetype, filepath, uploaded_at
+                SELECT certificate_id, student_id, training_type, filename, filetype, filepath, uploaded_at, ocr_output
                 FROM certificates WHERE certificate_id = %s
                 """,
                 (str(certificate_id),),
@@ -806,14 +804,15 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
             decision = Decision(
                 decision_id=UUID(decision_row[0]),
                 certificate_id=UUID(decision_row[1]),
-                ocr_output=decision_row[2],
-                ai_justification=decision_row[3],
-                ai_decision=DecisionStatus(decision_row[4]),
-                created_at=decision_row[5],
-                student_feedback=decision_row[6],
-                reviewer_decision=ReviewerDecision(decision_row[7]),
-                reviewer_comment=decision_row[8],
-                reviewed_at=decision_row[9],
+                ai_justification=decision_row[2],
+                ai_decision=DecisionStatus(decision_row[3]),
+                created_at=decision_row[4],
+                student_feedback=decision_row[5],
+                reviewer_decision=ReviewerDecision(decision_row[6])
+                if decision_row[6]
+                else None,
+                reviewer_comment=decision_row[7],
+                reviewed_at=decision_row[8],
             )
 
             certificate = Certificate(
@@ -824,6 +823,7 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
                 filetype=certificate_row[4],
                 filepath=certificate_row[5],
                 uploaded_at=certificate_row[6],
+                ocr_output=certificate_row[7],
             )
 
             student = Student(
@@ -1213,10 +1213,10 @@ def get_certificates_by_reviewer_id(reviewer_id: UUID) -> List[DetailedApplicati
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT d.decision_id, d.certificate_id, c.ocr_output, d.ai_justification, 
+                SELECT d.decision_id, d.certificate_id, d.ai_justification, 
                        d.ai_decision, d.created_at, d.student_feedback, d.reviewer_decision, 
                        d.reviewer_comment, d.reviewed_at,
-                       c.student_id, c.training_type, c.filename, c.filetype, c.filepath, c.uploaded_at,
+                       c.student_id, c.training_type, c.filename, c.filetype, c.filepath, c.uploaded_at, c.ocr_output,
                        s.email, s.degree, s.first_name, s.last_name
                 FROM decisions d
                 JOIN certificates c ON d.certificate_id = c.certificate_id
@@ -1233,27 +1233,27 @@ def get_certificates_by_reviewer_id(reviewer_id: UUID) -> List[DetailedApplicati
                     decision=Decision(
                         decision_id=UUID(row[0]),
                         certificate_id=UUID(row[1]),
-                        ai_justification=row[3],
-                        ai_decision=DecisionStatus(row[4]),
-                        created_at=row[5],
-                        student_feedback=row[6],
-                        reviewer_decision=ReviewerDecision(row[7]) if row[7] else None,
-                        reviewer_comment=row[8],
-                        reviewed_at=row[9],
+                        ai_justification=row[2],
+                        ai_decision=DecisionStatus(row[3]),
+                        created_at=row[4],
+                        student_feedback=row[5],
+                        reviewer_decision=ReviewerDecision(row[6]) if row[6] else None,
+                        reviewer_comment=row[7],
+                        reviewed_at=row[8],
                         reviewer_id=reviewer_id,
                     ),
                     certificate=Certificate(
                         certificate_id=UUID(row[1]),
-                        student_id=UUID(row[10]),
-                        training_type=TrainingType(row[11]),
-                        filename=row[12],
-                        filetype=row[13],
-                        filepath=row[14],
-                        uploaded_at=row[15],
-                        ocr_output=row[2],  # Add ocr_output from certificates table
+                        student_id=UUID(row[9]),
+                        training_type=TrainingType(row[10]),
+                        filename=row[11],
+                        filetype=row[12],
+                        filepath=row[13],
+                        uploaded_at=row[14],
+                        ocr_output=row[15],
                     ),
                     student=Student(
-                        student_id=UUID(row[10]),
+                        student_id=UUID(row[9]),
                         email=row[16],
                         degree=row[17],
                         first_name=row[18],
