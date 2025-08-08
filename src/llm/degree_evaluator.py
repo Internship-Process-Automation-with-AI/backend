@@ -78,13 +78,13 @@ class DegreeEvaluator:
         degree_info = self.get_degree_info(degree_program)
 
         guidelines = f"""
-DEGREE-SPECIFIC EVALUATION GUIDELINES FOR {degree_info['name'].upper()}:
+DEGREE-SPECIFIC EVALUATION GUIDELINES FOR {degree_info["name"].upper()}:
 
-RELEVANT INDUSTRIES: {', '.join(degree_info['relevant_industries'])}
-RELEVANT ROLES: {', '.join(degree_info['relevant_roles'])}
+RELEVANT INDUSTRIES: {", ".join(degree_info["relevant_industries"])}
+RELEVANT ROLES: {", ".join(degree_info["relevant_roles"])}
 
 EVALUATION CRITERIA:
-1. **Role Relevance**: How closely the job tasks align with {degree_info['name']} curriculum
+1. **Role Relevance**: How closely the job tasks align with {degree_info["name"]} curriculum
 2. **Industry Alignment**: Whether the work is in a relevant industry sector
 3. **Skill Development**: Acquisition of skills directly applicable to the degree field
 4. **Professional Growth**: Opportunities for career development in the field
@@ -95,7 +95,7 @@ PRACTICAL TRAINING REQUIREMENTS:
 - General Training (non-degree-related): Maximum 10 ECTS credits allowed
 
 TRAINING CLASSIFICATION GUIDELINES:
-- **Professional Training**: Work directly related to {degree_info['name']} with technical/specialized skills
+- **Professional Training**: Work directly related to {degree_info["name"]} with technical/specialized skills
 - **General Training**: Basic work experience with general skills applicable to any field (ALWAYS receives credits)
 
 IMPORTANT: General training provides valuable transferable skills (communication, teamwork, problem-solving, work ethic) and should ALWAYS receive academic credits, even when not directly related to the degree field.

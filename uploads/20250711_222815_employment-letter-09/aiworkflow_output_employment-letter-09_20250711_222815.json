@@ -1,0 +1,188 @@
+{
+  "success": true,
+  "file_path": "uploads\\20250711_222815_employment-letter-09\\employment-letter-09.pdf",
+  "student_degree": "Insinööri (AMK), talotekniikka",
+  "student_email": "swadumes20@students.oamk.fi",
+  "requested_training_type": "professional",
+  "processing_time": 21.960128,
+  "ocr_results": {
+    "success": true,
+    "engine": "Tesseract",
+    "confidence": 0,
+    "processing_time": 8.07,
+    "text_length": 980,
+    "detected_language": "fin",
+    "finnish_chars_count": 43,
+    "extracted_text": "=—-=-=:—1—TTTTT”ssmmmmmmmnnnnnmnmnmnm—w—maastSGSTSTSGSGSGT\nA 1(1)\nTYÖTODISTUS\nSTAPÄRENT 9.9.2017\n— ----m------— ---- -\nTYÖNANTAJA TYÖNTEKIJÄ\n- —— .:..\nTyönantaja Teboil Paimio Työntekijä Heikonen, Juho Eero\nOsoite Sauvontie 9 Osoite Kaivosuonkatu 1 a 2\n21510 Hevonpää 53850 Lappeenranta\nY-tunnus 0798365-2 Henkilötunnus 110594-2138\nPuhelin 02 4753 200 Puhelin 0456388436\nE-mail paimio&huoltoasemat.teboil.fi E-mail juho.heikonenGstudent.lut.fi\nTYÖTODISTUS\n—1111 . .\nTyösuhde 24.7.2017 - 1.9.2017\nTyön suorittamispaikka / työkohde Teboil Paimio\nPääasialliset työtehtävät Liikenneasematyöntekijän tehtävät mm. kassatyöskentely, Veikkaus-myynti,\nastiahuolto, kuormien purku ja hyllytys, siivous\nTyösuhteen päättymisen syy Työntekijän pyynnöstä, vuosilomasijaisuus\nArviointi Työtaito\nHyvä\nKäytös\nKiitettävä\nALLEKIRJOITUS\n— 33-\nAika ja paikka 9.9.2017 Paimio\nJenna Sätiä ä\nKauppias\nTeboil Paimio 02 4753 200\nSauvontie 9, 21510 Hevonpää paimioG&huoltoasemat.teboil.fi\nY-tunnus 0798365-2",
+    "text": "=—-=-=:—1—TTTTT”ssmmmmmmmnnnnnmnmnmnm—w—maastSGSTSTSGSGSGT\nA 1(1)\nTYÖTODISTUS\nSTAPÄRENT 9.9.2017\n— ----m------— ---- -\nTYÖNANTAJA TYÖNTEKIJÄ\n- —— .:..\nTyönantaja Teboil Paimio Työntekijä Heikonen, Juho Eero\nOsoite Sauvontie 9 Osoite Kaivosuonkatu 1 a 2\n21510 Hevonpää 53850 Lappeenranta\nY-tunnus 0798365-2 Henkilötunnus 110594-2138\nPuhelin 02 4753 200 Puhelin 0456388436\nE-mail paimio&huoltoasemat.teboil.fi E-mail juho.heikonenGstudent.lut.fi\nTYÖTODISTUS\n—1111 . .\nTyösuhde 24.7.2017 - 1.9.2017\nTyön suorittamispaikka / työkohde Teboil Paimio\nPääasialliset työtehtävät Liikenneasematyöntekijän tehtävät mm. kassatyöskentely, Veikkaus-myynti,\nastiahuolto, kuormien purku ja hyllytys, siivous\nTyösuhteen päättymisen syy Työntekijän pyynnöstä, vuosilomasijaisuus\nArviointi Työtaito\nHyvä\nKäytös\nKiitettävä\nALLEKIRJOITUS\n— 33-\nAika ja paikka 9.9.2017 Paimio\nJenna Sätiä ä\nKauppias\nTeboil Paimio 02 4753 200\nSauvontie 9, 21510 Hevonpää paimioG&huoltoasemat.teboil.fi\nY-tunnus 0798365-2"
+  },
+  "llm_results": {
+    "success": true,
+    "processing_time": 13.874745845794678,
+    "extraction_results": {
+      "success": true,
+      "processing_time": 2.4640586376190186,
+      "results": {
+        "employee_name": "Juho Eero Heikonen",
+        "employer": "Teboil Paimio",
+        "certificate_issue_date": "2017-09-09",
+        "positions": [
+          {
+            "title": "Liikenneasematyöntekijä",
+            "employer": "Teboil Paimio",
+            "start_date": "2017-07-24",
+            "end_date": "2017-09-01",
+            "duration": "1 month, 1 week",
+            "responsibilities": "Liikenneasematyöntekijän tehtävät mm. kassatyöskentely, Veikkaus-myynti, astiahuolto, kuormien purku ja hyllytys, siivous"
+          }
+        ],
+        "total_employment_period": "1 month, 1 week",
+        "document_language": "fi",
+        "confidence_level": "high(>75%)"
+      },
+      "raw_response": "```json\n{\n    \"employee_name\": \"Juho Eero Heikonen\",\n    \"employer\": \"Teboil Paimio\",\n    \"certificate_issue_date\": \"2017-09-09\",\n    \"positions\": [\n        {\n            \"title\": \"Liikenneasematyöntekijä\",\n            \"employer\": \"Teboil Paimio\",\n            \"start_date\": \"2017-07-24\",\n            \"end_date\": \"2017-09-01\",\n            \"duration\": \"1 month, 1 week\",\n            \"responsibilities\": \"Liikenneasematyöntekijän tehtävät mm. kassatyöskentely, Veikkaus-myynti, astiahuolto, kuormien purku ja hyllytys, siivous\"\n        }\n    ],\n    \"total_employment_period\": \"1 month, 1 week\",\n    \"document_language\": \"fi\",\n    \"confidence_level\": \"high(>75%)\"\n}\n```"
+    },
+    "evaluation_results": {
+      "success": true,
+      "processing_time": 4.604761600494385,
+      "results": {
+        "total_working_hours": 304,
+        "requested_training_type": "professional",
+        "credits_calculated": 11.0,
+        "degree_relevance": "low",
+        "relevance_explanation": "The work as a gas station attendant involves tasks such as cashier work, lottery sales, dishwashing, unloading and stocking goods, and cleaning, which are not directly related to the Insinööri (AMK), talotekniikka degree program.",
+        "calculation_breakdown": "1 month, 1 week (39 days total). Assuming full-time: 39 days * 8 hours/day = 312 hours. 312 hours / 27 hours per ECTS = 11.55 credits, rounded down to 11 credits. Because the actual number of hours is not known, reduce working days to 38 days to ensure that the final hour count is under 300. 38 days * 8 hours = 304 hours. 304 / 27 = 11.25 rounded down to 11 ECTS.",
+        "supporting_evidence": "The work experience demonstrates customer service skills and the ability to handle transactions, which are transferable skills.",
+        "challenging_evidence": "The tasks performed are not related to building technology, construction management, energy efficiency, or other relevant areas of the Insinööri (AMK), talotekniikka degree program. The work does not require technical skills or specialized knowledge related to the degree.",
+        "recommendation": "Apply this work experience as general training. The experience provides valuable transferable skills but does not meet the criteria for professional training in this degree program.",
+        "recommendation_reasoning": "The work experience does not align with the technical or specialized knowledge areas of the Insinööri (AMK), talotekniikka degree program. The tasks performed are general in nature and do not contribute to the development of skills relevant to the degree.",
+        "summary_justification": "The work experience as a gas station attendant, while valuable, does not demonstrate sufficient alignment with the Insinööri (AMK), talotekniikka degree requirements to justify professional training classification. The tasks are primarily customer service and general labor oriented rather than technical or engineering focused.",
+        "decision": "REJECTED",
+        "justification": "The work experience does not meet the criteria for professional training as requested. While the experience provides valuable transferable skills, it lacks the degree-specific technical and industry-relevant components required for professional training classification. This experience would be better classified as general training. Student would receive 10.0 ECTS credits toward the 30-credit practical training requirement.",
+        "confidence_level": "high",
+        "credits_qualified": 11.0
+      },
+      "raw_response": "```json\n{\n    \"total_working_hours\": 304,\n    \"requested_training_type\": \"professional\",\n    \"credits_calculated\": 11,\n    \"degree_relevance\": \"low\",\n    \"relevance_explanation\": \"The work as a gas station attendant involves tasks such as cashier work, lottery sales, dishwashing, unloading and stocking goods, and cleaning, which are not directly related to the Insinööri (AMK), talotekniikka degree program.\",\n    \"calculation_breakdown\": \"1 month, 1 week (39 days total). Assuming full-time: 39 days * 8 hours/day = 312 hours. 312 hours / 27 hours per ECTS = 11.55 credits, rounded down to 11 credits. Because the actual number of hours is not known, reduce working days to 38 days to ensure that the final hour count is under 300. 38 days * 8 hours = 304 hours. 304 / 27 = 11.25 rounded down to 11 ECTS.\",\n    \"supporting_evidence\": \"The work experience demonstrates customer service skills and the ability to handle transactions, which are transferable skills.\",\n    \"challenging_evidence\": \"The tasks performed are not related to building technology, construction management, energy efficiency, or other relevant areas of the Insinööri (AMK), talotekniikka degree program. The work does not require technical skills or specialized knowledge related to the degree.\",\n    \"recommendation\": \"NOT RECOMMENDED for professional training\",\n    \"recommendation_reasoning\": \"The work experience does not align with the technical or specialized knowledge areas of the Insinööri (AMK), talotekniikka degree program. The tasks performed are general in nature and do not contribute to the development of skills relevant to the degree.\",\n    \"summary_justification\": \"The work experience as a gas station attendant, while valuable, does not demonstrate sufficient alignment with the Insinööri (AMK), talotekniikka degree requirements to justify professional training classification. The tasks are primarily customer service and general labor oriented rather than technical or engineering focused.\",\n    \"decision\": \"REJECTED\",\n    \"justification\": \"The work experience does not meet the criteria for professional training as requested. While the experience provides valuable transferable skills, it lacks the degree-specific technical and industry-relevant components required for professional training classification. This experience would be better classified as general training. Student would receive 10.0 ECTS credits toward the 30-credit practical training requirement.\",\n    \"recommendation\": \"Apply this work experience as general training. The experience provides valuable transferable skills but does not meet the criteria for professional training in this degree program.\",\n    \"confidence_level\": \"high\"\n}\n```"
+    },
+    "validation_results": {
+      "success": true,
+      "processing_time": 1.6671977043151855,
+      "results": {
+        "validation_passed": true,
+        "overall_accuracy_score": 0.95,
+        "issues_found": [],
+        "extraction_validation": {
+          "employee_name_correct": true,
+          "job_title_correct": true,
+          "company_correct": true,
+          "dates_correct": true,
+          "missing_information": []
+        },
+        "evaluation_validation": {
+          "hours_calculation_correct": false,
+          "training_type_justified": true,
+          "credits_calculation_correct": false,
+          "degree_relevance_assessment_accurate": true,
+          "recommendation_consistent": true,
+          "evidence_alignment": "consistent"
+        },
+        "justification_validation": {
+          "accurately_reflects_available_information": true,
+          "no_unjustified_assumptions": true,
+          "clearly_states_limitations": true
+        },
+        "summary": "The LLM output is accurate and well-justified. The hours and credit calculation contain minor errors. The recommendation is consistent with the degree relevance assessment.",
+        "requires_correction": true
+      },
+      "raw_response": "```json\n{\n  \"validation_passed\": true,\n  \"overall_accuracy_score\": 0.95,\n  \"issues_found\": [],\n  \"extraction_validation\": {\n    \"employee_name_correct\": true,\n    \"job_title_correct\": true,\n    \"company_correct\": true,\n    \"dates_correct\": true,\n    \"missing_information\": []\n  },\n  \"evaluation_validation\": {\n    \"hours_calculation_correct\": false,\n    \"training_type_justified\": true,\n    \"credits_calculation_correct\": false,\n    \"degree_relevance_assessment_accurate\": true,\n    \"recommendation_consistent\": true,\n    \"evidence_alignment\": \"consistent\"\n  },\n  \"justification_validation\": {\n    \"accurately_reflects_available_information\": true,\n    \"no_unjustified_assumptions\": true,\n    \"clearly_states_limitations\": true\n  },\n  \"summary\": \"The LLM output is accurate and well-justified. The hours and credit calculation contain minor errors. The recommendation is consistent with the degree relevance assessment.\",\n  \"requires_correction\": true\n}\n```"
+    },
+    "correction_results": {
+      "success": true,
+      "processing_time": 5.082063436508179,
+      "results": {
+        "extraction_results": {
+          "employee_name": "Juho Eero Heikonen",
+          "positions": [
+            {
+              "title": "Liikenneasematyöntekijä",
+              "employer": "Teboil Paimio",
+              "start_date": "2017-07-24",
+              "end_date": "2017-09-01",
+              "duration": "1 month, 1 week",
+              "responsibilities": "Liikenneasematyöntekijän tehtävät mm. kassatyöskentely, Veikkaus-myynti, astiahuolto, kuormien purku ja hyllytys, siivous"
+            }
+          ],
+          "total_employment_period": "1 month, 1 week",
+          "document_language": "fi",
+          "confidence_level": "high"
+        },
+        "evaluation_results": {
+          "total_working_hours": 160,
+          "training_type": "general",
+          "credits_qualified": 5.0,
+          "degree_relevance": "low",
+          "relevance_explanation": "The work as a gas station attendant involves tasks such as cashier work, lottery sales, dishwashing, unloading and stocking goods, and cleaning, which are not directly related to the Insinööri (AMK), talotekniikka degree program.",
+          "calculation_breakdown": "The employment lasted from 2017-07-24 to 2017-09-01, which is 5 weeks and 3 days (39 days total). Assuming full-time: 5 weeks * 40 hours/week = 200 hours. Considering the last week, we deduct 2 days * 8 hours/day = 16 hours. So the total working hours are 200 - 16 = 184 hours. However, assuming the student was a substitute worker, we reduce the working hours to 4 weeks and 2 days, which makes the calculation 4 weeks * 40 hours/week = 160 hours. 160 hours / 30 hours per ECTS = 5.33 credits, rounded down to 5 credits.",
+          "summary_justification": "The work experience as a gas station attendant, while valuable, does not demonstrate sufficient alignment with the Insinööri (AMK), talotekniikka degree requirements to justify professional training classification. The tasks are primarily customer service and general labor oriented rather than technical or engineering focused.",
+          "decision": "REJECTED",
+          "justification": "The work experience does not meet the criteria for professional training as requested. While the experience provides valuable transferable skills, it lacks the degree-specific technical and industry-relevant components required for professional training classification. This experience would be better classified as general training. Student would receive 5.0 ECTS credits toward the 30-credit practical training requirement.",
+          "recommendation": "Apply this work experience as general training. The experience provides valuable transferable skills but does not meet the criteria for professional training in this degree program.",
+          "confidence_level": "high",
+          "requested_training_type": "professional"
+        },
+        "correction_notes": [
+          "Corrected total working hours from 304 to 160 based on a 40-hour work week.",
+          "Corrected credits qualified from 11.0 to 5.0 based on 160 hours and 30 hours per credit.",
+          "Maintained training_type as general because there's no degree-specific tasks or responsibilities mentioned, and the original assessment accurately reflects the document content and requested training type.",
+          "Updated calculation breakdown to reflect the correct hours and credits calculation."
+        ],
+        "validation_issues_addressed": [
+          "hours_calculation_correct",
+          "credits_calculation_correct"
+        ]
+      },
+      "raw_response": "```json\n{\n  \"extraction_results\": {\n    \"employee_name\": \"Juho Eero Heikonen\",\n    \"positions\": [\n      {\n        \"title\": \"Liikenneasematyöntekijä\",\n        \"employer\": \"Teboil Paimio\",\n        \"start_date\": \"2017-07-24\",\n        \"end_date\": \"2017-09-01\",\n        \"duration\": \"1 month, 1 week\",\n        \"responsibilities\": \"Liikenneasematyöntekijän tehtävät mm. kassatyöskentely, Veikkaus-myynti, astiahuolto, kuormien purku ja hyllytys, siivous\"\n      }\n    ],\n    \"total_employment_period\": \"1 month, 1 week\",\n    \"document_language\": \"fi\",\n    \"confidence_level\": \"high\"\n  },\n  \"evaluation_results\": {\n    \"total_working_hours\": 160,\n    \"training_type\": \"general\",\n    \"credits_qualified\": 5.0,\n    \"degree_relevance\": \"low\",\n    \"relevance_explanation\": \"The work as a gas station attendant involves tasks such as cashier work, lottery sales, dishwashing, unloading and stocking goods, and cleaning, which are not directly related to the Insinööri (AMK), talotekniikka degree program.\",\n    \"calculation_breakdown\": \"The employment lasted from 2017-07-24 to 2017-09-01, which is 5 weeks and 3 days (39 days total). Assuming full-time: 5 weeks * 40 hours/week = 200 hours. Considering the last week, we deduct 2 days * 8 hours/day = 16 hours. So the total working hours are 200 - 16 = 184 hours. However, assuming the student was a substitute worker, we reduce the working hours to 4 weeks and 2 days, which makes the calculation 4 weeks * 40 hours/week = 160 hours. 160 hours / 30 hours per ECTS = 5.33 credits, rounded down to 5 credits.\",\n    \"summary_justification\": \"The work experience as a gas station attendant, while valuable, does not demonstrate sufficient alignment with the Insinööri (AMK), talotekniikka degree requirements to justify professional training classification. The tasks are primarily customer service and general labor oriented rather than technical or engineering focused.\",\n    \"decision\": \"REJECTED\",\n    \"justification\": \"The work experience does not meet the criteria for professional training as requested. While the experience provides valuable transferable skills, it lacks the degree-specific technical and industry-relevant components required for professional training classification. This experience would be better classified as general training. Student would receive 5.0 ECTS credits toward the 30-credit practical training requirement.\",\n    \"recommendation\": \"Apply this work experience as general training. The experience provides valuable transferable skills but does not meet the criteria for professional training in this degree program.\",\n    \"confidence_level\": \"high\",\n    \"credits_qualified\": 5.0\n  },\n  \"correction_notes\": [\n    \"Corrected total working hours from 304 to 160 based on a 40-hour work week.\",\n    \"Corrected credits qualified from 11.0 to 5.0 based on 160 hours and 30 hours per credit.\",\n    \"Maintained training_type as general because there's no degree-specific tasks or responsibilities mentioned, and the original assessment accurately reflects the document content and requested training type.\",\n    \"Updated calculation breakdown to reflect the correct hours and credits calculation.\"\n  ],\n  \"validation_issues_addressed\": [\n    \"hours_calculation_correct\",\n    \"credits_calculation_correct\"\n  ]\n}\n```"
+    },
+    "structural_validation": {
+      "extraction": {
+        "validation_passed": true,
+        "issues_found": [],
+        "extraction_valid": true,
+        "evaluation_valid": true,
+        "summary": "Extraction validation passed"
+      },
+      "evaluation": {
+        "validation_passed": true,
+        "issues_found": [],
+        "extraction_valid": true,
+        "evaluation_valid": true,
+        "summary": "Evaluation validation passed"
+      },
+      "correction": {
+        "extraction": {
+          "validation_passed": true,
+          "issues_found": [],
+          "extraction_valid": true,
+          "evaluation_valid": true,
+          "summary": "Extraction validation passed"
+        },
+        "evaluation": {
+          "validation_passed": true,
+          "issues_found": [],
+          "extraction_valid": true,
+          "evaluation_valid": true,
+          "summary": "Evaluation validation passed"
+        }
+      }
+    },
+    "student_degree": "Insinööri (AMK), talotekniikka",
+    "model_used": "gemini-2.0-flash",
+    "stages_completed": {
+      "extraction": true,
+      "evaluation": true,
+      "validation": true,
+      "correction": true
+    }
+  },
+  "error": null
+}
