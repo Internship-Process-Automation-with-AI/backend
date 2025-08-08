@@ -8,12 +8,12 @@ from pydantic import BaseModel
 from starlette.responses import Response
 
 from src.database.database import (
-    add_student_feedback,
+    add_student_comment,
+    add_student_comment_and_reviewer,
     create_certificate,
     create_decision,
     delete_certificate,
     get_all_reviewers,
-    get_appeal_by_certificate_id,
     get_certificate_by_id,
     get_certificates_by_reviewer_id,
     get_db_connection,
@@ -21,11 +21,15 @@ from src.database.database import (
     get_reviewer_by_email,
     get_student_by_email,
     get_student_by_id,
+    get_student_comment_by_certificate_id,
     get_student_with_certificates,
-    submit_appeal,
     update_decision_review,
 )
-from src.database.models import DecisionStatus, ReviewerDecision, TrainingType
+from src.database.models import (
+    DecisionStatus,
+    ReviewerDecision,
+    TrainingType,
+)
 from src.utils.logger import get_logger
 from src.workflow.ai_workflow import LLMOrchestrator
 from src.workflow.ocr_workflow import OCRWorkflow
@@ -77,15 +81,10 @@ async def get_student_applications(email: str):
                     d.created_at as decision_created_at,
                     d.reviewer_id,
                     d.reviewer_decision,
+                    d.reviewer_comment,
+                    d.reviewed_at,
                     r.first_name,
                     r.last_name,
-                    d.appeal_status,
-                    d.appeal_submitted_at,
-                    d.appeal_reason,
-                    d.appeal_review_comment,
-                    d.appeal_reviewed_at,
-                    ar.first_name as appeal_reviewer_first_name,
-                    ar.last_name as appeal_reviewer_last_name,
                     d.total_working_hours,
                     d.credits_awarded,
                     d.training_duration,
@@ -93,11 +92,11 @@ async def get_student_applications(email: str):
                     d.degree_relevance,
                     d.supporting_evidence,
                     d.challenging_evidence,
-                    d.recommendation
+                    d.recommendation,
+                    d.student_comment
                 FROM certificates c
                 LEFT JOIN decisions d ON c.certificate_id = d.certificate_id
                 LEFT JOIN reviewers r ON d.reviewer_id = r.reviewer_id
-                LEFT JOIN reviewers ar ON d.appeal_reviewer_id = ar.reviewer_id
                 WHERE c.student_id = %s
                 ORDER BY c.uploaded_at DESC
             """,
@@ -118,15 +117,10 @@ async def get_student_applications(email: str):
                     decision_created_at,
                     reviewer_id,
                     reviewer_decision,
+                    reviewer_comment,
+                    reviewed_at,
                     reviewer_first_name,
                     reviewer_last_name,
-                    appeal_status,
-                    appeal_submitted_at,
-                    appeal_reason,
-                    appeal_review_comment,
-                    appeal_reviewed_at,
-                    appeal_reviewer_first_name,
-                    appeal_reviewer_last_name,
                     total_working_hours,
                     credits_awarded,
                     training_duration,
@@ -135,6 +129,7 @@ async def get_student_applications(email: str):
                     supporting_evidence,
                     challenging_evidence,
                     recommendation,
+                    student_comment,
                 ) = row
 
                 # Determine status and credits
@@ -156,26 +151,6 @@ async def get_student_applications(email: str):
                 elif reviewer_last_name:
                     reviewer_name = reviewer_last_name
 
-                # Build appeal reviewer name
-                appeal_reviewer_name = None
-                if appeal_reviewer_first_name and appeal_reviewer_last_name:
-                    appeal_reviewer_name = (
-                        f"{appeal_reviewer_first_name} {appeal_reviewer_last_name}"
-                    )
-                elif appeal_reviewer_first_name:
-                    appeal_reviewer_name = appeal_reviewer_first_name
-                elif appeal_reviewer_last_name:
-                    appeal_reviewer_name = appeal_reviewer_last_name
-
-                # Add appeal information to status if appeal exists
-                if appeal_status:
-                    if appeal_status == "PENDING":
-                        status = "APPEAL_PENDING"
-                    elif appeal_status == "APPROVED":
-                        status = "APPEAL_APPROVED"
-                    elif appeal_status == "REJECTED":
-                        status = "APPEAL_REJECTED"
-
                 applications.append(
                     {
                         "certificate_id": str(cert_id),
@@ -192,16 +167,11 @@ async def get_student_applications(email: str):
                         "ai_decision": ai_decision,
                         "justification": ai_justification,
                         "reviewer_name": reviewer_name,
-                        "appeal_status": appeal_status,
-                        "appeal_submitted_date": appeal_submitted_at.isoformat()
-                        if appeal_submitted_at
+                        "reviewer_decision": reviewer_decision,
+                        "reviewer_comment": reviewer_comment,
+                        "reviewed_date": reviewed_at.isoformat()
+                        if reviewed_at
                         else None,
-                        "appeal_reason": appeal_reason,
-                        "appeal_review_comment": appeal_review_comment,
-                        "appeal_reviewed_date": appeal_reviewed_at.isoformat()
-                        if appeal_reviewed_at
-                        else None,
-                        "appeal_reviewer_name": appeal_reviewer_name,
                         # Evaluation details
                         "total_working_hours": total_working_hours,
                         "credits_awarded": credits_awarded,
@@ -211,6 +181,7 @@ async def get_student_applications(email: str):
                         "supporting_evidence": supporting_evidence,
                         "challenging_evidence": challenging_evidence,
                         "recommendation": recommendation,
+                        "student_comment": student_comment,
                     }
                 )
 
@@ -528,13 +499,55 @@ class FeedbackRequest(BaseModel):
 
 @router.post("/certificate/{certificate_id}/feedback", tags=["student"])
 async def add_feedback_endpoint(certificate_id: UUID, payload: FeedbackRequest):
-    """Store student feedback and reviewer ID for a decision/certificate."""
-    success = add_student_feedback(
+    """Store student comment and reviewer ID for a decision/certificate."""
+    success = add_student_comment_and_reviewer(
         certificate_id, payload.student_feedback, payload.reviewer_id
     )
     if not success:
         raise HTTPException(status_code=404, detail="Certificate not found")
-    return {"success": True, "message": "Feedback and reviewer information stored"}
+    return {
+        "success": True,
+        "message": "Student comment and reviewer information stored",
+    }
+
+
+class StudentCommentRequest(BaseModel):
+    student_comment: str
+
+
+@router.post("/certificate/{certificate_id}/student-comment", tags=["student"])
+async def add_student_comment_endpoint(
+    certificate_id: UUID, payload: StudentCommentRequest
+):
+    """Add student comment to a rejected certificate (simplified appeal process)."""
+    cert = get_certificate_by_id(certificate_id)
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+
+    # Check if comment already exists
+    existing_comment = get_student_comment_by_certificate_id(certificate_id)
+    if existing_comment:
+        raise HTTPException(
+            status_code=400,
+            detail="Student comment already exists for this certificate",
+        )
+
+    try:
+        # Add student comment
+        success = add_student_comment(certificate_id, payload.student_comment)
+
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to add student comment")
+
+        return {
+            "success": True,
+            "message": "Student comment added successfully. The application will follow the normal approval process.",
+        }
+    except Exception as e:
+        logger.error(
+            f"Error adding student comment for certificate {certificate_id}: {str(e)}"
+        )
+        raise HTTPException(status_code=500, detail="Failed to add student comment")
 
 
 @router.delete("/certificate/{certificate_id}", tags=["student"])
@@ -590,34 +603,47 @@ async def send_for_approval_endpoint(
 
 class AppealRequest(BaseModel):
     appeal_reason: str
+    reviewer_id: Optional[UUID] = None
 
 
 @router.post("/certificate/{certificate_id}/appeal", tags=["student"])
 async def submit_appeal_endpoint(certificate_id: UUID, payload: AppealRequest):
-    """Submit an appeal for a rejected certificate."""
+    """Submit an appeal for a rejected certificate (simplified process)."""
     cert = get_certificate_by_id(certificate_id)
     if not cert:
         raise HTTPException(status_code=404, detail="Certificate not found")
 
-    # Check if appeal already exists
-    existing_appeal = get_appeal_by_certificate_id(certificate_id)
-    if existing_appeal:
+    # Check if student comment already exists
+    existing_comment = get_student_comment_by_certificate_id(certificate_id)
+    if existing_comment:
         raise HTTPException(
-            status_code=400, detail="Appeal already exists for this certificate"
+            status_code=400,
+            detail="Student comment already exists for this certificate",
         )
 
     try:
-        # Get the first available reviewer (or you can implement logic to assign to a specific appeals reviewer)
+        # Get reviewers for assignment
         reviewers = get_all_reviewers()
         if not reviewers:
             raise HTTPException(status_code=500, detail="No reviewers available")
 
-        # Assign to the first reviewer (you can modify this logic)
-        assigned_reviewer = reviewers[0]
+        # Determine assigned reviewer: use provided reviewer_id if present; otherwise fallback to the first reviewer
+        assigned_reviewer_id: UUID
+        assigned_reviewer_obj = None
+        if payload.reviewer_id:
+            assigned_reviewer_id = payload.reviewer_id
+            # Try to find full reviewer object for response
+            for r in reviewers:
+                if str(r.reviewer_id) == str(payload.reviewer_id):
+                    assigned_reviewer_obj = r
+                    break
+        else:
+            assigned_reviewer_obj = reviewers[0]
+            assigned_reviewer_id = assigned_reviewer_obj.reviewer_id
 
-        # Submit appeal by updating the decision record
-        success = submit_appeal(
-            certificate_id, payload.appeal_reason, assigned_reviewer.reviewer_id
+        # Add student comment and assign reviewer (simplified appeal process)
+        success = add_student_comment_and_reviewer(
+            certificate_id, payload.appeal_reason, assigned_reviewer_id
         )
 
         if not success:
@@ -625,8 +651,12 @@ async def submit_appeal_endpoint(certificate_id: UUID, payload: AppealRequest):
 
         return {
             "success": True,
-            "message": "Appeal submitted successfully",
-            "assigned_reviewer": assigned_reviewer.to_dict(),
+            "message": "Appeal submitted successfully. The application will now follow the normal approval process.",
+            "assigned_reviewer": (
+                assigned_reviewer_obj.to_dict()
+                if assigned_reviewer_obj
+                else {"reviewer_id": str(assigned_reviewer_id)}
+            ),
         }
     except Exception as e:
         logger.error(
@@ -752,7 +782,7 @@ async def get_certificate_details(certificate_id: UUID):
 class ReviewUpdateRequest(BaseModel):
     """Payload for reviewer to submit their decision."""
 
-    reviewer_comment: str
+    reviewer_comment: Optional[str] = None
     reviewer_decision: str  # "PASS" or "FAIL"
 
 

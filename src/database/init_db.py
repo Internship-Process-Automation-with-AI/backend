@@ -29,12 +29,21 @@ def init_database():
 
         # Read and execute schema
         schema_path = Path(__file__).parent / "schema.sql"
-        with open(schema_path, "r", encoding="utf-8") as f:
-            schema_sql = f.read()
 
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(schema_sql)
+                # Read entire schema file
+                logger.info("Creating database tables...")
+                schema_sql = schema_path.read_text(encoding="utf-8")
+
+                # Execute the full script. Since we made everything idempotent with
+                # IF NOT EXISTS, this should work even if objects already exist.
+                try:
+                    cur.execute(schema_sql)
+                except psycopg2.Error as e:
+                    logger.error(f"Error executing schema SQL: {e}")
+                    raise
+
                 conn.commit()
 
         logger.info("Database schema initialized successfully")
@@ -163,19 +172,15 @@ def reset_database() -> bool:
                 cur.execute("DROP TABLE IF EXISTS decisions CASCADE")
                 cur.execute("DROP TABLE IF EXISTS certificates CASCADE")
                 cur.execute("DROP TABLE IF EXISTS students CASCADE")
+                cur.execute("DROP TABLE IF EXISTS reviewers CASCADE")
                 cur.execute("DROP TYPE IF EXISTS training_type CASCADE")
                 cur.execute("DROP TYPE IF EXISTS decision_status CASCADE")
                 conn.commit()
 
                 logger.info("All tables dropped")
 
-        # Recreate tables
-        if init_database():
-            logger.info("All tables recreated")
-            return True
-        else:
-            logger.error("Failed to recreate tables")
-            return False
+        # Recreate tables by calling init_database
+        return init_database()
 
     except psycopg2.Error as e:
         logger.error(f"Database reset failed: {e}")

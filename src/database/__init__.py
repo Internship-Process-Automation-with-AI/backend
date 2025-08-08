@@ -6,11 +6,14 @@ for PostgreSQL database operations using raw SQL.
 """
 
 from .database import (
-    add_student_feedback,
+    add_student_comment,
+    add_student_comment_and_reviewer,
     check_database_health,
     create_certificate,
     create_database_if_not_exists,
     create_decision,
+    create_sample_reviewers,
+    create_sample_students,
     create_student,
     get_applications_by_status,
     get_certificate_by_id,
@@ -24,6 +27,8 @@ from .database import (
     get_pending_applications,
     get_statistics,
     get_student_by_email,
+    get_student_by_id,
+    get_student_comment_by_certificate_id,
     get_student_with_certificates,
     test_database_connection,
     update_decision_review,
@@ -50,11 +55,12 @@ __all__ = [
     "check_database_health",
     "get_database_info",
     "init_database",
+    "create_sample_students",
+    "create_sample_reviewers",
     # Student operations
     "create_student",
     "get_student_by_id",
     "get_student_by_email",
-    "get_students",
     "get_student_with_certificates",
     # Certificate operations
     "create_certificate",
@@ -64,12 +70,14 @@ __all__ = [
     "create_decision",
     "get_decision_by_id",
     "get_decisions",
-    "add_student_feedback",
+    "add_student_comment_and_reviewer",
+    "add_student_comment",
     "update_decision_review",
     # Reviewer operations
     "get_pending_applications",
     "get_applications_by_status",
     "get_detailed_application",
+    "get_student_comment_by_certificate_id",
     # Statistics
     "get_statistics",
     # Models

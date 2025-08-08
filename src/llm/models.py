@@ -134,7 +134,7 @@ class ExtractionResults(BaseModel):
                         # Log warning instead of raising error
                         logger.warning(
                             f"Employment periods overlap or are in wrong sequence: "
-                            f"Position {i-1} ends {prev_end} after position {i} starts {curr_start}. "
+                            f"Position {i - 1} ends {prev_end} after position {i} starts {curr_start}. "
                             f"This may indicate extraction errors but processing will continue."
                         )
 
