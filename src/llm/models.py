@@ -31,11 +31,13 @@ class Position(BaseModel):
             try:
                 date_obj = datetime.strptime(v, "%Y-%m-%d").date()
                 if date_obj > date.today():
-                    raise ValueError(f"Future date detected: {v}")
-            except ValueError as e:
-                if "Future date detected" in str(e):
-                    raise e
-                raise ValueError(f"Invalid date format: {v}. Expected YYYY-MM-DD")
+                    logger.warning(
+                        f"Future date detected: {v}. This may indicate extraction errors but processing will continue."
+                    )
+            except ValueError:
+                logger.warning(
+                    f"Invalid date format: {v}. Expected YYYY-MM-DD. Processing will continue."
+                )
         return v
 
     @validator("end_date")
@@ -46,13 +48,12 @@ class Position(BaseModel):
                 end_date = datetime.strptime(v, "%Y-%m-%d").date()
                 start_date = datetime.strptime(values["start_date"], "%Y-%m-%d").date()
                 if end_date < start_date:
-                    raise ValueError(
-                        f"End date {v} cannot be before start date {values['start_date']}"
+                    logger.warning(
+                        f"End date {v} is before start date {values['start_date']}. This may indicate extraction errors but processing will continue."
                     )
             except ValueError as e:
-                if "cannot be before" in str(e):
-                    raise e
                 # If date parsing fails, skip this validation
+                logger.warning(f"Date parsing failed during end/start validation: {e}")
                 pass
         return v
 
@@ -96,12 +97,12 @@ class ExtractionResults(BaseModel):
             try:
                 date_obj = datetime.strptime(v, "%Y-%m-%d").date()
                 if date_obj > date.today():
-                    raise ValueError(f"Certificate issue date is in the future: {v}")
-            except ValueError as e:
-                if "Certificate issue date is in the future" in str(e):
-                    raise e
-                raise ValueError(
-                    f"Invalid certificate issue date format: {v}. Expected YYYY-MM-DD"
+                    logger.warning(
+                        f"Certificate issue date is in the future: {v}. This may indicate extraction errors but processing will continue."
+                    )
+            except ValueError:
+                logger.warning(
+                    f"Invalid certificate issue date format: {v}. Expected YYYY-MM-DD. Processing will continue."
                 )
         return v
 
@@ -130,9 +131,11 @@ class ExtractionResults(BaseModel):
                     curr_start_date = datetime.strptime(curr_start, "%Y-%m-%d").date()
 
                     if prev_end_date > curr_start_date:
-                        raise ValueError(
+                        # Log warning instead of raising error
+                        logger.warning(
                             f"Employment periods overlap or are in wrong sequence: "
-                            f"Position {i-1} ends {prev_end} after position {i} starts {curr_start}"
+                            f"Position {i - 1} ends {prev_end} after position {i} starts {curr_start}. "
+                            f"This may indicate extraction errors but processing will continue."
                         )
 
                     # Check for suspicious gaps (more than 10 years between positions)
@@ -143,9 +146,10 @@ class ExtractionResults(BaseModel):
                             f"{gap_days} days between {prev_end} and {curr_start}"
                         )
                 except ValueError as e:
-                    if "Employment periods overlap" in str(e):
-                        raise e
                     # If date parsing fails, skip this validation
+                    logger.warning(
+                        f"Date parsing failed during employment sequence validation: {e}"
+                    )
                     pass
 
         return v

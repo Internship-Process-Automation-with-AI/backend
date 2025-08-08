@@ -1,0 +1,134 @@
+{
+  "success": true,
+  "file_path": "samples\\letterbased-pdf-04.pdf",
+  "student_degree": "Bachelor of Engineering (BEng), Information Technology",
+  "student_email": "swadumes20@students.oamk.fi",
+  "requested_training_type": "general",
+  "processing_time": 11.498973,
+  "ocr_results": {
+    "success": true,
+    "engine": "Tesseract",
+    "confidence": 78.0,
+    "processing_time": 5.43,
+    "text_length": 1106,
+    "detected_language": "auto",
+    "finnish_chars_count": 0
+  },
+  "llm_results": {
+    "success": true,
+    "processing_time": 6.055399656295776,
+    "extraction_results": {
+      "success": true,
+      "processing_time": 1.5852363109588623,
+      "results": {
+        "employee_name": "Johann Harvey",
+        "employer": "[Your Company Name]",
+        "certificate_issue_date": "2050-03-01",
+        "positions": [
+          {
+            "title": "bartender",
+            "employer": "[Your Company Name]",
+            "start_date": null,
+            "end_date": "2050-03-01",
+            "duration": null,
+            "responsibilities": "diligent and efficient, contributing to our success in the restaurant service Industry. Since joming, Johann Harvey has excelled in service and professionalism, proving invaluable to our restaurant with exceptional customer service and bartending skis. They have also camed pratse for their creative drink recipes and welcoming atmosphere. They've comsislentty upheld our values, emsuring lop-lier customer service."
+          }
+        ],
+        "total_employment_period": null,
+        "document_language": "en",
+        "confidence_level": "high(>75%)"
+      },
+      "raw_response": "```json\n{\n    \"employee_name\": \"Johann Harvey\",\n    \"employer\": \"[Your Company Name]\",\n    \"certificate_issue_date\": \"2050-03-01\",\n    \"positions\": [\n        {\n            \"title\": \"bartender\",\n            \"employer\": \"[Your Company Name]\",\n            \"start_date\": null,\n            \"end_date\": \"2050-03-01\",\n            \"duration\": null,\n            \"responsibilities\": \"diligent and efficient, contributing to our success in the restaurant service Industry. Since joming, Johann Harvey has excelled in service and professionalism, proving invaluable to our restaurant with exceptional customer service and bartending skis. They have also camed pratse for their creative drink recipes and welcoming atmosphere. They've comsislentty upheld our values, emsuring lop-lier customer service.\"\n        }\n    ],\n    \"total_employment_period\": null,\n    \"document_language\": \"en\",\n    \"confidence_level\": \"high(>75%)\"\n}\n```"
+    },
+    "evaluation_results": {
+      "success": true,
+      "processing_time": 2.755350351333618,
+      "results": {
+        "total_working_hours": 0,
+        "requested_training_type": "general",
+        "credits_calculated": 0.0,
+        "degree_relevance": "low",
+        "relevance_explanation": "Bartending is not directly related to the Information Technology degree program.",
+        "calculation_breakdown": "No start date or duration specified, assuming minimal hours. Calculating based on available information is not possible.",
+        "supporting_evidence": "Demonstrates customer service skills.",
+        "challenging_evidence": "Lacks technical skills and industry relevance related to Information Technology.",
+        "recommendation": "Provide documentation including start date and duration to determine working hours so the work experience can be re-evaluated as general training.",
+        "recommendation_reasoning": "While the work experience lacks direct relevance to Information Technology, it provides customer service experience. Since the working hours cannot be determined, the ECTS credits cannot be reliably calculated.",
+        "summary_justification": "The work experience does not demonstrate sufficient alignment with Information Technology degree requirements to justify professional training classification. However, general training credits can be considered if working hours are provided.",
+        "decision": "REJECTED",
+        "justification": "The work experience does not meet the criteria for professional training as it is not related to the field of Information Technology. Since no start date or duration were provided, the total working hours cannot be calculated and therefore the ECTS credit evaluation is not possible. If student can provide information on the hours worked, the experience can be considered as general training",
+        "confidence_level": "low",
+        "credits_qualified": 0.0
+      },
+      "raw_response": "```json\n{\n    \"total_working_hours\": 0,\n    \"requested_training_type\": \"general\",\n    \"credits_calculated\": 0,\n    \"degree_relevance\": \"low\",\n    \"relevance_explanation\": \"Bartending is not directly related to the Information Technology degree program.\",\n    \"calculation_breakdown\": \"No start date or duration specified, assuming minimal hours. Calculating based on available information is not possible.\",\n    \"supporting_evidence\": \"Demonstrates customer service skills.\",\n    \"challenging_evidence\": \"Lacks technical skills and industry relevance related to Information Technology.\",\n    \"recommendation\": \"CONDITIONALLY RECOMMENDED for general training\",\n    \"recommendation_reasoning\": \"While the work experience lacks direct relevance to Information Technology, it provides customer service experience. Since the working hours cannot be determined, the ECTS credits cannot be reliably calculated.\",\n    \"summary_justification\": \"The work experience does not demonstrate sufficient alignment with Information Technology degree requirements to justify professional training classification. However, general training credits can be considered if working hours are provided.\",\n    \"decision\": \"REJECTED\",\n    \"justification\": \"The work experience does not meet the criteria for professional training as it is not related to the field of Information Technology. Since no start date or duration were provided, the total working hours cannot be calculated and therefore the ECTS credit evaluation is not possible. If student can provide information on the hours worked, the experience can be considered as general training\",\n    \"recommendation\": \"Provide documentation including start date and duration to determine working hours so the work experience can be re-evaluated as general training.\",\n    \"confidence_level\": \"low\"\n}\n```"
+    },
+    "validation_results": {
+      "success": true,
+      "processing_time": 1.7047224044799805,
+      "results": {
+        "validation_passed": true,
+        "overall_accuracy_score": 0.95,
+        "issues_found": [],
+        "extraction_validation": {
+          "employee_name_correct": true,
+          "job_title_correct": true,
+          "company_correct": true,
+          "dates_correct": true,
+          "missing_information": []
+        },
+        "evaluation_validation": {
+          "hours_calculation_correct": true,
+          "training_type_justified": true,
+          "credits_calculation_correct": true,
+          "degree_relevance_assessment_accurate": true,
+          "recommendation_consistent": true,
+          "evidence_alignment": "consistent"
+        },
+        "justification_validation": {
+          "accurately_reflects_available_information": true,
+          "no_unjustified_assumptions": true,
+          "clearly_states_limitations": true
+        },
+        "summary": "The LLM output is accurate and consistent with the OCR text. The extraction is correct, and the evaluation is well-reasoned, given the missing start date for the position. The recommendation to provide the start date is appropriate.",
+        "requires_correction": false
+      },
+      "raw_response": "```json\n{\n  \"validation_passed\": true,\n  \"overall_accuracy_score\": 0.95,\n  \"issues_found\": [],\n  \"extraction_validation\": {\n    \"employee_name_correct\": true,\n    \"job_title_correct\": true,\n    \"company_correct\": true,\n    \"dates_correct\": true,\n    \"missing_information\": []\n  },\n  \"evaluation_validation\": {\n    \"hours_calculation_correct\": true,\n    \"training_type_justified\": true,\n    \"credits_calculation_correct\": true,\n    \"degree_relevance_assessment_accurate\": true,\n    \"recommendation_consistent\": true,\n    \"evidence_alignment\": \"consistent\"\n  },\n  \"justification_validation\": {\n    \"accurately_reflects_available_information\": true,\n    \"no_unjustified_assumptions\": true,\n    \"clearly_states_limitations\": true\n  },\n  \"summary\": \"The LLM output is accurate and consistent with the OCR text. The extraction is correct, and the evaluation is well-reasoned, given the missing start date for the position. The recommendation to provide the start date is appropriate.\",\n  \"requires_correction\": false\n}\n```"
+    },
+    "correction_results": null,
+    "structural_validation": {
+      "extraction": {
+        "validation_passed": false,
+        "issues_found": [
+          {
+            "type": "data_type",
+            "severity": "high",
+            "description": "Validation error: 2 validation errors for ExtractionResults\ncertificate_issue_date\n  Value error, Certificate issue date is in the future: 2050-03-01 [type=value_error, input_value='2050-03-01', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/value_error\npositions.0.end_date\n  Value error, Future date detected: 2050-03-01 [type=value_error, input_value='2050-03-01', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/value_error",
+            "field_affected": "extraction_results",
+            "suggestion": "Review data structure and format",
+            "position_index": null
+          }
+        ],
+        "extraction_valid": false,
+        "evaluation_valid": true,
+        "summary": "Extraction validation failed: 2 validation errors for ExtractionResults\ncertificate_issue_date\n  Value error, Certificate issue date is in the future: 2050-03-01 [type=value_error, input_value='2050-03-01', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/value_error\npositions.0.end_date\n  Value error, Future date detected: 2050-03-01 [type=value_error, input_value='2050-03-01', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/value_error"
+      },
+      "evaluation": {
+        "validation_passed": true,
+        "issues_found": [],
+        "extraction_valid": true,
+        "evaluation_valid": true,
+        "summary": "Evaluation validation passed"
+      },
+      "correction": null
+    },
+    "student_degree": "Bachelor of Engineering (BEng), Information Technology",
+    "model_used": "gemini-2.0-flash",
+    "stages_completed": {
+      "extraction": true,
+      "evaluation": true,
+      "validation": true,
+      "correction": false
+    }
+  },
+  "error": null
+}

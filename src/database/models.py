@@ -114,8 +114,9 @@ class Certificate:
         training_type: Type of training requested (GENERAL/PROFESSIONAL)
         filename: Original filename of the uploaded certificate
         filetype: File type/extension of the certificate
-        filepath: Path or link to the uploaded file
         uploaded_at: Timestamp when the certificate was uploaded
+        file_content: Actual file content stored as bytes in the database
+        ocr_output: OCR extracted text from the certificate
     """
 
     certificate_id: UUID
@@ -123,8 +124,8 @@ class Certificate:
     training_type: TrainingType
     filename: str
     filetype: str
-    filepath: Optional[str]
     uploaded_at: datetime
+    file_content: Optional[bytes] = None
     ocr_output: Optional[str] = None
 
     def to_dict(self) -> dict:
@@ -149,17 +150,12 @@ class Decision:
         ai_decision: AI decision (ACCEPTED/REJECTED)
         ai_justification: Explanation for the AI decision
         created_at: Timestamp when the decision was made
-        student_feedback: Student's feedback for rejected applications
+        student_comment: Student's comment/appeal reason for rejected applications
         reviewer_id: Unique identifier for the reviewer (UUID)
         reviewer_decision: Outcome of the human review step (None = pending)
-        reviewer_comment: Reviewer's comments
+        reviewer_comment: Reviewer's comments (optional)
         reviewed_at: Timestamp when the review was completed
-        appeal_reason: Student's appeal reason
-        appeal_status: Appeal status (PENDING/APPROVED/REJECTED)
-        appeal_submitted_at: When appeal was submitted
-        appeal_reviewer_id: Reviewer handling the appeal
-        appeal_review_comment: Appeal reviewer's comments
-        appeal_reviewed_at: When appeal was reviewed
+        ai_workflow_json: Complete AI workflow JSON output (like the old aiworkflow_output files)
     """
 
     decision_id: UUID
@@ -167,17 +163,11 @@ class Decision:
     ai_justification: str
     ai_decision: DecisionStatus
     created_at: datetime
-    student_feedback: Optional[str] = None
+    student_comment: Optional[str] = None
     reviewer_id: Optional[UUID] = None
     reviewer_decision: Optional[ReviewerDecision] = None  # NULL == pending
     reviewer_comment: Optional[str] = None
     reviewed_at: Optional[datetime] = None
-    appeal_reason: Optional[str] = None
-    appeal_status: Optional[AppealStatus] = None
-    appeal_submitted_at: Optional[datetime] = None
-    appeal_reviewer_id: Optional[UUID] = None
-    appeal_review_comment: Optional[str] = None
-    appeal_reviewed_at: Optional[datetime] = None
     # Evaluation details
     total_working_hours: Optional[int] = None
     credits_awarded: Optional[int] = None
@@ -187,6 +177,8 @@ class Decision:
     supporting_evidence: Optional[str] = None
     challenging_evidence: Optional[str] = None
     recommendation: Optional[str] = None
+    # Complete AI workflow output
+    ai_workflow_json: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -196,25 +188,13 @@ class Decision:
             "ai_justification": self.ai_justification,
             "ai_decision": self.ai_decision.value,
             "created_at": self.created_at.isoformat(),
-            "student_feedback": self.student_feedback,
+            "student_comment": self.student_comment,
             "reviewer_id": str(self.reviewer_id) if self.reviewer_id else None,
             "reviewer_decision": self.reviewer_decision.value
             if self.reviewer_decision
             else None,
             "reviewer_comment": self.reviewer_comment,
             "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,
-            "appeal_reason": self.appeal_reason,
-            "appeal_status": self.appeal_status.value if self.appeal_status else None,
-            "appeal_submitted_at": self.appeal_submitted_at.isoformat()
-            if self.appeal_submitted_at
-            else None,
-            "appeal_reviewer_id": str(self.appeal_reviewer_id)
-            if self.appeal_reviewer_id
-            else None,
-            "appeal_review_comment": self.appeal_review_comment,
-            "appeal_reviewed_at": self.appeal_reviewed_at.isoformat()
-            if self.appeal_reviewed_at
-            else None,
             # Evaluation details
             "total_working_hours": self.total_working_hours,
             "credits_awarded": self.credits_awarded,
@@ -224,6 +204,7 @@ class Decision:
             "supporting_evidence": self.supporting_evidence,
             "challenging_evidence": self.challenging_evidence,
             "recommendation": self.recommendation,
+            "ai_workflow_json": self.ai_workflow_json,
         }
 
 

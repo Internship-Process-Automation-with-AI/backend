@@ -1,0 +1,191 @@
+{
+  "success": true,
+  "file_path": "samples\\letterbased-worddoc-01.docx",
+  "student_degree": "Bachelor of Engineering (BEng), Information Technology",
+  "student_email": "swadu@students.oamk.fi",
+  "requested_training_type": "general",
+  "processing_time": 9.750784,
+  "ocr_results": {
+    "success": true,
+    "engine": "Tesseract",
+    "confidence": 95.0,
+    "processing_time": 0.03,
+    "text_length": 492,
+    "detected_language": "auto",
+    "finnish_chars_count": 0
+  },
+  "llm_results": {
+    "success": true,
+    "processing_time": 9.706468343734741,
+    "extraction_results": {
+      "success": true,
+      "processing_time": 1.317060947418213,
+      "results": {
+        "employee_name": "Sally Jones",
+        "employer": "Smith Industries",
+        "certificate_issue_date": "2010-03-15",
+        "positions": [
+          {
+            "title": "Marketing Manager",
+            "employer": "Smith Industries",
+            "start_date": "2010-01-15",
+            "end_date": "2010-03-15",
+            "duration": "2 months",
+            "responsibilities": null
+          }
+        ],
+        "total_employment_period": "2 months",
+        "document_language": "en",
+        "confidence_level": "high(>75%)"
+      },
+      "raw_response": "```json\n{\n    \"employee_name\": \"Sally Jones\",\n    \"employer\": \"Smith Industries\",\n    \"certificate_issue_date\": \"2010-03-15\",\n    \"positions\": [\n        {\n            \"title\": \"Marketing Manager\",\n            \"employer\": \"Smith Industries\",\n            \"start_date\": \"2010-01-15\",\n            \"end_date\": \"2010-03-15\",\n            \"duration\": \"2 months\",\n            \"responsibilities\": null\n        }\n    ],\n    \"total_employment_period\": \"2 months\",\n    \"document_language\": \"en\",\n    \"confidence_level\": \"high(>75%)\"\n}\n```"
+    },
+    "evaluation_results": {
+      "success": true,
+      "processing_time": 2.828782081604004,
+      "results": {
+        "total_working_hours": 320,
+        "requested_training_type": "general",
+        "credits_calculated": 11.0,
+        "degree_relevance": "low",
+        "relevance_explanation": "While marketing can involve some analytical skills, the position as described in the letter does not directly align with the technical aspects of an Information Technology degree. It lacks specific technical IT skills or application to IT related projects.",
+        "calculation_breakdown": "320 hours / 27 hours per ECTS = 11.0 credits, capped at 10.0 maximum for general training",
+        "supporting_evidence": "The work experience provides general workplace experience and could contribute to communication and organizational skills.",
+        "challenging_evidence": "The position lacks specific technical or IT-related responsibilities relevant to an Information Technology degree.",
+        "recommendation": "No recommendation needed.",
+        "recommendation_reasoning": "The Marketing Manager role does not have significant technical overlap with an Information Technology degree, but it does offer transferable skills applicable to any workplace. Therefore, classifying it as general training is appropriate.",
+        "summary_justification": "The work experience, while valuable, does not demonstrate sufficient alignment with Information Technology degree requirements to justify professional training classification. The tasks are primarily marketing-oriented rather than IT-focused.",
+        "decision": "ACCEPTED",
+        "justification": "The work experience meets the criteria for general training as requested. The role, while not directly related to Information Technology, provides valuable transferable skills. Student would receive 10.0 ECTS credits toward the 30-credit practical training requirement.",
+        "credits_qualified": 10.0
+      },
+      "raw_response": "```json\n{\n    \"total_working_hours\": 320,\n    \"requested_training_type\": \"general\",\n    \"credits_calculated\": 10,\n    \"degree_relevance\": \"low\",\n    \"relevance_explanation\": \"While marketing can involve some analytical skills, the position as described in the letter does not directly align with the technical aspects of an Information Technology degree. It lacks specific technical IT skills or application to IT related projects.\",\n    \"calculation_breakdown\": \"2 months full-time (320 hours) / 27 hours per ECTS = 11.85 credits, rounded down to 11.0 credits, capped at 10.0 maximum for general training\",\n    \"supporting_evidence\": \"The work experience provides general workplace experience and could contribute to communication and organizational skills.\",\n    \"challenging_evidence\": \"The position lacks specific technical or IT-related responsibilities relevant to an Information Technology degree.\",\n    \"recommendation\": \"RECOMMENDED for general training\",\n    \"recommendation_reasoning\": \"The Marketing Manager role does not have significant technical overlap with an Information Technology degree, but it does offer transferable skills applicable to any workplace. Therefore, classifying it as general training is appropriate.\",\n    \"summary_justification\": \"The work experience, while valuable, does not demonstrate sufficient alignment with Information Technology degree requirements to justify professional training classification. The tasks are primarily marketing-oriented rather than IT-focused.\",\n    \"decision\": \"ACCEPTED\",\n    \"justification\": \"The work experience meets the criteria for general training as requested. The role, while not directly related to Information Technology, provides valuable transferable skills. Student would receive 10.0 ECTS credits toward the 30-credit practical training requirement.\",\n    \"recommendation\": \"No recommendation needed.\"\n}\n```"
+    },
+    "validation_results": {
+      "success": true,
+      "processing_time": 2.4402012825012207,
+      "results": {
+        "validation_passed": true,
+        "overall_accuracy_score": 0.95,
+        "issues_found": [
+          {
+            "type": "extraction_error",
+            "severity": "low",
+            "description": "The employee's last name is Smith according to the subject line of the letter, not Jones.",
+            "field_affected": "extraction",
+            "suggestion": "Correct the employee name to Sally Smith."
+          }
+        ],
+        "extraction_validation": {
+          "employee_name_correct": false,
+          "job_title_correct": true,
+          "company_correct": true,
+          "dates_correct": true,
+          "missing_information": []
+        },
+        "evaluation_validation": {
+          "hours_calculation_correct": true,
+          "training_type_justified": true,
+          "credits_calculation_correct": true,
+          "degree_relevance_assessment_accurate": true,
+          "recommendation_consistent": true,
+          "evidence_alignment": "consistent"
+        },
+        "justification_validation": {
+          "accurately_reflects_available_information": true,
+          "no_unjustified_assumptions": true,
+          "clearly_states_limitations": true
+        },
+        "summary": "The LLM output is accurate with a minor extraction error regarding the employee's name.",
+        "requires_correction": true
+      },
+      "raw_response": "```json\n{\n    \"validation_passed\": true,\n    \"overall_accuracy_score\": 0.95,\n    \"issues_found\": [\n        {\n            \"type\": \"extraction_error\",\n            \"severity\": \"low\",\n            \"description\": \"The employee's last name is Smith according to the subject line of the letter, not Jones.\",\n            \"field_affected\": \"extraction\",\n            \"suggestion\": \"Correct the employee name to Sally Smith.\"\n        }\n    ],\n    \"extraction_validation\": {\n        \"employee_name_correct\": false,\n        \"job_title_correct\": true,\n        \"company_correct\": true,\n        \"dates_correct\": true,\n        \"missing_information\": []\n    },\n    \"evaluation_validation\": {\n        \"hours_calculation_correct\": true,\n        \"training_type_justified\": true,\n        \"credits_calculation_correct\": true,\n        \"degree_relevance_assessment_accurate\": true,\n        \"recommendation_consistent\": true,\n        \"evidence_alignment\": \"consistent\"\n    },\n    \"justification_validation\": {\n        \"accurately_reflects_available_information\": true,\n        \"no_unjustified_assumptions\": true,\n        \"clearly_states_limitations\": true\n    },\n    \"summary\": \"The LLM output is accurate with a minor extraction error regarding the employee's name.\",\n    \"requires_correction\": true\n}\n```"
+    },
+    "correction_results": {
+      "success": true,
+      "processing_time": 3.1035518646240234,
+      "results": {
+        "extraction_results": {
+          "employee_name": "Sally Smith",
+          "positions": [
+            {
+              "title": "Marketing Manager",
+              "employer": "Smith Industries",
+              "start_date": "2010-01-15",
+              "end_date": "2010-03-15",
+              "duration": "2 months",
+              "responsibilities": null
+            }
+          ],
+          "total_employment_period": "2 months",
+          "document_language": "en",
+          "confidence_level": "high"
+        },
+        "evaluation_results": {
+          "total_working_hours": 320,
+          "training_type": "general",
+          "credits_qualified": 10.0,
+          "degree_relevance": "low",
+          "relevance_explanation": "While marketing can involve some analytical skills, the position as described in the letter does not directly align with the technical aspects of an Information Technology degree. It lacks specific technical IT skills or application to IT related projects.",
+          "calculation_breakdown": "320 hours / 27 hours per ECTS = 11.0 credits, capped at 10.0 maximum for general training",
+          "summary_justification": "The work experience, while valuable, does not demonstrate sufficient alignment with Information Technology degree requirements to justify professional training classification. The tasks are primarily marketing-oriented rather than IT-focused.",
+          "decision": "ACCEPTED",
+          "justification": "The work experience meets the criteria for general training as requested. The role, while not directly related to Information Technology, provides valuable transferable skills. Student would receive 10.0 ECTS credits toward the 30-credit practical training requirement.",
+          "recommendation": "No recommendation needed.",
+          "confidence_level": "high",
+          "recommendation_reasoning": "The Marketing Manager role does not have significant technical overlap with an Information Technology degree, but it does offer transferable skills applicable to any workplace. Therefore, classifying it as general training is appropriate.",
+          "requested_training_type": "general"
+        },
+        "correction_notes": [
+          "Corrected employee name from Sally Jones to Sally Smith based on the subject line of the employment verification letter.",
+          "Adjusted confidence level to 'high' without the redundant (>75%)"
+        ],
+        "validation_issues_addressed": [
+          "extraction_error: employee_name_correct"
+        ]
+      },
+      "raw_response": "```json\n{\n  \"extraction_results\": {\n    \"employee_name\": \"Sally Smith\",\n    \"positions\": [\n      {\n        \"title\": \"Marketing Manager\",\n        \"employer\": \"Smith Industries\",\n        \"start_date\": \"2010-01-15\",\n        \"end_date\": \"2010-03-15\",\n        \"duration\": \"2 months\",\n        \"responsibilities\": null\n      }\n    ],\n    \"total_employment_period\": \"2 months\",\n    \"document_language\": \"en\",\n    \"confidence_level\": \"high\"\n  },\n  \"evaluation_results\": {\n    \"total_working_hours\": 320,\n    \"training_type\": \"general\",\n    \"credits_qualified\": 10.0,\n    \"degree_relevance\": \"low\",\n    \"relevance_explanation\": \"While marketing can involve some analytical skills, the position as described in the letter does not directly align with the technical aspects of an Information Technology degree. It lacks specific technical IT skills or application to IT related projects.\",\n    \"calculation_breakdown\": \"320 hours / 27 hours per ECTS = 11.0 credits, capped at 10.0 maximum for general training\",\n    \"summary_justification\": \"The work experience, while valuable, does not demonstrate sufficient alignment with Information Technology degree requirements to justify professional training classification. The tasks are primarily marketing-oriented rather than IT-focused.\",\n    \"decision\": \"ACCEPTED\",\n    \"justification\": \"The work experience meets the criteria for general training as requested. The role, while not directly related to Information Technology, provides valuable transferable skills. Student would receive 10.0 ECTS credits toward the 30-credit practical training requirement.\",\n    \"recommendation\": \"No recommendation needed.\",\n    \"confidence_level\": \"high\",\n    \"recommendation_reasoning\": \"The Marketing Manager role does not have significant technical overlap with an Information Technology degree, but it does offer transferable skills applicable to any workplace. Therefore, classifying it as general training is appropriate.\"\n  },\n  \"correction_notes\": [\n    \"Corrected employee name from Sally Jones to Sally Smith based on the subject line of the employment verification letter.\",\n    \"Adjusted confidence level to 'high' without the redundant (>75%)\"\n  ],\n  \"validation_issues_addressed\": [\n    \"extraction_error: employee_name_correct\"\n  ]\n}\n```"
+    },
+    "structural_validation": {
+      "extraction": {
+        "validation_passed": true,
+        "issues_found": [],
+        "extraction_valid": true,
+        "evaluation_valid": true,
+        "summary": "Extraction validation passed"
+      },
+      "evaluation": {
+        "validation_passed": true,
+        "issues_found": [],
+        "extraction_valid": true,
+        "evaluation_valid": true,
+        "summary": "Evaluation validation passed"
+      },
+      "correction": {
+        "extraction": {
+          "validation_passed": true,
+          "issues_found": [],
+          "extraction_valid": true,
+          "evaluation_valid": true,
+          "summary": "Extraction validation passed"
+        },
+        "evaluation": {
+          "validation_passed": true,
+          "issues_found": [],
+          "extraction_valid": true,
+          "evaluation_valid": true,
+          "summary": "Evaluation validation passed"
+        }
+      }
+    },
+    "student_degree": "Bachelor of Engineering (BEng), Information Technology",
+    "model_used": "gemini-2.0-flash",
+    "stages_completed": {
+      "extraction": true,
+      "evaluation": true,
+      "validation": true,
+      "correction": true
+    }
+  },
+  "error": null
+}
