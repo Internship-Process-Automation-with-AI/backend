@@ -32,14 +32,6 @@ class ReviewerDecision(str, enum.Enum):
     FAIL = "FAIL"  # Certificate rejected by reviewer
 
 
-class AppealStatus(str, enum.Enum):
-    """Enumeration for appeal statuses."""
-
-    PENDING = "PENDING"
-    APPROVED = "APPROVED"
-    REJECTED = "REJECTED"
-
-
 @dataclass
 class Student:
     """
@@ -259,7 +251,7 @@ class ApplicationSummary:
         ai_decision: AI decision result
         uploaded_at: When certificate was uploaded
         created_at: When decision was created
-        student_feedback: Student's feedback if any
+        student_comment: Student's comment if any
     """
 
     decision_id: UUID
@@ -273,7 +265,7 @@ class ApplicationSummary:
     uploaded_at: datetime
     created_at: datetime
     reviewer_decision: Optional[ReviewerDecision] = None
-    student_feedback: Optional[str] = None
+    student_comment: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -291,7 +283,7 @@ class ApplicationSummary:
             "reviewer_decision": self.reviewer_decision.value
             if self.reviewer_decision
             else None,
-            "student_feedback": self.student_feedback,
+            "student_comment": self.student_comment,
         }
 
 

@@ -493,7 +493,7 @@ async def get_reviewers():
 
 
 class FeedbackRequest(BaseModel):
-    student_feedback: str
+    student_comment: str
     reviewer_id: Optional[UUID] = None
 
 
@@ -501,7 +501,7 @@ class FeedbackRequest(BaseModel):
 async def add_feedback_endpoint(certificate_id: UUID, payload: FeedbackRequest):
     """Store student comment and reviewer ID for a decision/certificate."""
     success = add_student_comment_and_reviewer(
-        certificate_id, payload.student_feedback, payload.reviewer_id
+        certificate_id, payload.student_comment, payload.reviewer_id
     )
     if not success:
         raise HTTPException(status_code=404, detail="Certificate not found")
