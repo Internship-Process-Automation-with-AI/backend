@@ -21,17 +21,9 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
--- Add/Update ENUM types
-
 -- Create reviewer_decision enum (PASS / FAIL)
 DO $$ BEGIN
     CREATE TYPE reviewer_decision AS ENUM ('PASS','FAIL');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-
--- Create appeal_status enum (for decisions table)
-DO $$ BEGIN
-    CREATE TYPE appeal_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
@@ -51,7 +43,7 @@ CREATE TABLE IF NOT EXISTS students (
     email VARCHAR(255) UNIQUE NOT NULL,
     degree VARCHAR(255) NOT NULL,
     first_name VARCHAR(255),
-    last_name VARCHAR(255)
+    last_name VARCHAR(255),
 
 -- Constraints
 CONSTRAINT students_email_check CHECK (email ~ '^[A-Za-z0-9._%+-]+@students\.oamk\.fi$'),
@@ -74,26 +66,19 @@ CONSTRAINT certificates_filename_check CHECK (LENGTH(filename) > 0),
     CONSTRAINT certificates_filetype_check CHECK (LENGTH(filetype) > 0)
 );
 
--- Create Decisions table
+-- Create Decisions table (simplified - no complex appeal workflow)
 CREATE TABLE IF NOT EXISTS decisions (
     decision_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     certificate_id UUID NOT NULL REFERENCES certificates(certificate_id) ON DELETE CASCADE,
     ai_justification TEXT NOT NULL,
     ai_decision decision_status NOT NULL, -- AI decision: ACCEPTED or REJECTED
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    student_feedback TEXT, -- Student feedback for rejected applications
+    student_comment TEXT, -- Student's comment for rejected applications (replaces appeal_reason)
     reviewer_id UUID REFERENCES reviewers(reviewer_id),
-    reviewer_decision reviewer_decision,  -- NULL = pending
-    reviewer_comment TEXT, -- Reviewer's comments
+    reviewer_decision reviewer_decision,  -- NULL = pending, PASS/FAIL
+    reviewer_comment TEXT, -- Reviewer's comments (optional)
     reviewed_at TIMESTAMP WITH TIME ZONE, -- When the review was completed
-    -- Appeal fields
-    appeal_reason TEXT, -- Student's appeal reason
-    appeal_status appeal_status, -- PENDING, APPROVED, REJECTED
-    appeal_submitted_at TIMESTAMP WITH TIME ZONE, -- When appeal was submitted
-    appeal_reviewer_id UUID REFERENCES reviewers(reviewer_id), -- Reviewer handling the appeal
-    appeal_review_comment TEXT, -- Appeal reviewer's comments
-    appeal_reviewed_at TIMESTAMP WITH TIME ZONE, -- When appeal was reviewed
-    -- Evaluation details
+    -- Evaluation details from AI analysis
     total_working_hours INTEGER, -- Total working hours from certificate
     credits_awarded INTEGER, -- Credits awarded (ECTS)
     training_duration TEXT, -- Duration of training (e.g., "3 months")
@@ -103,13 +88,11 @@ CREATE TABLE IF NOT EXISTS decisions (
     challenging_evidence TEXT, -- Challenging evidence against the decision
     recommendation TEXT, -- AI recommendation summary
     -- Complete AI workflow output
-    ai_workflow_json TEXT, -- Complete AI workflow JSON output (like the old aiworkflow_output files)
+    ai_workflow_json TEXT, -- Complete AI workflow JSON output
 
 -- Constraints
 CONSTRAINT decisions_ai_justification_check CHECK (LENGTH(ai_justification) > 0)
 );
-
--- Appeals table removed - integrated into decisions table
 
 -- Create indexes for better performance (only if they don't exist)
 CREATE INDEX IF NOT EXISTS idx_students_email ON students (email);
@@ -132,5 +115,6 @@ CREATE INDEX IF NOT EXISTS idx_decisions_created_at ON decisions (created_at);
 
 CREATE INDEX IF NOT EXISTS idx_decisions_reviewed_at ON decisions (reviewed_at);
 
-CREATE INDEX IF NOT EXISTS idx_decisions_appeal_status ON decisions (appeal_status);
-CREATE INDEX IF NOT EXISTS idx_decisions_appeal_submitted_at ON decisions (appeal_submitted_at);
+CREATE INDEX IF NOT EXISTS idx_decisions_student_comment ON decisions (student_comment);
+
+CREATE INDEX IF NOT EXISTS idx_decisions_reviewer_id ON decisions (reviewer_id);
