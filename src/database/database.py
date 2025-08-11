@@ -942,7 +942,7 @@ def add_student_comment_and_reviewer(
                 cur.execute(
                     """
                     UPDATE decisions 
-                    SET student_comment = %s, reviewer_id = %s
+                    SET student_feedback = %s, reviewer_id = %s
                     WHERE certificate_id = %s
                     """,
                     (student_comment, str(reviewer_id), str(certificate_id)),
@@ -951,7 +951,7 @@ def add_student_comment_and_reviewer(
                 cur.execute(
                     """
                     UPDATE decisions 
-                    SET student_comment = %s
+                    SET student_feedback = %s
                     WHERE certificate_id = %s
                     """,
                     (student_comment, str(certificate_id)),
@@ -1335,7 +1335,7 @@ def add_student_comment(certificate_id: UUID, student_comment: str) -> bool:
             cur.execute(
                 """
                 UPDATE decisions 
-                SET student_comment = %s
+                SET student_feedback = %s
                 WHERE certificate_id = %s
                 """,
                 (
@@ -1361,8 +1361,8 @@ def get_student_comment_by_certificate_id(certificate_id: UUID) -> Optional[str]
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT student_comment
-                FROM decisions WHERE certificate_id = %s AND student_comment IS NOT NULL
+                SELECT student_feedback
+                FROM decisions WHERE certificate_id = %s AND student_feedback IS NOT NULL
                 """,
                 (str(certificate_id),),
             )

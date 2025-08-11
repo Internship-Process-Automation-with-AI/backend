@@ -150,7 +150,7 @@ class Decision:
         ai_decision: AI decision (ACCEPTED/REJECTED)
         ai_justification: Explanation for the AI decision
         created_at: Timestamp when the decision was made
-        student_comment: Student's comment/appeal reason for rejected applications
+        student_feedback: Student's comment/appeal reason for rejected applications
         reviewer_id: Unique identifier for the reviewer (UUID)
         reviewer_decision: Outcome of the human review step (None = pending)
         reviewer_comment: Reviewer's comments (optional)
@@ -163,7 +163,7 @@ class Decision:
     ai_justification: str
     ai_decision: DecisionStatus
     created_at: datetime
-    student_comment: Optional[str] = None
+    student_feedback: Optional[str] = None
     reviewer_id: Optional[UUID] = None
     reviewer_decision: Optional[ReviewerDecision] = None  # NULL == pending
     reviewer_comment: Optional[str] = None
@@ -188,7 +188,7 @@ class Decision:
             "ai_justification": self.ai_justification,
             "ai_decision": self.ai_decision.value,
             "created_at": self.created_at.isoformat(),
-            "student_comment": self.student_comment,
+            "student_feedback": self.student_feedback,
             "reviewer_id": str(self.reviewer_id) if self.reviewer_id else None,
             "reviewer_decision": self.reviewer_decision.value
             if self.reviewer_decision
