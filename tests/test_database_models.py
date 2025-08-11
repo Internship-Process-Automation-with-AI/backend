@@ -14,7 +14,6 @@ from datetime import datetime
 from uuid import uuid4
 
 from src.database.models import (
-    AppealStatus,
     ApplicationSummary,
     Certificate,
     Decision,
@@ -322,12 +321,6 @@ class TestDecisionModel:
             reviewer_decision=ReviewerDecision.PASS_,
             reviewer_comment="Good certificate",
             created_at=created_at,
-            appeal_status=AppealStatus.PENDING,
-            appeal_reason="Disagree with decision",
-            appeal_submitted_at=datetime.now(),
-            appeal_review_comment="Under review",
-            appeal_reviewed_at=datetime.now(),
-            appeal_reviewer_id=reviewer_id,
         )
 
         assert decision.decision_id == decision_id
@@ -346,7 +339,6 @@ class TestDecisionModel:
         assert decision.reviewer_decision == ReviewerDecision.PASS_
         assert decision.reviewer_comment == "Good certificate"
         assert decision.created_at == created_at
-        assert decision.appeal_status == AppealStatus.PENDING
 
     def test_decision_to_dict(self):
         """Test Decision to_dict method."""
@@ -444,32 +436,6 @@ class TestDecisionModel:
             )
             assert decision.reviewer_decision == reviewer_decision
 
-    def test_decision_appeal_status_validation(self):
-        """Test Decision appeal status validation."""
-        decision_id = uuid4()
-        certificate_id = uuid4()
-
-        # Test all appeal statuses
-        for appeal_status in AppealStatus:
-            decision = Decision(
-                decision_id=decision_id,
-                certificate_id=certificate_id,
-                ai_decision=DecisionStatus.ACCEPTED,
-                ai_justification="Test justification",
-                credits_awarded=20.0,
-                total_working_hours=1600,
-                training_duration="2 years",
-                training_institution="Tech Corp",
-                degree_relevance="high",
-                supporting_evidence="Technical skills",
-                challenging_evidence=None,
-                recommendation="Approve",
-                created_at=datetime.now(),
-                appeal_status=appeal_status,
-                appeal_reason="Test appeal reason",
-            )
-            assert decision.appeal_status == appeal_status
-
     def test_decision_without_optional_fields(self):
         """Test Decision creation without optional fields."""
         decision_id = uuid4()
@@ -495,7 +461,6 @@ class TestDecisionModel:
         assert decision.decision_id == decision_id
         assert decision.reviewer_id is None
         assert decision.reviewer_decision is None
-        assert decision.appeal_status is None
 
 
 class TestReviewerModel:
@@ -707,17 +672,6 @@ class TestEnumValidation:
         assert "PASS" in [d.value for d in ReviewerDecision]
         assert "FAIL" in [d.value for d in ReviewerDecision]
 
-    def test_appeal_status_enum(self):
-        """Test AppealStatus enum values."""
-        assert AppealStatus.PENDING.value == "PENDING"
-        assert AppealStatus.APPROVED.value == "APPROVED"
-        assert AppealStatus.REJECTED.value == "REJECTED"
-
-        # Test enum membership
-        assert "PENDING" in [s.value for s in AppealStatus]
-        assert "APPROVED" in [s.value for s in AppealStatus]
-        assert "REJECTED" in [s.value for s in AppealStatus]
-
 
 class TestModelEdgeCases:
     """Test model edge cases and error handling."""
@@ -793,14 +747,10 @@ class TestModelEdgeCases:
             reviewer_id=None,
             reviewer_decision=None,
             reviewer_comment=None,
-            appeal_status=None,
-            appeal_reason=None,
         )
         assert decision.reviewer_id is None
         assert decision.reviewer_decision is None
         assert decision.reviewer_comment is None
-        assert decision.appeal_status is None
-        assert decision.appeal_reason is None
 
         # Reviewer with None values
         reviewer = Reviewer(

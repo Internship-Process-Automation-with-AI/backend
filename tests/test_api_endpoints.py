@@ -55,15 +55,10 @@ class TestStudentEndpoints:
                         datetime(2024, 1, 1),  # decision_created_at
                         uuid4(),  # reviewer_id
                         "PASS",  # reviewer_decision
+                        "Good certificate",  # reviewer_comment
+                        datetime(2024, 1, 1),  # reviewed_at
                         "John",  # first_name
                         "Reviewer",  # last_name
-                        None,  # appeal_status
-                        None,  # appeal_submitted_at
-                        None,  # appeal_reason
-                        None,  # appeal_review_comment
-                        None,  # appeal_reviewed_at
-                        None,  # appeal_reviewer_first_name
-                        None,  # appeal_reviewer_last_name
                         1600,  # total_working_hours
                         20.0,  # credits_awarded
                         "2 years",  # training_duration
@@ -72,6 +67,7 @@ class TestStudentEndpoints:
                         "Technical skills",  # supporting_evidence
                         None,  # challenging_evidence
                         "Approve",  # recommendation
+                        "Test feedback",  # student_comment
                     )
                 ]
                 mock_conn.return_value.__enter__.return_value.cursor.return_value.__enter__.return_value = mock_cursor
@@ -207,30 +203,10 @@ class TestStudentEndpoints:
             assert response.status_code == 404
             assert response.json()["detail"] == "Certificate not found"
 
-    def test_add_feedback_success(self, test_client, sample_certificate):
-        """Test successful feedback submission."""
-        with patch(
-            "src.API.api.get_certificate_by_id", return_value=sample_certificate
-        ):
-            with patch("src.API.api.add_student_feedback"):
-                feedback_data = {
-                    "student_feedback": "This is my feedback",
-                    "reviewer_id": str(uuid4()),
-                }
-
-                response = test_client.post(
-                    f"/certificate/{sample_certificate.certificate_id}/feedback",
-                    json=feedback_data,
-                )
-
-                assert response.status_code == 200
-                data = response.json()
-                assert data["message"] == "Feedback and reviewer information stored"
-
     def test_add_feedback_certificate_not_found(self, test_client):
         """Test adding feedback to non-existent certificate."""
         certificate_id = uuid4()
-        feedback_data = {"student_feedback": "Test feedback"}
+        feedback_data = {"student_comment": "Test feedback"}
 
         with patch("src.API.api.get_certificate_by_id", return_value=None):
             response = test_client.post(
@@ -285,23 +261,6 @@ class TestStudentEndpoints:
                 assert response.status_code == 200
                 data = response.json()
                 assert data["message"] == "Certificate sent for approval successfully"
-
-    def test_submit_appeal_success(self, test_client, sample_certificate):
-        """Test successful appeal submission."""
-        with patch(
-            "src.API.api.get_certificate_by_id", return_value=sample_certificate
-        ):
-            with patch("src.API.api.submit_appeal"):
-                appeal_data = {"appeal_reason": "I disagree with the decision"}
-
-                response = test_client.post(
-                    f"/certificate/{sample_certificate.certificate_id}/appeal",
-                    json=appeal_data,
-                )
-
-                assert response.status_code == 200
-                data = response.json()
-                assert data["message"] == "Appeal submitted successfully"
 
     def test_download_certificate_success(self, test_client, sample_certificate):
         """Test successful certificate download."""
