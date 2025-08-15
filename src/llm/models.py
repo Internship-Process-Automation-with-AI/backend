@@ -170,9 +170,10 @@ class ExtractionResults(BaseModel):
         null_employers = [p for p in v if p.employer is None]
 
         if has_employer and null_employers:
-            logger.warning(
-                f"Inconsistent employer information: {len(null_employers)} positions "
-                f"have null employers while others specify employers"
+            # Log warning but don't fail validation - this is common in real documents
+            logger.info(
+                f"Mixed employer information: {len(null_employers)} positions "
+                f"have null employers while others specify employers. This is acceptable."
             )
 
         return v
