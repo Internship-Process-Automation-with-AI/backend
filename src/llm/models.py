@@ -7,7 +7,7 @@ import logging
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,8 @@ class Position(BaseModel):
     duration: Optional[str] = None
     responsibilities: Optional[str] = None
 
-    @validator("start_date", "end_date")
+    @field_validator("start_date", "end_date")
+    @classmethod
     def validate_dates(cls, v):
         """Validate that dates are not in the future."""
         if v:
@@ -40,16 +41,19 @@ class Position(BaseModel):
                 )
         return v
 
-    @validator("end_date")
-    def validate_end_after_start(cls, v, values):
+    @field_validator("end_date")
+    @classmethod
+    def validate_end_after_start(cls, v, info):
         """Validate that end date is after start date."""
-        if v and "start_date" in values and values["start_date"]:
+        if v and "start_date" in info.data and info.data["start_date"]:
             try:
                 end_date = datetime.strptime(v, "%Y-%m-%d").date()
-                start_date = datetime.strptime(values["start_date"], "%Y-%m-%d").date()
+                start_date = datetime.strptime(
+                    info.data["start_date"], "%Y-%m-%d"
+                ).date()
                 if end_date < start_date:
                     logger.warning(
-                        f"End date {v} is before start date {values['start_date']}. This may indicate extraction errors but processing will continue."
+                        f"End date {v} is before start date {info.data['start_date']}. This may indicate extraction errors but processing will continue."
                     )
             except ValueError as e:
                 # If date parsing fails, skip this validation
@@ -90,7 +94,8 @@ class ExtractionResults(BaseModel):
     document_language: str = Field(default="en")
     confidence_level: Optional[str] = None
 
-    @validator("certificate_issue_date")
+    @field_validator("certificate_issue_date")
+    @classmethod
     def validate_certificate_date(cls, v):
         """Validate certificate issue date is not in the future."""
         if v:
@@ -106,7 +111,8 @@ class ExtractionResults(BaseModel):
                 )
         return v
 
-    @validator("positions")
+    @field_validator("positions")
+    @classmethod
     def validate_employment_sequence(cls, v):
         """Validate employment timeline consistency."""
         if len(v) < 2:
@@ -154,7 +160,8 @@ class ExtractionResults(BaseModel):
 
         return v
 
-    @validator("positions")
+    @field_validator("positions")
+    @classmethod
     def validate_employer_consistency(cls, v):
         """Validate employer consistency across positions."""
         if len(v) < 2:
@@ -214,7 +221,8 @@ class EvaluationResults(BaseModel):
     recommendation: Optional[str] = None
     confidence_level: Optional[str] = None
 
-    @validator("total_working_hours")
+    @field_validator("total_working_hours")
+    @classmethod
     def validate_working_hours(cls, v):
         """Validate working hours are reasonable."""
         if v is not None:
@@ -224,7 +232,8 @@ class EvaluationResults(BaseModel):
                 raise ValueError(f"Working hours seem unreasonably high: {v}")
         return v
 
-    @validator("credits_qualified")
+    @field_validator("credits_qualified")
+    @classmethod
     def validate_credits(cls, v):
         """Validate credit calculations."""
         if v < 0:
@@ -233,11 +242,12 @@ class EvaluationResults(BaseModel):
             raise ValueError(f"Credits exceed maximum allowed: {v}")
         return v
 
-    @validator("requested_training_type")
-    def validate_training_type_consistency(cls, v, values):
+    @field_validator("requested_training_type")
+    @classmethod
+    def validate_training_type_consistency(cls, v, info):
         """Validate training type consistency with degree relevance."""
-        if "degree_relevance" in values:
-            relevance = values["degree_relevance"]
+        if "degree_relevance" in info.data:
+            relevance = info.data["degree_relevance"]
             if relevance in ["high", "medium"] and v == "general":
                 raise ValueError(
                     f"Inconsistent classification: degree relevance is '{relevance}' "
@@ -250,11 +260,12 @@ class EvaluationResults(BaseModel):
                 )
         return v
 
-    @validator("credits_qualified")
-    def validate_credit_limits(cls, v, values):
+    @field_validator("credits_qualified")
+    @classmethod
+    def validate_credit_limits(cls, v, info):
         """Validate credit limits based on training type."""
-        if "requested_training_type" in values:
-            training_type = values["requested_training_type"]
+        if "requested_training_type" in info.data:
+            training_type = info.data["requested_training_type"]
             if training_type == "general" and v > 10:
                 raise ValueError(f"General training credits exceed maximum: {v} > 10")
             if training_type == "professional" and v > 30:
