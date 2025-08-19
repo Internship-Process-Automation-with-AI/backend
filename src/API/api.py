@@ -139,6 +139,9 @@ async def get_student_applications(email: str):
                 if ai_decision:
                     if reviewer_id and not reviewer_decision:
                         status = "PENDING_FOR_APPROVAL"
+                    elif ai_decision in ["ACCEPTED", "REJECTED"] and not reviewer_id:
+                        # AI has made a decision but application hasn't been sent for approval
+                        status = "AI_PROCESSED_NOT_SENT"
                     else:
                         status = ai_decision
 
