@@ -23,6 +23,7 @@ from src.llm.prompts import (
     EXTRACTION_PROMPT,
     VALIDATION_PROMPT,
 )
+from src.llm.validate_company import CompanyValidator
 
 logger = logging.getLogger(__name__)
 
@@ -433,10 +434,32 @@ class LLMOrchestrator:
         stage_start = time.time()
 
         try:
+            # Validate company information
+            company_validator = CompanyValidator()
+            company_validation_result = company_validator.validate_company_info(
+                extracted_info
+            )
+
+            if not company_validation_result["validation_passed"]:
+                logger.warning(
+                    f"Company validation failed: {company_validation_result['summary']}"
+                )
+                # Log detailed issues
+                for i, issue in enumerate(company_validation_result["issues_found"], 1):
+                    logger.warning(
+                        f"  Company Issue {i}: {issue['type']} ({issue['severity']}) - {issue['description']}"
+                    )
+                # Continue processing but log the issues
+
             # Format data for validation prompt
             extraction_str = json.dumps(extracted_info, indent=2, ensure_ascii=False)
             evaluation_str = json.dumps(
                 evaluation_results, indent=2, ensure_ascii=False
+            )
+
+            # Add company validation results to the prompt context
+            company_validation_str = json.dumps(
+                company_validation_result, indent=2, ensure_ascii=False
             )
 
             prompt = VALIDATION_PROMPT.format(
@@ -447,8 +470,24 @@ class LLMOrchestrator:
                 requested_training_type=requested_training_type or "general",
             )
 
+            # Add company validation information to the prompt
+            prompt += f"\n\nCOMPANY VALIDATION RESULTS:\n{company_validation_str}"
+
             response = self._call_llm_with_fallback(prompt, "validation")
             results = self._parse_llm_response(response)
+
+            # Merge company validation results with LLM validation results
+            if results and isinstance(results, dict):
+                results["company_validation"] = company_validation_result[
+                    "company_validation"
+                ]
+                # Add company validation issues to overall issues if any
+                if company_validation_result["issues_found"]:
+                    if "issues_found" not in results:
+                        results["issues_found"] = []
+                    results["issues_found"].extend(
+                        company_validation_result["issues_found"]
+                    )
 
             return {
                 "success": True,

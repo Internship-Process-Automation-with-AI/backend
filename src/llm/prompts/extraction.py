@@ -19,6 +19,11 @@ REQUIRED JSON FIELDS:
 {{
     "employee_name": "Full name of the person employed",
     "employer": "Company or organization name (use null if not specified)",
+    "employer_address": "Address of the employer (use null if not specified)",
+    "employer_business_id": "Business ID of the employer (use null if not specified)",
+    "employer_phone": "Phone number of the employer (use null if not specified)",
+    "employer_email": "Email of the employer (use null if not specified)",
+    "employer_website": "Website of the employer (use null if not specified)",
     "certificate_issue_date": "Date when the certificate was issued (usually at the top of the document) in YYYY-MM-DD format ONLY (use null if not found)",
     "positions": [
         {{
@@ -42,6 +47,7 @@ IMPORTANT GUIDELINES:
 - Focus on extracting specific responsibilities and tasks for each role
 - If dates are missing for specific roles, use null
 - If employer is missing for specific roles, use null
+- If address, business id, phone, email, website is missing for the employer, use null
 - If the end date is missing for a role, use the certificate issue date as the end date which is usually at the top of the document or below the document after the signature
 - Always calculate duration if the start date and end date are present
 - CRITICAL: All dates MUST be in YYYY-MM-DD format (e.g., "2009-11-27", not "27.11.2009")
@@ -60,6 +66,11 @@ EXAMPLE JSON RESPONSE:
 {{
     "employee_name": "Ari Tapani Valtamo",
     "employer": "Yritys",
+    "employer_address": "Address of the employer (use null if not specified)",
+    "employer_business_id": "Business ID of the employer (use null if not specified)",
+    "employer_phone": "Phone number of the employer (use null if not specified)",
+    "employer_email": "Email of the employer (use null if not specified)",
+    "employer_website": "Website of the employer (use null if not specified)",
     "certificate_issue_date": "2009-11-27",
     "positions": [
         {{
