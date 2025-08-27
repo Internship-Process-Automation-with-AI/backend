@@ -32,6 +32,7 @@ CRITICAL VALIDATION RULES:
 - **Validate AI recommendation logic**: Check that the AI's recommendation and reasoning are consistent with the requested training type and degree relevance assessment, but do not force the training type to match the degree relevance.
 - **CREDIT CAPS ARE CORRECT**: The 30 ECTS maximum for professional training and 10 ECTS maximum for general training are established business rules. Do NOT flag these as errors.
 - **DECISION LOGIC IS VALID**: If the AI determines that work experience doesn't meet professional training criteria despite the user's request, this is valid reasoning and should NOT be flagged as an error.
+- **CRITICAL: FUTURE DATE VALIDATION**: If ANY date (start_date, end_date, or certificate_issue_date) is in the future, this MUST be flagged as a CRITICAL error and the decision MUST be changed to "REJECTED" regardless of other factors. Future dates make working hours calculation impossible.
 - **COMPANY VALIDATION**: Review the provided company validation results and flag any companies that require manual review based on the risk assessment.
 
 VALIDATION OUTPUT FORMAT:
