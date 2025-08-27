@@ -472,6 +472,52 @@ async def process_certificate(certificate_id: UUID):
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
 
+@router.get("/certificate/{certificate_id}/status", tags=["student"])
+async def get_certificate_status(certificate_id: UUID):
+    """Get the processing status of a certificate."""
+    try:
+        cert = get_certificate_by_id(certificate_id)
+        if not cert:
+            raise HTTPException(status_code=404, detail="Certificate not found")
+
+        # Check if decision exists (indicates processing is complete)
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT ai_decision, ai_justification, total_working_hours, credits_awarded, training_duration, training_institution FROM decisions WHERE certificate_id = %s",
+                    (str(certificate_id),),
+                )
+                decision_row = cur.fetchone()
+
+        if decision_row:
+            # Processing is complete
+            return {
+                "status": "completed",
+                "certificate_id": str(certificate_id),
+                "decision": {
+                    "ai_decision": decision_row[0].value
+                    if decision_row[0]
+                    else "PENDING",
+                    "ai_justification": decision_row[1] or "No justification provided",
+                    "total_working_hours": decision_row[2] or 0,
+                    "credits_awarded": decision_row[3] or 0,
+                    "training_duration": decision_row[4] or "Not specified",
+                    "training_institution": decision_row[5] or "Not specified",
+                },
+            }
+        else:
+            # Processing is still in progress
+            return {
+                "status": "processing",
+                "certificate_id": str(certificate_id),
+                "message": "Certificate is being processed. Please wait.",
+            }
+
+    except Exception as e:
+        logger.error(f"Failed to get certificate status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")
+
+
 @router.get("/reviewers", tags=["student"])
 async def get_reviewers():
     """Get all reviewers with their names and IDs."""
