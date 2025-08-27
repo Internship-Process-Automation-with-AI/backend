@@ -51,8 +51,8 @@ class Position(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True)
 
-    title: str
-    employer: Optional[str] = None
+    title: Optional[str] = Field(default="Unknown Position")
+    employer: Optional[str] = Field(default="Unknown Employer")
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     duration: Optional[str] = None
@@ -120,13 +120,13 @@ class Position(BaseModel):
 class ExtractionResults(BaseModel):
     """Model for LLM extraction results with structural validation."""
 
-    employee_name: str
+    employee_name: Optional[str] = Field(default="Unknown Employee")
     employer: Optional[str] = None
     certificate_issue_date: Optional[str] = None
     positions: List[Position] = Field(default_factory=list)
     total_employment_period: Optional[str] = None
     document_language: str = Field(default="en")
-    confidence_level: Optional[str] = None
+    confidence_level: Optional[str] = Field(default="low")
 
     @field_validator("certificate_issue_date")
     @classmethod
