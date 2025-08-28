@@ -52,7 +52,7 @@ This backend processes work certificates for OAMK students, using OCR and AI to 
 - **4-Stage AI Pipeline**: Extraction → Evaluation → Validation → Correction
 - **Degree-Specific Rules**: Tailored evaluation for different degree programs
 - **Training Type Classification**: General (max 10 ECTS) vs Professional (max 30 ECTS)
-- **Reviewer Workflow**: Complete review system with appeals
+- **Reviewer Workflow**: Complete review system with student comments
 - **Cross-Device Access**: No file system dependencies
 
 ---
@@ -90,14 +90,14 @@ Frontend Display
 | GET    | `/certificate/{certificate_id}/preview`      | Preview certificate from DB       |
 | GET    | `/reviewers`                                 | List all reviewers                |
 | POST   | `/certificate/{certificate_id}/review`       | Reviewer submits decision         |
-| POST   | `/certificate/{certificate_id}/appeal`       | Student submits appeal            |
+| POST   | `/certificate/{certificate_id}/student-comment` | Student submits comment for rejected cases |
 
 ---
 
 ## 🗄️ Database Schema
 
 ### **Key Tables:**
-- **`students`**: Student information with email validation
+- **`students`**: Student information with email validation (@students.oamk.fi)
 - **`certificates`**: File storage with `file_content BYTEA` and metadata
 - **`decisions`**: AI evaluation results with `ai_workflow_json TEXT`
 - **`reviewers`**: Reviewer information with position and department
@@ -113,7 +113,7 @@ Frontend Display
 
 ### **Stage 1: Information Extraction**
 - Extract employee details, employment periods, responsibilities
-- Structural validation of extracted data
+- Structural validation of extracted data using Pydantic models
 
 ### **Stage 2: Academic Evaluation**
 - Calculate working hours and ECTS credits
@@ -155,7 +155,7 @@ Frontend Display
 - **ACCEPTED**: Work experience meets requested training type criteria
 - **REJECTED**: Work experience doesn't meet requested training type criteria
 - **Justification**: Detailed reasoning for decision
-- **Recommendation**: Actionable guidance for rejected cases
+- **Student Comments**: Students can provide comments for rejected cases
 
 ---
 
