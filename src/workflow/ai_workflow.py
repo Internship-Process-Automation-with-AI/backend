@@ -849,36 +849,16 @@ class LLMOrchestrator:
             risk_level = "low"
 
         return {
-            "is_legitimate": is_legitimate,
-            "confidence_score": confidence_score,
+            "status": "LEGITIMATE" if is_legitimate else "NOT_LEGITIMATE",
+            "confidence": "high"
+            if confidence_score > 0.7
+            else "medium"
+            if confidence_score > 0.4
+            else "low",
             "risk_level": risk_level,
-            "validation_notes": f"LLM response parsing failed. Fallback analysis suggests: {'legitimate' if is_legitimate else 'suspicious'} company. Raw response: {response[:100]}...",
-            "risk_factors": ["LLM response parsing failed"]
-            if not is_legitimate
-            else [],
-            "requires_manual_review": True,
-            "recommendation": "REVIEW",
-            "address_validation": {
-                "status": "Address validation failed - manual review required",
-                "notes": "LLM parsing error",
-            },
-            "business_id_validation": {
-                "status": "Business ID validation failed - manual review required",
-                "format_type": "unknown",
-                "notes": "LLM parsing error",
-            },
-            "contact_validation": {
-                "phone": {
-                    "status": "Phone validation failed - manual review required",
-                    "notes": "LLM parsing error",
-                },
-                "email": {
-                    "status": "Email validation failed - manual review required",
-                    "notes": "LLM parsing error",
-                },
-            },
-            "detailed_explanation": f"LLM response parsing failed. Fallback analysis suggests: {'legitimate' if is_legitimate else 'suspicious'} company.",
+            "justification": f"LLM response parsing failed. Fallback analysis suggests: {'legitimate' if is_legitimate else 'suspicious'} company. Raw response: {response[:100]}...",
             "supporting_evidence": ["Fallback analysis due to parsing error"],
+            "requires_review": True,
         }
 
     def _parse_paragraph_company_validation(self, response: str) -> Dict[str, Any]:
@@ -904,53 +884,7 @@ class LLMOrchestrator:
             # Set default values based on legitimacy
             risk_level = "very_low" if is_legitimate else "high"
             confidence_score = 0.9 if is_legitimate else 0.3
-            recommendation = "ACCEPT" if is_legitimate else "REVIEW"
             requires_manual_review = not is_legitimate
-
-            # Create simple validation statuses
-            address_status = (
-                "Address appears valid"
-                if is_legitimate
-                else "Address validation unclear"
-            )
-            business_id_status = (
-                "Business ID format valid"
-                if is_legitimate
-                else "Business ID validation unclear"
-            )
-            phone_status = (
-                "Phone format valid" if is_legitimate else "Phone validation unclear"
-            )
-            email_status = (
-                "Email format valid" if is_legitimate else "Email validation unclear"
-            )
-
-            # Set notes based on the justification
-            address_notes = (
-                "Address format appears valid based on LLM analysis"
-                if is_legitimate
-                else "Address validation unclear"
-            )
-            business_id_notes = (
-                "Business ID format appears valid based on LLM analysis"
-                if is_legitimate
-                else "Business ID validation unclear"
-            )
-            phone_notes = (
-                "Phone number format appears valid based on LLM analysis"
-                if is_legitimate
-                else "Phone validation unclear"
-            )
-            email_notes = (
-                "Email format appears valid based on LLM analysis"
-                if is_legitimate
-                else "Email validation unclear"
-            )
-
-            # Set business ID format if mentioned
-            business_id_format = "unknown"
-            if "ytunnus" in response_lower or "finnish" in response_lower:
-                business_id_format = "finnish_ytunnus"
 
             # Extract risk factors
             risk_factors = []
@@ -1023,27 +957,14 @@ class LLMOrchestrator:
                 )
 
             return {
-                "is_legitimate": is_legitimate,
-                "confidence_score": confidence_score,
+                "status": "LEGITIMATE" if is_legitimate else "NOT_LEGITIMATE",
+                "confidence": "high"
+                if confidence_score > 0.7
+                else "medium"
+                if confidence_score > 0.4
+                else "low",
                 "risk_level": risk_level,
-                "validation_notes": detailed_explanation,
-                "risk_factors": risk_factors,
-                "requires_manual_review": requires_manual_review,
-                "recommendation": recommendation,
-                "address_validation": {
-                    "status": address_status,
-                    "notes": address_notes,
-                },
-                "business_id_validation": {
-                    "status": business_id_status,
-                    "format_type": business_id_format,
-                    "notes": business_id_notes,
-                },
-                "contact_validation": {
-                    "phone": {"status": phone_status, "notes": phone_notes},
-                    "email": {"status": email_status, "notes": email_notes},
-                },
-                "detailed_explanation": detailed_explanation,
+                "justification": detailed_explanation,
                 "supporting_evidence": supporting_evidence
                 if supporting_evidence
                 else [
@@ -1052,6 +973,7 @@ class LLMOrchestrator:
                     "Address verification completed",
                     "Industry information verified",
                 ],
+                "requires_review": requires_manual_review,
             }
 
         except Exception as e:
@@ -1070,8 +992,7 @@ class LLMOrchestrator:
                     "summary": "No company information to validate",
                     "issues_found": [],
                     "company_validation": {
-                        "overall_status": "✅ No companies to validate",
-                        "validation_notes": "No company information found in document",
+                        "status": "UNVERIFIED",
                         "companies": [],
                     },
                 }
@@ -1119,7 +1040,7 @@ class LLMOrchestrator:
 
                 if validation_result and isinstance(validation_result, dict):
                     # Check if company is suspicious
-                    if not validation_result.get("is_legitimate", True):
+                    if validation_result.get("status") == "NOT_LEGITIMATE":
                         suspicious_companies += 1
                         issues_found.append(
                             {
@@ -1149,11 +1070,12 @@ class LLMOrchestrator:
                             "position_index": i,
                             "company_name": company_name,
                             "validation_result": {
-                                "is_legitimate": True,  # Default to legitimate if validation fails
-                                "confidence_score": 0.5,
+                                "status": "UNVERIFIED",  # Default to unverified if validation fails
+                                "confidence": "low",
                                 "risk_level": "medium",
-                                "validation_notes": "LLM validation failed, defaulting to legitimate",
-                                "requires_manual_review": True,
+                                "justification": "LLM validation failed, defaulting to unverified",
+                                "supporting_evidence": ["LLM validation failed"],
+                                "requires_review": True,
                             },
                         }
                     )
@@ -1161,20 +1083,13 @@ class LLMOrchestrator:
             # Determine overall validation status
             validation_passed = suspicious_companies == 0
 
-            # Generate summary
+            # Generate overall status
             if suspicious_companies == 0:
-                summary = "All companies passed validation"
-                validation_notes = (
-                    f"All {len(company_validation_results)} companies passed validation"
-                )
-            elif suspicious_companies == 1:
-                summary = "1 suspicious company detected requiring review"
-                validation_notes = (
-                    "1 suspicious company detected. Manual review required."
-                )
+                overall_status = "LEGITIMATE"
+            elif suspicious_companies == len(company_validation_results):
+                overall_status = "NOT_LEGITIMATE"
             else:
-                summary = f"{suspicious_companies} suspicious companies detected requiring review"
-                validation_notes = f"{suspicious_companies} suspicious companies detected. Manual review required."
+                overall_status = "PARTIALLY_LEGITIMATE"
 
             # Format companies for output
             companies_output = []
@@ -1183,43 +1098,25 @@ class LLMOrchestrator:
                 companies_output.append(
                     {
                         "name": result["company_name"],
-                        "status": "✅ Legitimate"
-                        if validation.get("is_legitimate", True)
-                        else "❌ Suspicious",
-                        "address": validation.get("address_validation", {}).get(
-                            "status", "Not provided"
-                        ),
-                        "business_id": validation.get("business_id_validation", {}).get(
-                            "status", "Not provided"
-                        ),
-                        "phone": validation.get("contact_validation", {})
-                        .get("phone", {})
-                        .get("status", "Not provided"),
-                        "email": validation.get("contact_validation", {})
-                        .get("email", {})
-                        .get("status", "Not provided"),
+                        "status": validation.get("status", "UNVERIFIED"),
+                        "confidence": validation.get("confidence", "low"),
                         "risk_level": validation.get("risk_level", "unknown"),
-                        "requires_review": validation.get(
-                            "requires_manual_review", False
-                        ),
-                        "detailed_explanation": validation.get(
-                            "detailed_explanation", "No detailed explanation provided"
+                        "justification": validation.get(
+                            "justification", "No detailed explanation provided"
                         ),
                         "supporting_evidence": validation.get(
                             "supporting_evidence", []
                         ),
+                        "requires_review": validation.get("requires_review", False),
                     }
                 )
 
             return {
                 "validation_passed": validation_passed,
-                "summary": summary,
+                "summary": f"Company validation completed. {overall_status} status determined.",
                 "issues_found": issues_found,
                 "company_validation": {
-                    "overall_status": "✅ All companies passed validation"
-                    if suspicious_companies == 0
-                    else f"⚠️ {suspicious_companies} suspicious company(ies) detected",
-                    "validation_notes": validation_notes,
+                    "status": overall_status,
                     "companies": companies_output,
                 },
             }
@@ -1238,11 +1135,7 @@ class LLMOrchestrator:
                         "suggestion": "Check company validation system",
                     }
                 ],
-                "company_validation": {
-                    "overall_status": "❌ Company validation failed",
-                    "validation_notes": f"Cannot validate company information: {str(e)}",
-                    "companies": [],
-                },
+                "company_validation": {"status": "UNVERIFIED", "companies": []},
             }
 
     def _create_fallback_response(self, partial_json: str) -> Dict[str, Any]:

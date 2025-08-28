@@ -65,22 +65,43 @@ VALIDATION CRITERIA:
    - Any red flags or suspicious findings online?
 
 OUTPUT FORMAT:
-Provide a detailed, evidence-based justification explaining why the company is legitimate or suspicious based on your internet research.
+Respond with ONLY a valid JSON object containing company validation results:
 
-Format: "The company [COMPANY_NAME] appears legitimate because [detailed justification with specific evidence found online]." OR "The company [COMPANY_NAME] appears suspicious because [detailed explanation of what you found or didn't find online]."
+{{
+    "status": "LEGITIMATE|NOT_LEGITIMATE|UNVERIFIED",
+    "confidence": "high|medium|low",
+    "risk_level": "very_low|low|medium|high|very_high",
+    "justification": "Detailed explanation of why the company is legitimate or suspicious based on internet research",
+    "supporting_evidence": [
+        "Website: Company website found and verified",
+        "Industry: Industry information verified",
+        "Media: News articles and media coverage found"
+    ],
+    "requires_review": false
+}}
 
-Example:
-"The company Teboil Paimio appears legitimate because I found corroborating evidence across multiple online sources. First, a search for \"Teboil Paimio Sauvontie 9\" confirms the address listed is a Teboil service station. Several websites, including Fonecta.fi (https://www.fonecta.fi/yritykset/Paimio/283756/Teboil+Paimio), show Teboil Paimio operating at Sauvontie 9, 21510 Hevonpää. Further, a search for \"Teboil Paimio business registry Finland\" leads to information on the Finnish Business Information System (YTJ), although a direct link to a company profile with only that exact name was not immediately found. However, searching the YTJ system using the provided Business ID (0798365-2) reveals that the ID is associated with a company named \"TEBOIL EXPRESS PAIMIO KAUPPIAAT OY\" (https://tietopalvelu.ytj.fi/yritystiedot.aspx?yid=0798365-2&tarkiste=C4562A2C4E782B4896EE465269816F2A4463E4B0), whose registered address matches Sauvontie 9, 21510 Hevonpää. This suggests that \"Teboil Paimio\" is a trading name or location of the registered company \"TEBOIL EXPRESS PAIMIO KAUPPIAAT OY.\" The provided email address, paimio@huoltoasemat.teboil.fi, also aligns with Teboil's general structure for its service station email addresses. I also found mentions of the Teboil Paimio service station on various online forums and directories related to Paimio, further supporting its existence as a local business. Finally, the main Teboil website, teboil.fi, confirms that Teboil is a legitimate and well-established fuel retailer in Finland."
+CRITICAL OUTPUT REQUIREMENTS:
+- Respond with ONLY the JSON object, no additional text, no explanations, no markdown formatting
+- The status must be exactly one of: "LEGITIMATE", "NOT_LEGITIMATE", or "UNVERIFIED"
+- The confidence must be exactly one of: "high", "medium", or "low"
+- The risk_level must be exactly one of: "very_low", "low", "medium", "high", or "very_high"
+- The justification must be a detailed paragraph explaining your findings with specific evidence
+- The supporting_evidence must be an array of specific findings from your research
+- The requires_review must be a boolean (true/false)
 
-Include specific evidence from your internet research: websites found, business registry matches, news articles, company activities, etc.
-
-EXAMPLE OF EXPECTED RESEARCH-BASED RESPONSE:
-"The company Teboil Paimio appears legitimate because I found their official website at teboil.fi, verified their business registration in the Finnish Y-tunnus database with ID 0798365-2, and confirmed their address at Sauvontie 9, 21510 Hevonpää matches their registered location. The company is a well-established Finnish fuel retailer with multiple locations across Finland."
-
-Your response must include:
-1. A detailed justification paragraph with comprehensive evidence
-2. Specific URLs, database matches, news sources, and other evidence found
-3. Real web search results with actual findings and sources
+EXAMPLE OF EXPECTED JSON RESPONSE:
+{{
+    "status": "LEGITIMATE",
+    "confidence": "high",
+    "risk_level": "very_low",
+    "justification": "The company Helsinki City Hospital appears legitimate because I found substantial evidence of its existence and operation as a public healthcare provider in Helsinki, Finland. A search for \"Helsinki City Hospital company website\" immediately led to the official website of the City of Helsinki's social services and healthcare division (https://www.hel.fi/en/social-services-and-health-care). While there isn't a single entity explicitly named \"Helsinki City Hospital\" with its own dedicated website, the City of Helsinki's healthcare services encompass multiple hospitals and health centers. Further investigation revealed that \"Helsinki City Hospital\" is a commonly used term to refer to the network of hospitals managed by the City of Helsinki. A search for \"Helsinki City Hospital news articles Finland\" returned numerous articles referencing the hospital network and its various departments, such as the Laakso Hospital and the Malmi Hospital, which are part of the Helsinki City Hospital system. Searching for \"Helsinki City Hospital industry operations Finland\" confirms that it operates within the public healthcare sector, providing a wide range of medical services to residents of Helsinki. The City of Helsinki's website provides extensive information about the services offered, locations of hospitals and health centers, and contact details for various departments.",
+    "supporting_evidence": [
+        "Website: Company website found and verified",
+        "Industry: Industry information verified",
+        "Media: News articles and media coverage found"
+    ],
+    "requires_review": false
+}}
 
 IMPORTANT NOTES:
 - Be thorough in your analysis but avoid overthinking
@@ -99,12 +120,12 @@ COMPANY HIERARCHY HANDLING:
 
 RESPONSE REQUIREMENTS:
 - RESEARCH the company online using web search capabilities
-- Write a detailed justification paragraph explaining why the company is legitimate or suspicious
-- Use the exact format: "The company [COMPANY_NAME] appears legitimate because [detailed evidence from internet research]." OR "The company [COMPANY_NAME] appears suspicious because [detailed explanation of what you found or didn't find online]."
-- Include specific evidence: websites found, business registry matches, news articles, company activities
+- Return ONLY a valid JSON object with the exact structure shown above
 - Base your assessment on actual internet findings, not just the provided information
+- Include specific evidence: websites found, business registry matches, news articles, company activities
+- Use the exact status values: "LEGITIMATE", "NOT_LEGITIMATE", or "UNVERIFIED"
 
-CRITICAL: Your response must be a detailed, comprehensive paragraph explaining your findings with full evidence. Do not provide a short, generic response. Include specific details about what you found online, including URLs, database matches, and verification processes. Be thorough in your research explanation.
+CRITICAL: Your response must be ONLY a valid JSON object with the exact structure specified. Do not provide any additional text, explanations, or markdown formatting. The JSON must contain all required fields with the exact values specified.
 """
 
 # Example usage and testing

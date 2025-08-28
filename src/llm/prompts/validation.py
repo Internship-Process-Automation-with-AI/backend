@@ -71,14 +71,18 @@ Respond with ONLY a valid JSON object containing validation results:
         "clearly_states_limitations": true/false
     }},
     "company_validation": {{
-        "company_name_legitimate": true/false,
-        "risk_level": "very_low|low|medium|high|very_high",
-        "confidence_score": 0.0-1.0,
-        "suspicious_patterns_detected": ["list of detected suspicious patterns"],
-        "address_valid": true/false,
-        "business_id_valid": true/false,
-        "contact_valid": true/false,
-        "validation_notes": "Company validation assessment notes",
+        "status": "LEGITIMATE|NOT_LEGITIMATE|PARTIALLY_LEGITIMATE|UNVERIFIED",
+        "companies": [
+            {{
+                "name": "Company Name",
+                "status": "LEGITIMATE|NOT_LEGITIMATE|UNVERIFIED",
+                "confidence": "high|medium|low",
+                "risk_level": "very_low|low|medium|high|very_high",
+                "justification": "Detailed explanation of validation result",
+                "supporting_evidence": ["list of supporting evidence"],
+                "requires_review": true/false
+            }}
+        ]
     }},
     "summary": "Overall assessment of LLM output accuracy and company validation results",
     "requires_correction": true/false

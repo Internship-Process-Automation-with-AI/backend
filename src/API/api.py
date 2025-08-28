@@ -424,6 +424,143 @@ async def process_certificate(certificate_id: UUID):
             complete_workflow_json, indent=2, ensure_ascii=False
         )
 
+        # Extract company validation data from LLM results
+        company_validation_status = "UNVERIFIED"
+        company_validation_justification = "No company validation data available"
+
+        # Debug logging - let's see exactly what we're getting
+        logger.info("🔍 DEBUGGING COMPANY VALIDATION EXTRACTION")
+        logger.info(f"LLM result type: {type(llm_result)}")
+        logger.info(f"LLM result keys: {list(llm_result.keys())}")
+
+        # Let's also log the actual content to see what's there
+        logger.info(f"LLM result content preview: {str(llm_result)[:500]}...")
+
+        if llm_result.get("success") and "validation_results" in llm_result:
+            validation_results = llm_result["validation_results"]
+            logger.info("✅ Found validation_results")
+            logger.info(f"Validation results type: {type(validation_results)}")
+            logger.info(f"Validation results keys: {list(validation_results.keys())}")
+
+            # Check if there's a "results" level (which exists in your JSON structure)
+            if "results" in validation_results:
+                validation_results_data = validation_results["results"]
+                logger.info("✅ Found results level in validation_results")
+                logger.info(f"Results keys: {list(validation_results_data.keys())}")
+
+                if "company_validation" in validation_results_data:
+                    company_validation = validation_results_data["company_validation"]
+                    logger.info("✅ Found company_validation in results")
+                    logger.info(f"Company validation type: {type(company_validation)}")
+                    logger.info(
+                        f"Company validation keys: {list(company_validation.keys())}"
+                    )
+                    logger.info(f"Company validation content: {company_validation}")
+
+                    # Get overall status for company_validation_status column
+                    company_validation_status = company_validation.get(
+                        "status", "UNVERIFIED"
+                    )
+                    logger.info(
+                        f"📊 Extracted company validation status: {company_validation_status}"
+                    )
+
+                    # Get the entire companies array for company_validation_justification column
+                    companies = company_validation.get("companies", [])
+                    logger.info(f"🏢 Found {len(companies)} companies to process")
+                    logger.info(f"Companies content: {companies}")
+
+                    if companies:
+                        # Save the entire companies array as JSON string
+                        import json
+
+                        company_validation_justification = json.dumps(
+                            companies, indent=2, ensure_ascii=False
+                        )
+                        logger.info(
+                            f"✅ Saved companies array with {len(companies)} companies to justification column"
+                        )
+                        logger.info(
+                            f"Justification preview: {company_validation_justification[:200]}..."
+                        )
+                    else:
+                        company_validation_justification = f"Overall Status: {company_validation_status}\nNo individual company details available."
+                        logger.info(
+                            "⚠️ No companies found, using fallback justification"
+                        )
+                else:
+                    logger.warning(
+                        "❌ company_validation NOT found in validation_results.results"
+                    )
+                    logger.warning(
+                        f"Available keys in results: {list(validation_results_data.keys())}"
+                    )
+                    # Let's see what's actually in results
+                    logger.warning(f"Results content: {validation_results_data}")
+            else:
+                # Fallback: try the old path (in case the structure changes)
+                logger.info("⚠️ No 'results' level found, trying direct access")
+                if "company_validation" in validation_results:
+                    company_validation = validation_results["company_validation"]
+                    logger.info("✅ Found company_validation (direct access)")
+
+                    # Get overall status for company_validation_status column
+                    company_validation_status = company_validation.get(
+                        "status", "UNVERIFIED"
+                    )
+                    logger.info(
+                        f"📊 Extracted company validation status: {company_validation_status}"
+                    )
+
+                    # Get the entire companies array for company_validation_justification column
+                    companies = company_validation.get("companies", [])
+                    logger.info(f"🏢 Found {len(companies)} companies to process")
+                    logger.info(f"Companies content: {companies}")
+
+                    if companies:
+                        # Save the entire companies array as JSON string
+                        import json
+
+                        company_validation_justification = json.dumps(
+                            companies, indent=2, ensure_ascii=False
+                        )
+                        logger.info(
+                            f"✅ Saved companies array with {len(companies)} companies to justification column"
+                        )
+                        logger.info(
+                            f"Justification preview: {company_validation_justification[:200]}..."
+                        )
+                    else:
+                        company_validation_justification = f"Overall Status: {company_validation_status}\nNo individual company details available."
+                        logger.info(
+                            "⚠️ No companies found, using fallback justification"
+                        )
+                else:
+                    logger.warning(
+                        "❌ company_validation NOT found in validation_results (direct access)"
+                    )
+                    logger.warning(
+                        f"Available keys in validation_results: {list(validation_results.keys())}"
+                    )
+                    # Let's see what's actually in validation_results
+                    logger.warning(f"Validation results content: {validation_results}")
+        else:
+            logger.warning("❌ LLM result missing success or validation_results")
+            logger.warning(f"LLM result keys: {list(llm_result.keys())}")
+            if "success" in llm_result:
+                logger.warning(f"Success value: {llm_result['success']}")
+            if "validation_results" in llm_result:
+                logger.warning("Validation results found but success is False")
+
+        logger.info("🎯 FINAL RESULTS:")
+        logger.info(f"Final company validation status: {company_validation_status}")
+        logger.info(
+            f"Final justification length: {len(company_validation_justification)}"
+        )
+        logger.info(
+            f"Final justification preview: {company_validation_justification[:200]}..."
+        )
+
         # Create decision record - store LLM results directly
         decision = create_decision(
             certificate_id=certificate_id,
@@ -438,6 +575,8 @@ async def process_certificate(certificate_id: UUID):
             challenging_evidence=challenging_evidence,
             recommendation=recommendation,
             ai_workflow_json=ai_workflow_json_string,
+            company_validation_status=company_validation_status,
+            company_validation_justification=company_validation_justification,
         )
 
         # Clean up temporary file
@@ -458,6 +597,8 @@ async def process_certificate(certificate_id: UUID):
                 "total_working_hours": decision.total_working_hours,
                 "training_duration": decision.training_duration,
                 "training_institution": decision.training_institution,
+                "company_validation_status": decision.company_validation_status,
+                "company_validation_justification": decision.company_validation_justification,
             },
         }
 
