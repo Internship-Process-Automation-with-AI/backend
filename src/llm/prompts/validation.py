@@ -16,6 +16,7 @@ VALIDATION CRITERIA:
 4. **Justification Accuracy**: Does the justification accurately reflect what can and cannot be determined from the document?
 5. **Calculation Accuracy**: Are hours and credit calculations mathematically correct?
 6. **Training Type Consistency**: Does the AI's recommendation align with the requested training type and provide appropriate evidence?
+7. **Company Validation**: Review the provided company validation results to identify any suspicious company names that require attention.
 
 CRITICAL VALIDATION RULES:
 - **Use the provided STUDENT DEGREE**: The student degree provided is the correct degree for evaluation. Do not try to determine the degree from the document content.
@@ -31,6 +32,8 @@ CRITICAL VALIDATION RULES:
 - **Validate AI recommendation logic**: Check that the AI's recommendation and reasoning are consistent with the requested training type and degree relevance assessment, but do not force the training type to match the degree relevance.
 - **CREDIT CAPS ARE CORRECT**: The 30 ECTS maximum for professional training and 10 ECTS maximum for general training are established business rules. Do NOT flag these as errors.
 - **DECISION LOGIC IS VALID**: If the AI determines that work experience doesn't meet professional training criteria despite the user's request, this is valid reasoning and should NOT be flagged as an error.
+- **CRITICAL: FUTURE DATE VALIDATION**: If ANY date (start_date, end_date, or certificate_issue_date) is in the future, this MUST be flagged as a CRITICAL error and the decision MUST be changed to "REJECTED" regardless of other factors. Future dates make working hours calculation impossible.
+- **COMPANY VALIDATION**: Review the provided company validation results and flag any companies that require manual review based on the risk assessment.
 
 VALIDATION OUTPUT FORMAT:
 Respond with ONLY a valid JSON object containing validation results:
@@ -40,10 +43,10 @@ Respond with ONLY a valid JSON object containing validation results:
     "overall_accuracy_score": 0.0-1.0,
     "issues_found": [
         {{
-            "type": "extraction_error|missing_information|incorrect_assumption|justification_error",
+            "type": "extraction_error|missing_information|incorrect_assumption|justification_error|company_validation_error",
             "severity": "low|medium|high|critical",
             "description": "Detailed description of the issue",
-            "field_affected": "extraction|evaluation|justification",
+            "field_affected": "extraction|evaluation|justification|company_validation",
             "suggestion": "How to fix this issue"
         }}
     ],
@@ -67,7 +70,21 @@ Respond with ONLY a valid JSON object containing validation results:
         "no_unjustified_assumptions": true/false,
         "clearly_states_limitations": true/false
     }},
-    "summary": "Overall assessment of LLM output accuracy",
+    "company_validation": {{
+        "status": "LEGITIMATE|NOT_LEGITIMATE|PARTIALLY_LEGITIMATE|UNVERIFIED",
+        "companies": [
+            {{
+                "name": "Company Name",
+                "status": "LEGITIMATE|NOT_LEGITIMATE|UNVERIFIED",
+                "confidence": "high|medium|low",
+                "risk_level": "very_low|low|medium|high|very_high",
+                "justification": "Detailed explanation of validation result",
+                "supporting_evidence": ["list of supporting evidence"],
+                "requires_review": true/false
+            }}
+        ]
+    }},
+    "summary": "Overall assessment of LLM output accuracy and company validation results",
     "requires_correction": true/false
 }}
 
@@ -90,5 +107,6 @@ SPECIAL VALIDATION CHECK:
 - If the relevance_explanation mentions "significant alignment", "directly relevant", or "clear alignment" with the degree program, but the AI recommends against the requested training type without sufficient evidence, this may be flagged as inconsistent reasoning
 - If the summary_justification mentions "fulfills the requirements for professional training" but the AI recommends against professional training without clear evidence, this may be flagged as inconsistent reasoning
 - The AI's recommendation should be based on evidence from the document, not just degree relevance alone
+- Review the company validation results provided and flag any companies requiring manual review based on risk levels and confidence scores
 
 Respond with ONLY the JSON object, no additional text, no explanations, no markdown formatting."""

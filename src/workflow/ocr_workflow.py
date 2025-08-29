@@ -97,15 +97,15 @@ class OCRWorkflow:
             # Do a quick OCR scan to detect language
             from src.ocr.cert_extractor import extract_certificate_text
 
-            # Extract text with English first (faster)
+            # Try Finnish first for better detection of Finnish documents
             sample_text = extract_certificate_text(
-                file_path, language="eng", enhance_finnish=False
+                file_path, language="fin", enhance_finnish=True
             )
 
             if sample_text:
                 text_lower = sample_text.lower()
 
-                # Count Finnish characters
+                # Count Finnish characters (most reliable indicator)
                 finnish_chars = sum(1 for c in text_lower if c in "äöå")
 
                 # Count Finnish keywords
@@ -115,6 +115,20 @@ class OCRWorkflow:
                     "yrityksessämme",
                     "välisenä",
                     "tehtävissä",
+                    "työntekijä",
+                    "työnantaja",
+                    "päivämäärä",
+                    "nimi",
+                    "syntynyt",
+                    "ammatti",
+                    "tehtävä",
+                    "osasto",
+                    "palvelussuhde",
+                    "harjoittelu",
+                    "koulutus",
+                    "oppilaitos",
+                    "yliopisto",
+                    "koulu",
                 ]
                 finnish_keyword_count = sum(
                     1 for keyword in finnish_keywords if keyword in text_lower
@@ -122,7 +136,9 @@ class OCRWorkflow:
 
                 # If we find Finnish indicators, use Finnish
                 if finnish_chars > 0 or finnish_keyword_count >= 1:
-                    logger.info(f"🇫🇮 Detected Finnish content: {file_path.name}")
+                    logger.info(
+                        f"🇫🇮 Detected Finnish content: {file_path.name} (chars: {finnish_chars}, keywords: {finnish_keyword_count})"
+                    )
                     return "fin"
                 else:
                     logger.info(f"🇺🇸 Detected English content: {file_path.name}")

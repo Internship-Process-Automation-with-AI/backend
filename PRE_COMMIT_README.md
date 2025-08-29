@@ -79,6 +79,44 @@ pre-commit autoupdate
 3. Ruff automatically fixes most issues
 4. You may need to stage the fixed files and commit again
 
+## Current Configuration
+
+### Pre-commit Configuration (`.pre-commit-config.yaml`)
+```yaml
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.14
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+      - id: ruff-check-imports
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+```
+
+### Ruff Configuration (`.ruff.toml`)
+```toml
+# Ruff configuration for consistent code formatting
+line-length = 88
+target-version = "py38"
+
+[lint]
+select = ["E", "F", "I", "N", "W", "B", "C4", "UP", "ARG", "PIE", "T20", "Q", "SIM", "TCH", "TID", "TCH", "INT", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF"]
+ignore = ["E501", "B008", "C901", "W191", "E203", "W503"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+```
+
 ## Troubleshooting
 
 ### "Hook failed" Error
@@ -99,6 +137,19 @@ If hooks stop working:
 ```bash
 pre-commit uninstall
 pre-commit install
+```
+
+### Common Ruff Issues
+```bash
+# If Ruff fails to install
+pip install --upgrade pip
+pip install ruff
+
+# If there are import sorting issues
+pre-commit run ruff-check-imports --all-files
+
+# If there are formatting issues
+pre-commit run ruff-format --all-files
 ```
 
 ## Configuration
@@ -126,9 +177,71 @@ You can modify the configuration to:
 - **Professional codebase** with clean, readable code
 - **Unified tool** - Ruff replaces multiple tools (Black, isort, Flake8)
 
+## Integration with Development Workflow
+
+### IDE Integration
+- **VS Code**: Install Python and Ruff extensions
+- **PyCharm**: Configure external tools for Ruff
+- **Vim/Neovim**: Use ALE or similar for Ruff integration
+
+### CI/CD Integration
+Pre-commit hooks can be integrated into CI/CD pipelines:
+```yaml
+# GitHub Actions example
+- name: Run pre-commit
+  uses: pre-commit/action@v3.0.0
+  with:
+    extra_args: --all-files
+```
+
+### Team Workflow
+1. **New developers**: Run `python setup_precommit.py` after cloning
+2. **Existing developers**: Run `pre-commit install` to update hooks
+3. **Code reviews**: Ensure pre-commit passes before merging
+4. **CI checks**: Automated pre-commit validation in pull requests
+
 ## Files Added
 
 - `.pre-commit-config.yaml` - Configuration file
 - `setup_precommit.py` - Setup script
 - `PRE_COMMIT_README.md` - This guide
-- Updated `requirements.txt` - Added pre-commit dependency 
+- `.ruff.toml` - Ruff configuration
+- Updated `requirements.txt` - Added pre-commit dependency
+
+## Advanced Usage
+
+### Custom Hooks
+Add custom hooks to `.pre-commit-config.yaml`:
+```yaml
+- repo: local
+  hooks:
+    - id: custom-check
+      name: Custom Check
+      entry: python scripts/custom_check.py
+      language: python
+      types: [python]
+```
+
+### Hook-Specific Commands
+```bash
+# Run only Ruff linting
+pre-commit run ruff --all-files
+
+# Run only formatting
+pre-commit run ruff-format --all-files
+
+# Run only import sorting
+pre-commit run ruff-check-imports --all-files
+```
+
+### Exclude Files
+Add to `.pre-commit-config.yaml`:
+```yaml
+default_language_version:
+  python: python3
+exclude: ^(docs/|tests/|migrations/)
+```
+
+---
+
+**Note**: This pre-commit setup ensures consistent code quality across the OAMK project. All developers should use these hooks to maintain code standards and catch issues early in the development process. 

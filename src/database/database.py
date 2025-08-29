@@ -495,6 +495,8 @@ def create_decision(
     challenging_evidence: Optional[str] = None,
     recommendation: Optional[str] = None,
     ai_workflow_json: Optional[str] = None,
+    company_validation_status: Optional[str] = None,
+    company_validation_justification: Optional[str] = None,
 ) -> Decision:
     """
     Create a new decision record.
@@ -512,6 +514,8 @@ def create_decision(
         challenging_evidence: Challenging evidence against the decision
         recommendation: AI recommendation summary
         ai_workflow_json: Complete AI workflow JSON output
+        company_validation_status: Overall company validation status
+        company_validation_justification: Company validation details and evidence
 
     Returns:
         Decision: Created decision object
@@ -526,9 +530,10 @@ def create_decision(
                 INSERT INTO decisions (
                     decision_id, certificate_id, ai_justification, ai_decision, created_at,
                     total_working_hours, credits_awarded, training_duration, training_institution,
-                    degree_relevance, supporting_evidence, challenging_evidence, recommendation, ai_workflow_json
+                    degree_relevance, supporting_evidence, challenging_evidence, recommendation, ai_workflow_json,
+                    company_validation_status, company_validation_justification
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     str(decision_id),
@@ -545,6 +550,8 @@ def create_decision(
                     challenging_evidence,
                     recommendation,
                     ai_workflow_json,
+                    company_validation_status,
+                    company_validation_justification,
                 ),
             )
             conn.commit()
@@ -567,6 +574,8 @@ def create_decision(
                 challenging_evidence=challenging_evidence,
                 recommendation=recommendation,
                 ai_workflow_json=ai_workflow_json,
+                company_validation_status=company_validation_status,
+                company_validation_justification=company_validation_justification,
             )
 
 
@@ -777,7 +786,8 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
                 SELECT decision_id, certificate_id, ai_justification, ai_decision, created_at,
                        student_comment, reviewer_decision, reviewer_comment, reviewed_at,
                        total_working_hours, credits_awarded, training_duration, training_institution,
-                       degree_relevance, supporting_evidence, challenging_evidence, recommendation
+                       degree_relevance, supporting_evidence, challenging_evidence, recommendation,
+                       company_validation_status, company_validation_justification
                 FROM decisions WHERE certificate_id = %s
                 """,
                 (str(certificate_id),),
@@ -830,6 +840,8 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
                 supporting_evidence=decision_row[14],
                 challenging_evidence=decision_row[15],
                 recommendation=decision_row[16],
+                company_validation_status=decision_row[17],
+                company_validation_justification=decision_row[18],
             )
 
             certificate = Certificate(

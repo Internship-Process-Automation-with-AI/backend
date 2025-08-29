@@ -171,6 +171,9 @@ class Decision:
     recommendation: Optional[str] = None
     # Complete AI workflow output
     ai_workflow_json: Optional[str] = None
+    # Company validation
+    company_validation_status: Optional[str] = None
+    company_validation_justification: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -197,6 +200,8 @@ class Decision:
             "challenging_evidence": self.challenging_evidence,
             "recommendation": self.recommendation,
             "ai_workflow_json": self.ai_workflow_json,
+            "company_validation_status": self.company_validation_status,
+            "company_validation_justification": self.company_validation_justification,
         }
 
 

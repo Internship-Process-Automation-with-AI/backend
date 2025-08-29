@@ -4,7 +4,9 @@ Provides fast, reliable validation for dates, timelines, and business rules.
 """
 
 import logging
+from dataclasses import dataclass
 from datetime import date, datetime
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
@@ -12,13 +14,45 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validat
 logger = logging.getLogger(__name__)
 
 
+class RiskLevel(Enum):
+    """Risk levels for company validation."""
+
+    VERY_LOW = "very_low"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    VERY_HIGH = "very_high"
+
+
+@dataclass
+class CompanyValidationResult:
+    """Result of company validation."""
+
+    company_name: str
+    is_suspicious: bool
+    risk_level: RiskLevel
+    confidence_score: float  # 0.0 to 1.0
+    suspicious_patterns: List[str]
+    validation_notes: str
+    requires_manual_review: bool
+    address_validation: Optional[Dict[str, any]] = (
+        None  # OpenStreetMap address validation results
+    )
+    business_id_validation: Optional[Dict[str, any]] = (
+        None  # Business ID format validation results
+    )
+    contact_validation: Optional[Dict[str, any]] = (
+        None  # Phone and email validation results
+    )
+
+
 class Position(BaseModel):
     """Model for individual employment positions."""
 
     model_config = ConfigDict(use_enum_values=True)
 
-    title: str
-    employer: Optional[str] = None
+    title: Optional[str] = Field(default="Unknown Position")
+    employer: Optional[str] = Field(default="Unknown Employer")
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     duration: Optional[str] = None
@@ -86,13 +120,13 @@ class Position(BaseModel):
 class ExtractionResults(BaseModel):
     """Model for LLM extraction results with structural validation."""
 
-    employee_name: str
+    employee_name: Optional[str] = Field(default="Unknown Employee")
     employer: Optional[str] = None
     certificate_issue_date: Optional[str] = None
     positions: List[Position] = Field(default_factory=list)
     total_employment_period: Optional[str] = None
     document_language: str = Field(default="en")
-    confidence_level: Optional[str] = None
+    confidence_level: Optional[str] = Field(default="low")
 
     @field_validator("certificate_issue_date")
     @classmethod

@@ -20,6 +20,15 @@ python -m src.workflow.ocr_workflow
 python -m src.workflow.ocr_workflow --samples_dir "my_documents" --output_dir "my_results"
 ```
 
+### API Integration
+```bash
+# Start the FastAPI server
+uvicorn src.API.main:app --reload
+
+# Use the API endpoints for OCR processing
+# POST /certificate/{certificate_id}/process
+```
+
 ## What is OCR?
 
 OCR (Optical Character Recognition) converts images, PDFs, and documents into readable text. Our system is specially designed for processing work certificates and academic documents.
@@ -100,6 +109,18 @@ summary = workflow.process_all_documents()
 print(f"Processed {summary['successful']} documents successfully")
 ```
 
+### API Integration
+```python
+import requests
+
+# Process a certificate through the API
+response = requests.post(
+    f"http://localhost:8000/certificate/{certificate_id}/process"
+)
+result = response.json()
+print(f"OCR completed: {result['ocr_results']['text_length']} characters")
+```
+
 ## What You Get
 
 ### Output Format
@@ -125,6 +146,12 @@ processedData/
     ├── ocr_output_document2.txt
     └── aiworkflow_output_*.json
 ```
+
+### Database Storage
+When using the API, OCR results are stored in the database:
+- **File content**: Stored as `BYTEA` in the `certificates` table
+- **OCR output**: Stored as `TEXT` in the `certificates` table
+- **Processing metadata**: Timestamps, confidence scores, language detection
 
 ## Common Questions
 
@@ -152,6 +179,12 @@ processedData/
 - PDFs: Medium speed (conversion + OCR)
 - Images: Medium speed (direct OCR)
 
+### Q: Can I process files through the API?
+**A:** Yes! The system provides FastAPI endpoints:
+- Upload certificates: `/student/{student_id}/upload-certificate`
+- Process with OCR: `/certificate/{certificate_id}/process`
+- View results: `/certificate/{certificate_id}/preview`
+
 ## Tips for Best Results
 
 ### ✅ Do This
@@ -174,6 +207,19 @@ The OCR system is part of a larger AI pipeline that:
 
 The OCR provides the text input that the AI system uses to evaluate work certificates and determine academic credits.
 
+## Database Integration
+
+### **Storage Strategy**
+- **File Content**: Stored as `BYTEA` in the `certificates` table
+- **OCR Output**: Stored as `TEXT` in the `certificates` table
+- **Processing Metadata**: Timestamps, confidence scores, language detection
+
+### **API Workflow**
+1. **Upload**: File is uploaded and stored in database
+2. **OCR Processing**: Text is extracted and stored
+3. **AI Evaluation**: LLM processes the extracted text
+4. **Results**: Complete evaluation stored in database
+
 ## Summary
 
 Our OCR system is:
@@ -182,5 +228,7 @@ Our OCR system is:
 - **Fast**: Optimized for different file types
 - **Finnish-friendly**: Special support for Finnish documents
 - **Reliable**: Multiple fallback strategies
+- **Database-integrated**: Stores all results in PostgreSQL
+- **API-ready**: Provides FastAPI endpoints for integration
 
 It's designed to work seamlessly with the AI evaluation pipeline to process work certificates and determine academic credits automatically. 

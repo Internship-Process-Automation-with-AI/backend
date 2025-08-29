@@ -126,7 +126,7 @@ class OCRProcessor:
         self,
         image: Union[str, Path, Image.Image, np.ndarray],
         config: str = None,
-        preprocess: bool = True,
+        preprocess: bool = False,  # Changed default to False for Finnish
     ) -> str:
         """
         Extract text optimized for Finnish documents.
@@ -134,7 +134,7 @@ class OCRProcessor:
         Args:
             image: Input image in various formats
             config: Custom Tesseract configuration
-            preprocess: Whether to apply image preprocessing (default: True)
+            preprocess: Whether to apply image preprocessing (default: False for Finnish)
 
         Returns:
             Extracted text string
@@ -142,14 +142,14 @@ class OCRProcessor:
         try:
             # Use Finnish-specific configuration if none provided
             if config is None:
-                config = LANGUAGE_CONFIGS["fin"]["config"]
+                config = self._get_finnish_config()  # Use optimized Finnish config
 
-            # Convert to PIL Image if needed, with optional preprocessing
+            # For Finnish documents, use minimal preprocessing to preserve ä, ö, å characters
             if preprocess:
+                # Only apply very light preprocessing that won't damage Finnish characters
                 processed_image = self._prepare_image(image, enhance_for_finnish=True)
             else:
-                # Use image directly without heavy preprocessing
-                # BUT ensure it's in a format that pytesseract can handle
+                # Use image directly with minimal format normalization only
                 if isinstance(image, (str, Path)):
                     processed_image = Image.open(image)
                 elif isinstance(image, np.ndarray):
@@ -159,10 +159,10 @@ class OCRProcessor:
                 else:
                     raise ValueError(f"Unsupported image type: {type(image)}")
 
-                # FIX: Ensure image format compatibility with pytesseract
+                # Only normalize format, no heavy preprocessing
                 processed_image = self._normalize_image_format(processed_image)
 
-            # Extract with Finnish language settings
+            # Extract with Finnish language settings and optimized config
             text = pytesseract.image_to_string(
                 processed_image, lang="fin", config=config
             )
@@ -228,26 +228,47 @@ class OCRProcessor:
             Best language code detected
         """
         try:
-            # First try with English to get some text
-            eng_text = pytesseract.image_to_string(
-                image, lang="eng", config="--oem 3 --psm 6"
+            # First try with Finnish to detect Finnish documents
+            fin_text = pytesseract.image_to_string(
+                image, lang="fin", config="--oem 3 --psm 6"
             )
 
+            # Check for Finnish characters first (most reliable indicator)
+            finnish_chars = set("äöå")
+            has_finnish_chars = any(char in fin_text.lower() for char in finnish_chars)
+
             # Check for Finnish keywords
-            text_lower = eng_text.lower()
+            text_lower = fin_text.lower()
             finnish_score = sum(
                 1 for keyword in FINNISH_KEYWORDS if keyword in text_lower
             )
 
-            # Check for Finnish characters
-            finnish_chars = set("äöå")
-            has_finnish_chars = any(char in text_lower for char in finnish_chars)
-
-            if finnish_score > 0 or has_finnish_chars:
+            # If we find Finnish indicators, use Finnish
+            if has_finnish_chars or finnish_score > 0:
                 logger.info(
-                    f"Finnish indicators found: keywords={finnish_score}, chars={has_finnish_chars}"
+                    f"Finnish indicators found: chars={has_finnish_chars}, keywords={finnish_score}"
                 )
-                return "eng+fin"  # Use multilingual for best results
+                return "fin"  # Use Finnish for best results
+
+            # If no Finnish detected, try English
+            eng_text = pytesseract.image_to_string(
+                image, lang="eng", config="--oem 3 --psm 6"
+            )
+
+            # Check English text for Finnish indicators as well
+            eng_text_lower = eng_text.lower()
+            eng_finnish_score = sum(
+                1 for keyword in FINNISH_KEYWORDS if keyword in eng_text_lower
+            )
+            eng_has_finnish_chars = any(
+                char in eng_text_lower for char in finnish_chars
+            )
+
+            if eng_finnish_score > 0 or eng_has_finnish_chars:
+                logger.info(
+                    f"Finnish indicators found in English text: keywords={eng_finnish_score}, chars={eng_has_finnish_chars}"
+                )
+                return "fin"  # Use Finnish even if detected via English
 
             return "eng"
 
@@ -285,7 +306,10 @@ class OCRProcessor:
             "--oem 3 --psm 6 "
             "-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÅäöå0123456789.,:-/()%& "
             "-c load_system_dawg=false "
-            "-c load_freq_dawg=false"
+            "-c load_freq_dawg=false "
+            "-c preserve_interword_spaces=1 "
+            "-c textord_heavy_nr=1 "
+            "-c textord_min_linesize=2.5"
         )
 
     def _prepare_image(
@@ -355,17 +379,17 @@ class OCRProcessor:
 
         # Apply preprocessing techniques
         if enhance_for_finnish:
-            # Enhanced preprocessing for Finnish documents
-            # 1. Increase contrast for better character recognition
-            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            # Very light preprocessing for Finnish documents to preserve ä, ö, å characters
+            # 1. Very light contrast enhancement (minimal to avoid character damage)
+            clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8))
             enhanced = clahe.apply(gray)
 
-            # 2. Noise removal with bilateral filter to preserve edges
-            denoised = cv2.bilateralFilter(enhanced, 9, 75, 75)
+            # 2. Very light noise removal that preserves character details
+            denoised = cv2.bilateralFilter(enhanced, 5, 50, 50)
 
-            # 3. Adaptive thresholding for varying lighting conditions
-            thresh = cv2.adaptiveThreshold(
-                denoised, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
+            # 3. Simple thresholding instead of adaptive to preserve character shapes
+            _, thresh = cv2.threshold(
+                denoised, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
             )
         else:
             # Standard preprocessing
@@ -595,6 +619,81 @@ class OCRProcessor:
             except Exception as fallback_e:
                 logger.error(f"Image normalization fallback failed: {fallback_e}")
                 raise
+
+    def extract_text_raw_finnish(
+        self,
+        image: Union[str, Path, Image.Image, np.ndarray],
+    ) -> str:
+        """
+        Extract Finnish text with absolutely no preprocessing for maximum character preservation.
+
+        Args:
+            image: Input image in various formats
+
+        Returns:
+            Extracted Finnish text string
+        """
+        try:
+            # Convert to PIL Image with minimal handling
+            if isinstance(image, (str, Path)):
+                pil_image = Image.open(image)
+            elif isinstance(image, np.ndarray):
+                pil_image = Image.fromarray(image)
+            elif isinstance(image, Image.Image):
+                pil_image = image
+            else:
+                raise ValueError(f"Unsupported image type: {type(image)}")
+
+            # Only normalize format, absolutely no preprocessing
+            pil_image = self._normalize_image_format(pil_image)
+
+            # Try multiple Finnish configurations for best results
+            configs = [
+                # Config 1: Basic Finnish with character preservation
+                "--oem 3 --psm 6 -c preserve_interword_spaces=1 -c textord_heavy_nr=0",
+                # Config 2: Finnish with minimal noise reduction
+                "--oem 3 --psm 6 -c preserve_interword_spaces=1 -c textord_heavy_nr=0 -c textord_min_linesize=2.0",
+                # Config 3: Finnish with different PSM for better text layout
+                "--oem 3 --psm 8 -c preserve_interword_spaces=1 -c textord_heavy_nr=0",
+                # Config 4: Finnish with auto PSM
+                "--oem 3 --psm 3 -c preserve_interword_spaces=1 -c textord_heavy_nr=0",
+            ]
+
+            best_text = ""
+            best_score = 0
+
+            for config in configs:
+                try:
+                    text = pytesseract.image_to_string(
+                        pil_image, lang="fin", config=config
+                    ).strip()
+
+                    if text:
+                        # Score based on Finnish character count and text length
+                        finnish_chars = sum(1 for c in text.lower() if c in "äöå")
+                        score = finnish_chars * 10 + len(text)
+
+                        if score > best_score:
+                            best_score = score
+                            best_text = text
+
+                except Exception as e:
+                    logger.debug(f"Config {config} failed: {e}")
+                    continue
+
+            if best_text:
+                logger.info(f"Best Finnish extraction score: {best_score}")
+                return best_text
+            else:
+                # Fallback to basic Finnish extraction
+                fallback_config = "--oem 3 --psm 6"
+                return pytesseract.image_to_string(
+                    pil_image, lang="fin", config=fallback_config
+                ).strip()
+
+        except Exception as e:
+            logger.error(f"Raw Finnish text extraction failed: {e}")
+            raise
 
 
 # Global OCR processor instance

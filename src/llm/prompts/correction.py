@@ -36,6 +36,7 @@ CRITICAL CORRECTION RULES:
 - **DO NOT correct degree selection**: The student degree provided is correct. Do not change it based on document content.
 - **NEVER remove credit caps**: The 30 ECTS maximum for professional training and 10 ECTS maximum for general training are business rules that must be preserved.
 - **Preserve valid decisions**: If the AI correctly determined that work experience doesn't meet professional training criteria, do not override this decision.
+- **CRITICAL: FUTURE DATE CORRECTION**: If ANY date (start_date, end_date, or certificate_issue_date) is in the future, the decision MUST be corrected to "REJECTED" and the justification MUST clearly state that working hours cannot be calculated due to future dates. This overrides all other decision logic.
 - **Only correct factual errors**: Only correct actual mistakes in extraction or calculation, not valid business logic decisions.
 
 CORRECTION OUTPUT FORMAT:
