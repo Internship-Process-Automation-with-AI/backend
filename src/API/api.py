@@ -346,6 +346,7 @@ async def process_certificate(certificate_id: UUID):
                 cleaned_text,
                 student_degree=student.degree,
                 requested_training_type=cert.training_type.value.lower(),
+                certificate_id=str(certificate_id),
             )
 
         except Exception as e:

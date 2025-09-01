@@ -12,6 +12,7 @@ from typing import Any, Dict, Optional
 import google.generativeai as genai
 
 from src.config import settings
+from src.database.database import get_student_identity_by_certificate
 from src.llm.degree_evaluator import DegreeEvaluator
 from src.llm.models import (
     validate_evaluation_results,
@@ -149,6 +150,7 @@ class LLMOrchestrator:
         text: str,
         student_degree: str = "Business Administration",
         requested_training_type: str = None,
+        certificate_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Process a work certificate using the 4-stage LLM approach.
@@ -157,6 +159,7 @@ class LLMOrchestrator:
             text: Cleaned OCR text from the work certificate
             student_degree: Student's degree program
             requested_training_type: Student's requested training type (general or professional)
+            certificate_id: Certificate ID for student identity validation (optional)
 
         Returns:
             Dictionary with both extraction and evaluation results
@@ -243,6 +246,7 @@ class LLMOrchestrator:
                 evaluation_result["results"],
                 student_degree,
                 requested_training_type,
+                certificate_id,
             )
 
             # Stage 4: Correction (if needed)
@@ -495,11 +499,41 @@ class LLMOrchestrator:
         evaluation_results: Dict[str, Any],
         student_degree: str,
         requested_training_type: str = None,
+        certificate_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Stage 3: Validate LLM results against original document."""
         stage_start = time.time()
 
         try:
+            # Get student identity for name validation if certificate_id is provided
+            student_identity = None
+            if certificate_id:
+                try:
+                    from uuid import UUID
+
+                    student_identity = get_student_identity_by_certificate(
+                        UUID(certificate_id)
+                    )
+                    if student_identity:
+                        logger.info(
+                            f"Retrieved student identity for validation: {student_identity['full_name']}"
+                        )
+                    else:
+                        logger.warning(
+                            f"Could not retrieve student identity for certificate: {certificate_id}"
+                        )
+                except Exception as e:
+                    logger.error(f"Error retrieving student identity: {e}")
+                    student_identity = None
+
+            # Set default values if student identity is not available
+            if not student_identity:
+                student_identity = {
+                    "first_name": "Unknown",
+                    "last_name": "Unknown",
+                    "full_name": "Unknown",
+                }
+
             # Validate company information using LLM
             company_validation_result = self._validate_companies_with_llm(
                 extracted_info
@@ -535,6 +569,9 @@ class LLMOrchestrator:
                 evaluation_results=evaluation_str,
                 student_degree=student_degree,
                 requested_training_type=requested_training_type or "general",
+                db_student_first_name=student_identity["first_name"],
+                db_student_last_name=student_identity["last_name"],
+                db_student_full_name=student_identity["full_name"],
             )
 
             # Add company validation information to the prompt

@@ -1382,3 +1382,65 @@ def get_student_comment_by_certificate_id(certificate_id: UUID) -> Optional[str]
             if not row:
                 return None
             return row[0]
+
+
+def get_student_identity_by_certificate(certificate_id: UUID) -> Optional[dict]:
+    """
+    Get student identity information by certificate ID for name validation.
+
+    Args:
+        certificate_id: UUID of the certificate
+
+    Returns:
+        Dictionary with student identity info or None if not found
+        {
+            "first_name": str,
+            "last_name": str,
+            "email": str,
+            "full_name": str  # Best-effort full name combination
+        }
+    """
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # Join certificates and students tables to get student info
+                cur.execute(
+                    """
+                    SELECT s.first_name, s.last_name, s.email
+                    FROM students s
+                    INNER JOIN certificates c ON s.student_id = c.student_id
+                    WHERE c.certificate_id = %s
+                    """,
+                    (str(certificate_id),),
+                )
+
+                result = cur.fetchone()
+                if not result:
+                    logger.warning(
+                        f"No student found for certificate ID: {certificate_id}"
+                    )
+                    return None
+
+                first_name, last_name, email = result
+
+                # Create best-effort full name
+                name_parts = []
+                if first_name and first_name.strip():
+                    name_parts.append(first_name.strip())
+                if last_name and last_name.strip():
+                    name_parts.append(last_name.strip())
+
+                full_name = " ".join(name_parts) if name_parts else "Unknown"
+
+                return {
+                    "first_name": first_name or "",
+                    "last_name": last_name or "",
+                    "email": email or "",
+                    "full_name": full_name,
+                }
+
+    except Exception as e:
+        logger.error(
+            f"Error getting student identity for certificate {certificate_id}: {e}"
+        )
+        return None
