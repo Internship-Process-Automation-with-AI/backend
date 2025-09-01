@@ -89,6 +89,9 @@ CREATE TABLE IF NOT EXISTS decisions (
     recommendation TEXT, -- AI recommendation summary
     -- Complete AI workflow output
     ai_workflow_json TEXT, -- Complete AI workflow JSON output
+    -- Company validation
+    company_validation_status VARCHAR(20) DEFAULT 'UNVERIFIED' CHECK (company_validation_status IN ('LEGITIMATE', 'NOT_LEGITIMATE', 'PARTIALLY_LEGITIMATE', 'UNVERIFIED')),
+    company_validation_justification TEXT, -- Detailed explanation of company validation results
 
 -- Constraints
 CONSTRAINT decisions_ai_justification_check CHECK (LENGTH(ai_justification) > 0)
@@ -118,3 +121,6 @@ CREATE INDEX IF NOT EXISTS idx_decisions_reviewed_at ON decisions (reviewed_at);
 CREATE INDEX IF NOT EXISTS idx_decisions_student_comment ON decisions (student_comment);
 
 CREATE INDEX IF NOT EXISTS idx_decisions_reviewer_id ON decisions (reviewer_id);
+
+-- Company validation index
+CREATE INDEX IF NOT EXISTS idx_decisions_company_validation_status ON decisions (company_validation_status);

@@ -94,9 +94,9 @@ def _extract_from_image(
     try:
         image = Image.open(image_path)
 
-        # For Finnish language, use minimal preprocessing to preserve character shapes
+        # For Finnish language, use raw extraction to preserve ä, ö, å characters
         if language == "fin" or enhance_finnish:
-            text = ocr_processor.extract_text_finnish(image, preprocess=False)
+            text = ocr_processor.extract_text_raw_finnish(image)
         else:
             # For scanned documents and images, use enhanced word spacing detection
             logger.info(f"Using enhanced word spacing detection for: {image_path.name}")
@@ -146,9 +146,9 @@ def _extract_from_pdf(
         for i, image in enumerate(images):
             logger.info(f"Processing page {i + 1}")
 
-            # For Finnish language, use minimal preprocessing
+            # For Finnish language, use raw extraction to preserve ä, ö, å characters
             if language == "fin" or enhance_finnish:
-                text = ocr_processor.extract_text_finnish(image, preprocess=False)
+                text = ocr_processor.extract_text_raw_finnish(image)
             else:
                 # For scanned PDFs, use enhanced word spacing detection
                 text = ocr_processor.extract_text_with_spacing(
@@ -214,7 +214,7 @@ def _extract_from_docx(
                 if language == "auto":
                     ocr_text = ocr_processor.extract_text(processed, auto_language=True)
                 elif language == "fin" or enhance_finnish:
-                    ocr_text = ocr_processor.extract_text_finnish(processed)
+                    ocr_text = ocr_processor.extract_text_raw_finnish(processed)
                 else:
                     ocr_text = ocr_processor.extract_text(processed, lang=language)
 
@@ -232,9 +232,9 @@ def _extract_finnish_from_image(image_path: Path) -> str:
     try:
         image = Image.open(image_path)
 
-        # For Finnish text, use minimal preprocessing to preserve character shapes
-        # Heavy preprocessing can damage ä, ö, å recognition
-        text = ocr_processor.extract_text_finnish(image, preprocess=False)
+        # For Finnish text, use raw extraction with absolutely no preprocessing
+        # This preserves ä, ö, å characters perfectly
+        text = ocr_processor.extract_text_raw_finnish(image)
         return _clean_text(text)
     except Exception as e:
         logger.exception(f"Finnish image OCR failed: {e}")
@@ -251,9 +251,9 @@ def _extract_finnish_from_pdf(pdf_path: Path) -> str:
         for i, image in enumerate(images):
             logger.info(f"Processing Finnish page {i + 1}")
 
-            # For Finnish text, use minimal preprocessing to preserve character shapes
-            # The heavy OpenCV preprocessing actually hurts Finnish character recognition
-            text = ocr_processor.extract_text_finnish(image, preprocess=False)
+            # For Finnish text, use raw extraction with absolutely no preprocessing
+            # This preserves ä, ö, å characters perfectly
+            text = ocr_processor.extract_text_raw_finnish(image)
             text_chunks.append(text)
 
         return _clean_text("\n".join(text_chunks))

@@ -1,11 +1,12 @@
 # AI Workflow Documentation
 
-## Quick Start - Running the Pipeline
+## Quick Start - Running the AI Workflow
 
 ### Prerequisites
 1. **Python Environment**: Python 3.8+ with virtual environment
 2. **API Key**: Gemini API key for LLM processing
-3. **Sample Documents**: Place test files in `samples/` directory
+3. **Database**: PostgreSQL database with initialized schema
+4. **Sample Documents**: Place test files in `samples/` directory
 
 ### Setup Steps
 ```bash
@@ -19,26 +20,26 @@ source venv/bin/activate  # On Windows: .\venv\Scripts\activate
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Set up environment variables on .env file
+# 4. Set up environment variables
 export GEMINI_API_KEY="your_gemini_api_key_here"
 # On Windows: set GEMINI_API_KEY=your_gemini_api_key_here
 
-# 5. Run the main pipeline
+# 5. Set up database environment variables
+export DATABASE_HOST=localhost
+export DATABASE_PORT=5432
+export DATABASE_NAME=oamk_certificates
+export DATABASE_USER=your_username
+export DATABASE_PASSWORD=your_password
+
+# 6. Initialize database
+python -m src.database.init_db
+
+# 7. Start the FastAPI application (Primary Usage)
+uvicorn src.API.main:app --reload
+
+# 8. Alternative: Run legacy CLI pipeline for testing (Development Only)
 python -m src.mainpipeline
 ```
-
-### What Happens When You Run It
-1. **File Selection**: Choose from available documents in `samples/`
-2. **Degree Selection**: Pick your degree program from the list
-3. **Training Type Selection**: Choose between "general" or "professional" training
-4. **Email Entry**: Enter your OAMK student email (@students.oamk.fi)
-5. **Processing**: Watch the 4-stage pipeline process your document
-6. **Results**: View decision (ACCEPTED/REJECTED), justification, and recommendation (if rejected)
-
-### Sample Output Location
-Results are saved in `processedData/[document_name]/` directory:
-- `ocr_output_[document].txt` - Extracted text
-- `aiworkflow_output_[document]_[timestamp].json` - Complete results
 
 ---
 
@@ -46,79 +47,99 @@ Results are saved in `processedData/[document_name]/` directory:
 
 This document explains the AI-powered document processing workflow for evaluating work certificates and determining academic credits. The system uses a **4-stage LLM pipeline** combined with OCR processing to extract, evaluate, validate, and correct information from work certificates.
 
-## System Architecture
+## Current System Architecture
+
+The AI workflow system is now primarily accessed through the **FastAPI application**, not the CLI pipeline. Here's the current architecture:
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   User Input    │    │   OCR Service   │    │  LLM Pipeline   │
-│                 │    │                 │    │                 │
-│ • Document File │───▶│ • Text Extraction│───▶│ • Extraction    │
-│ • Degree Program│    │ • Image/PDF/DOCX│    │ • Evaluation    │
-│ • Training Type │    │ • Confidence    │    │ • Validation    │
-│ • Student Email │    │                 │    │ • Correction    │
+│   Frontend      │    │   FastAPI       │    │  AI Workflow    │
+│                 │    │   Application   │    │                 │
+│ • Upload        │───▶│ • API Endpoints │───▶│ • OCR Service   │
+│ • Process       │    │ • File Storage  │    │ • LLM Pipeline  │
+│ • View Results  │    │ • Database      │    │ • 4-Stage Proc. │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                                                        │
                                                        ▼
                                               ┌─────────────────┐
-                                              │   Output JSON   │
+                                              │   Database      │
                                               │                 │
-                                              │ • Decision      │
-                                              │ • Justification │
-                                              │ • Recommendation│
-                                              │ • Credits       │
+                                              │ • File Storage  │
+                                              │ • AI Results    │
+                                              │ • Decisions     │
                                               └─────────────────┘
 ```
 
-## Main Pipeline Flow (`mainpipeline.py`)
+## Primary Usage: FastAPI Application
 
-### 1. **Initialization Phase**
-```python
-pipeline = DocumentPipeline()
-pipeline.initialize_services()
+### **Main Application Flow**
+1. **File Upload**: Frontend uploads certificate to `/student/{student_id}/upload-certificate`
+2. **Processing Request**: Frontend calls `/certificate/{certificate_id}/process`
+3. **AI Workflow Execution**: `ai_workflow.py` processes the document through 4-stage pipeline
+4. **Database Storage**: Results stored in PostgreSQL database
+5. **Frontend Display**: Results retrieved and displayed through API endpoints
+
+### **API Endpoints Using AI Workflow**
+- **`POST /certificate/{certificate_id}/process`**: Main endpoint that triggers the AI workflow
+- **`GET /certificate/{certificate_id}/preview`**: View AI workflow results
+- **`GET /student/{email}/applications`**: List all processed applications
+
+## Legacy CLI Pipeline (Development/Testing Only)
+
+The `mainpipeline.py` was used during development before the full application was built. It's now primarily useful for:
+
+### **Development and Testing**
+```bash
+# Test the AI workflow with sample documents
+python -m src.mainpipeline
+
+# Test individual components
+python -m src.workflow.ai_workflow
+python -m src.workflow.ocr_workflow
 ```
-- **OCR Service**: Initializes text extraction from documents
-- **LLM Orchestrator**: Sets up Gemini AI model with fallback support
-- **Degree Evaluator**: Loads degree-specific evaluation criteria
 
-### 2. **User Input Collection**
+### **What mainpipeline.py Does**
+- **CLI Interface**: Command-line interface for testing
+- **Sample File Processing**: Processes documents from `samples/` directory
+- **Local Output**: Saves results to `processedData/` directory
+- **Development Tool**: Useful for debugging and testing AI workflow components
+
+### **When to Use mainpipeline.py**
+- **Development**: Testing new AI workflow features
+- **Debugging**: Troubleshooting OCR or LLM issues
+- **Sample Processing**: Processing test documents locally
+- **Component Testing**: Testing individual workflow components
+
+## AI Workflow Core (`ai_workflow.py`)
+
+### **Primary Workflow Class**
+The `LLMOrchestrator` class in `ai_workflow.py` is the main engine that:
+
 ```python
-# File Selection
-selected_file = pipeline.list_sample_files()  # Lists available documents
-
-# Degree Selection  
-student_degree = pipeline.select_degree_program()  # User chooses degree
-
-# Training Type Selection
-requested_training_type = pipeline.get_training_type()  # User chooses training type
-
-# Email Collection
-student_email = pipeline.get_student_email()  # OAMK student email
+class LLMOrchestrator:
+    """Orchestrates LLM-based work certificate processing using a 4-stage approach."""
+    
+    def process_work_certificate(self, text, student_degree, requested_training_type):
+        """Main method called by the FastAPI application."""
+        # Stage 1: Information Extraction
+        # Stage 2: Academic Evaluation  
+        # Stage 3: Validation
+        # Stage 4: Correction
 ```
 
-### 3. **Document Processing Pipeline**
-
-#### **Step 1: OCR Processing**
+### **Integration with FastAPI**
 ```python
-ocr_result = self.ocr_service.extract_text_from_file(file_path)
-```
-- **Input**: PDF, DOCX, or image files
-- **Output**: Raw text with confidence scores
-- **Engines**: python-docx, Tesseract OCR, or other OCR engines
-- **Validation**: Ensures text was successfully extracted
-
-#### **Step 2: Text Cleaning**
-```python
-cleaned_text = self.clean_ocr_text(ocr_result.text)
-```
-- Removes empty lines and whitespace
-- Filters out very short lines (< 3 characters)
-- Prepares text for LLM processing
-
-#### **Step 3: LLM Processing (4-Stage Pipeline)**
-```python
-llm_results = self.orchestrator.process_work_certificate(
-    cleaned_text, student_degree, requested_training_type
-)
+# In api.py - the main API endpoint
+@router.post("/certificate/{certificate_id}/process")
+async def process_certificate(certificate_id: UUID):
+    # 1. Get certificate from database
+    # 2. Run OCR processing
+    # 3. Call AI workflow
+    llm_results = orchestrator.process_work_certificate(
+        cleaned_text, student_degree, requested_training_type
+    )
+    # 4. Store results in database
+    # 5. Return processing status
 ```
 
 ## LLM Pipeline Stages (`ai_workflow.py`)
@@ -230,15 +251,25 @@ The system evaluates work experience against the student's requested training ty
 - **For ACCEPTED cases**: No recommendation needed (student's request is approved)
 - **For REJECTED cases**: Provides actionable guidance to apply for general training instead
 
-### **CLI Display Logic**
-```bash
-🎯 DECISION: ACCEPTED (Student receives 30.0 ECTS as PROFESSIONAL training)
-📋 JUSTIFICATION: The work experience meets the criteria for professional training...
-
-# OR for rejected cases:
-🎯 DECISION: REJECTED
-📋 JUSTIFICATION: The work experience does not meet the criteria for professional training...
-💡 RECOMMENDATION: Apply this work experience as general training. The experience provides valuable transferable skills but does not meet the criteria for professional training in this degree program.
+### **API Response Format**
+```json
+{
+  "success": true,
+  "processing_time": 15.2,
+  "llm_results": {
+    "extraction_results": { /* structured employee data */ },
+    "evaluation_results": { 
+      "decision": "ACCEPTED|REJECTED",
+      "justification": "Clear reasoning for decision",
+      "recommendation": "Optional guidance for rejected cases",
+      "credits_calculated": 38.0,
+      "credits_qualified": 30.0
+    },
+    "validation_results": { /* validation report */ },
+    "correction_results": { /* corrected data if needed */ },
+    "structural_validation": { /* Pydantic validation results */ }
+  }
+}
 ```
 
 ## Degree-Specific Evaluation
@@ -262,43 +293,57 @@ Generated dynamically for each degree:
 - Evidence analysis framework
 - Recommendation guidelines for rejected cases
 
-## Output Structure
+## Database Integration
 
-### **Complete Pipeline Results**
-```json
-{
-  "success": true,
-  "file_path": "samples/document.pdf",
-  "student_degree": "Bachelor of Health Care, Nursing",
-  "student_email": "student@students.oamk.fi",
-  "processing_time": 15.2,
-  "ocr_results": {
-    "success": true,
-    "engine": "tesseract",
-    "confidence": 95.5,
-    "text_length": 1250
-  },
-  "llm_results": {
-    "extraction_results": { /* structured employee data */ },
-    "evaluation_results": { 
-      "decision": "ACCEPTED|REJECTED",
-      "justification": "Clear reasoning for decision",
-      "recommendation": "Optional guidance for rejected cases",
-      "credits_calculated": 38.0,
-      "credits_qualified": 30.0
-    },
-    "validation_results": { /* validation report */ },
-    "correction_results": { /* corrected data if needed */ },
-    "structural_validation": { /* Pydantic validation results */ }
-  }
-}
+### **Storage Strategy**
+The system stores all data in PostgreSQL:
+- **File Content**: Stored as `BYTEA` in the `certificates` table
+- **AI Results**: Complete workflow JSON stored as `TEXT` in the `decisions` table
+- **Student Information**: Stored in the `students` table with email validation
+- **Reviewer Information**: Stored in the `reviewers` table
+
+### **Key Database Tables**
+```sql
+-- Students table with email validation
+CREATE TABLE students (
+    student_id UUID PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL CHECK (email ~ '^[A-Za-z0-9._%+-]+@students\.oamk\.fi$'),
+    degree VARCHAR(255) NOT NULL,
+    first_name VARCHAR(255),
+    last_name VARCHAR(255)
+);
+
+-- Certificates table with file storage
+CREATE TABLE certificates (
+    certificate_id UUID PRIMARY KEY,
+    student_id UUID REFERENCES students(student_id),
+    training_type training_type NOT NULL,
+    filename VARCHAR(255) NOT NULL,
+    file_content BYTEA, -- Actual file content stored in database
+    ocr_output TEXT,
+    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Decisions table with AI workflow results
+CREATE TABLE decisions (
+    decision_id UUID PRIMARY KEY,
+    certificate_id UUID REFERENCES certificates(certificate_id),
+    ai_decision decision_status NOT NULL,
+    ai_justification TEXT NOT NULL,
+    ai_workflow_json TEXT, -- Complete AI workflow output
+    total_working_hours INTEGER,
+    credits_awarded INTEGER,
+    student_comment TEXT, -- Student comments for rejected cases
+    reviewer_decision reviewer_decision, -- PASS/FAIL from human reviewer
+    reviewer_comment TEXT
+);
 ```
 
 ## Key Components
 
 ### **Core Classes**
-- **`DocumentPipeline`**: Main orchestration class with CLI display
-- **`LLMOrchestrator`**: 4-stage LLM processing with decision logic
+- **`LLMOrchestrator`**: Main AI workflow class used by FastAPI application
+- **`DocumentPipeline`**: Legacy CLI interface (development/testing only)
 - **`DegreeEvaluator`**: Degree-specific evaluation logic
 - **`OCRService`**: Text extraction from documents
 
@@ -329,19 +374,34 @@ Generated dynamically for each degree:
 
 ## Usage Examples
 
-### **Running the Pipeline**
+### **Primary Usage: FastAPI Application**
 ```bash
+# Start the application
+cd backend
+uvicorn src.API.main:app --reload
+
+# Use the API endpoints
+# POST /certificate/{certificate_id}/process
+# GET /certificate/{certificate_id}/preview
+```
+
+### **Development/Testing: Legacy CLI**
+```bash
+# Test the AI workflow locally
 cd backend
 python src/mainpipeline.py
+
+# Test individual components
+python -c "from src.workflow.ai_workflow import LLMOrchestrator; print('AI Workflow available')"
 ```
 
 ### **Testing Individual Components**
 ```bash
 # Test OCR only
-python src/test_ocr.py
+python -m src.workflow.ocr_workflow
 
 # Test LLM processing only
-python src/test_extractor.py
+python -c "from src.workflow.ai_workflow import LLMOrchestrator; o = LLMOrchestrator(); print('LLM Orchestrator initialized')"
 ```
 
 ## Configuration
@@ -350,6 +410,7 @@ python src/test_extractor.py
 - `GEMINI_API_KEY`: Required for LLM processing
 - `GEMINI_MODEL`: Primary model (default: gemini-2.0-flash)
 - `GEMINI_FALLBACK_MODELS`: Backup models
+- `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USER`, `DATABASE_PASSWORD`: Database connection
 
 ### **Sample Files**
 Place test documents in `samples/` directory:
@@ -357,13 +418,14 @@ Place test documents in `samples/` directory:
 - DOCX files
 - Image files (PNG, JPG, etc.)
 
-## Database Integration
+## API Integration
 
-The output JSON is structured for easy database storage:
-- **Student Information**: Email, degree program
-- **Document Information**: File path, processing metadata
-- **Evaluation Results**: Decision, justification, recommendation, credits
-- **Validation Status**: Accuracy scores, correction history
+The system provides FastAPI endpoints for integration:
+- **File Upload**: `/student/{student_id}/upload-certificate`
+- **Processing**: `/certificate/{certificate_id}/process`
+- **Results**: `/certificate/{certificate_id}/preview`
+- **Student Applications**: `/student/{email}/applications`
+- **Reviewer Decisions**: `/certificate/{certificate_id}/review`
 
 ## Troubleshooting
 
@@ -372,6 +434,7 @@ The output JSON is structured for easy database storage:
 2. **LLM API Errors**: Verify API key and quota
 3. **Validation Errors**: Review business rules and data consistency
 4. **Degree Not Found**: Check degree program spelling
+5. **Database Connection**: Verify database credentials and connection
 
 ### **Debug Mode**
 Enable detailed logging to trace processing steps:
@@ -382,10 +445,10 @@ logging.basicConfig(level=logging.DEBUG)
 ## Future Enhancements
 
 ### **Planned Improvements**
-- Multi-language support (Finnish/English)
+- Enhanced multi-language support (Finnish/English)
 - Additional document formats
-- Real-time processing API
-- Database integration
+- Real-time processing API improvements
+- Advanced database analytics
 - User interface improvements
 
 ### **Extensibility**
@@ -397,4 +460,6 @@ The modular design allows easy addition of:
 
 ---
 
-**Note**: This system is designed for academic use at OAMK for evaluating work certificates and determining practical training credits. All evaluations follow Finnish higher education standards and ECTS credit system. 
+**Note**: This system is designed for academic use at OAMK for evaluating work certificates and determining practical training credits. All evaluations follow Finnish higher education standards and ECTS credit system.
+
+**Important**: The primary workflow is now through the FastAPI application (`ai_workflow.py`). The `mainpipeline.py` is a legacy CLI tool used primarily for development and testing purposes. 

@@ -27,6 +27,7 @@ WORKING HOURS CALCULATION:
 - If no certificate_issue_date is available, use duration descriptions to estimate hours
 - If no work schedule specified, assume full-time (40 hours/week)
 - CRITICAL: Do NOT assume the current date when end_date is missing
+- CRITICAL: If any date (start_date, end_date, or certificate_issue_date) is in the future, the AI decision must be "REJECTED" and the justification must clearly state that working hours cannot be calculated due to future dates
 
 TRAINING TYPE ANALYSIS:
 - "Professional Training": Work that demonstrates clear alignment with degree-specific criteria, technical skills, specialized knowledge, or industry-specific work relevant to the degree field
@@ -96,12 +97,14 @@ DECISION REQUIREMENTS:
 - If evidence supports the requested training type: "ACCEPTED"
 - If evidence does not support the requested training type: "REJECTED"
 - The decision should be based on whether the work experience meets the criteria for the requested training type
+- CRITICAL: If ANY date (start_date, end_date, or certificate_issue_date) is in the future, the decision MUST be "REJECTED" regardless of other factors
 
 JUSTIFICATION REQUIREMENTS:
 - Provide clear reasoning for the decision
 - Explain why the work experience was accepted or rejected for the requested training type
 - Include credit calculation and limits explanation
 - Note that this is an advisory decision for human evaluators
+- CRITICAL: For future date rejections, the justification MUST clearly state: "The work experience cannot be evaluated because it contains future dates (start_date, end_date, or certificate_issue_date). Working hours cannot be calculated for employment periods that have not yet occurred. The certificate must be corrected to show valid past dates before it can be processed."
 
 RECOMMENDATION REQUIREMENTS:
 - Provide a clear recommendation for the student on what to do next
