@@ -531,25 +531,27 @@ class TestDecisionOperations:
         # Mock the complex query result - this matches the actual SQL structure
         # The function expects separate rows for decision, certificate, and student
         mock_cursor.fetchone.side_effect = [
-            # Decision row
+            # Decision row - includes all 19 columns including company validation
             (
-                str(decision_id),
-                str(certificate_id),
-                "Test justification",
-                "ACCEPTED",
-                created_at,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
+                str(decision_id),  # decision_id (0)
+                str(certificate_id),  # certificate_id (1)
+                "Test justification",  # ai_justification (2)
+                "ACCEPTED",  # ai_decision (3)
+                created_at,  # created_at (4)
+                None,  # student_comment (5)
+                None,  # reviewer_decision (6)
+                None,  # reviewer_comment (7)
+                None,  # reviewed_at (8)
+                None,  # total_working_hours (9)
+                None,  # credits_awarded (10)
+                None,  # training_duration (11)
+                None,  # training_institution (12)
+                None,  # degree_relevance (13)
+                None,  # supporting_evidence (14)
+                None,  # challenging_evidence (15)
+                None,  # recommendation (16)
+                "UNVERIFIED",  # company_validation_status (17)
+                None,  # company_validation_justification (18)
             ),
             # Certificate row
             (
