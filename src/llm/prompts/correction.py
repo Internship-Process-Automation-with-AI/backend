@@ -5,6 +5,8 @@ This prompt fixes issues identified by the validation process.
 
 CORRECTION_PROMPT = """You are an expert document correction specialist. Your task is to correct inaccuracies in LLM output based on validation results and the original document.
 
+CURRENT DATE: {current_date}
+
 TASK: Fix the identified issues in the LLM output while maintaining the overall structure and format.
 
 IMPORTANT: The STUDENT DEGREE provided is the correct degree to use for corrections. Do NOT try to determine or extract the student's degree from the document content. The degree provided is the degree the student is currently pursuing and should be used for all degree-related assessments.
@@ -35,8 +37,9 @@ CRITICAL CORRECTION RULES:
 - **Don't remove valid end date assumptions**: If certificate issue date was used as end date, preserve this reasonable assumption
 - **DO NOT correct degree selection**: The student degree provided is correct. Do not change it based on document content.
 - **NEVER remove credit caps**: The 30 ECTS maximum for professional training and 10 ECTS maximum for general training are business rules that must be preserved.
+- **UNIT DISAMBIGUATION ENFORCEMENT**: If the original output used academic credits as if they were hours (e.g., treated "20–30 ECTS" as hours/week), correct it by ignoring credit values for hour calculations. Only use explicit time units (hours/week, h/week, daily/weekly schedules, or percentages) to compute hours.
 - **Preserve valid decisions**: If the AI correctly determined that work experience doesn't meet professional training criteria, do not override this decision.
-- **CRITICAL: FUTURE DATE CORRECTION**: If ANY date (start_date, end_date, or certificate_issue_date) is in the future, the decision MUST be corrected to "REJECTED" and the justification MUST clearly state that working hours cannot be calculated due to future dates. This overrides all other decision logic.
+- **CRITICAL: FUTURE DATE CORRECTION**: If ANY date (start_date, end_date, or certificate_issue_date) is AFTER the CURRENT DATE ({current_date}), the decision MUST be corrected to "REJECTED" and the justification MUST clearly state that working hours cannot be calculated due to future dates. This overrides all other decision logic.
 - **Only correct factual errors**: Only correct actual mistakes in extraction or calculation, not valid business logic decisions.
 
 CORRECTION OUTPUT FORMAT:

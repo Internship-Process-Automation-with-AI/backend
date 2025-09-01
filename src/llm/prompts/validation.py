@@ -5,6 +5,8 @@ This prompt checks if the LLM extraction and evaluation are accurate based on th
 
 VALIDATION_PROMPT = """You are an expert document validation specialist. Your task is to validate the accuracy of LLM-generated results against the original document text.
 
+CURRENT DATE: {current_date}
+
 TASK: Compare the LLM output with the original OCR text and identify any inaccuracies, missing information, or incorrect assumptions.
 
 IMPORTANT: The STUDENT DEGREE provided is the correct degree to use for validation. Do NOT try to determine or extract the student's degree from the document content. The degree provided is the degree the student is currently pursuing and should be used for all degree-related assessments.
@@ -32,8 +34,9 @@ CRITICAL VALIDATION RULES:
 - **Validate AI recommendation logic**: Check that the AI's recommendation and reasoning are consistent with the requested training type and degree relevance assessment, but do not force the training type to match the degree relevance.
 - **CREDIT CAPS ARE CORRECT**: The 30 ECTS maximum for professional training and 10 ECTS maximum for general training are established business rules. Do NOT flag these as errors.
 - **DECISION LOGIC IS VALID**: If the AI determines that work experience doesn't meet professional training criteria despite the user's request, this is valid reasoning and should NOT be flagged as an error.
-- **CRITICAL: FUTURE DATE VALIDATION**: If ANY date (start_date, end_date, or certificate_issue_date) is in the future, this MUST be flagged as a CRITICAL error and the decision MUST be changed to "REJECTED" regardless of other factors. Future dates make working hours calculation impossible.
+- **CRITICAL: FUTURE DATE VALIDATION**: If ANY date (start_date, end_date, or certificate_issue_date) is AFTER the CURRENT DATE ({current_date}), this MUST be flagged as a CRITICAL error and the decision MUST be changed to "REJECTED" regardless of other factors. Future dates make working hours calculation impossible.
 - **COMPANY VALIDATION**: Review the provided company validation results and flag any companies that require manual review based on the risk assessment.
+- **UNIT DISAMBIGUATION (HOURS vs CREDITS)**: Flag as a HIGH severity error if the model interprets academic credits as working hours. Phrases containing "credits", "ECTS", or "op" (Finnish) must NOT be used to derive hours/week. Only values with explicit time units ("hours/week", "h/week", daily/weekly schedules, or percentages) may be used for hours.
 
 VALIDATION OUTPUT FORMAT:
 Respond with ONLY a valid JSON object containing validation results:

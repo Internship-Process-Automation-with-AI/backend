@@ -7,6 +7,7 @@ import json
 import logging
 import re
 import time
+from datetime import datetime
 from typing import Any, Dict, Optional
 
 import google.generativeai as genai
@@ -529,7 +530,9 @@ class LLMOrchestrator:
                 company_validation_result, indent=2, ensure_ascii=False
             )
 
+            current_date = datetime.now().strftime("%Y-%m-%d")
             prompt = VALIDATION_PROMPT.format(
+                current_date=current_date,
                 ocr_text=text,
                 extraction_results=extraction_str,
                 evaluation_results=evaluation_str,
@@ -595,7 +598,9 @@ class LLMOrchestrator:
                 validation_results, indent=2, ensure_ascii=False
             )
 
+            current_date = datetime.now().strftime("%Y-%m-%d")
             prompt = CORRECTION_PROMPT.format(
+                current_date=current_date,
                 ocr_text=text,
                 original_llm_output=original_str,
                 validation_results=validation_str,
@@ -647,8 +652,10 @@ class LLMOrchestrator:
                 student_degree
             )
 
-            # Create evaluation prompt
+            # Create evaluation prompt with current date
+            current_date = datetime.now().strftime("%Y-%m-%d")
             prompt = EVALUATION_PROMPT.format(
+                current_date=current_date,
                 extracted_info=extracted_info_str,
                 document_text=text,
                 student_degree=student_degree,

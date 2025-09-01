@@ -47,13 +47,18 @@ The system automatically detects your file type and uses the most appropriate pr
 - **What Happens**: Opens the document and reads the actual text content directly
 
 #### **PDF Files (.pdf)**
-- **Processing Method**: PDF → Image conversion → OCR processing
-- **Speed**: Medium (5-15 seconds depending on page count)
-- **Accuracy**: 85-95% (depends on PDF quality)
-- **What Happens**: 
-  1. Converts each PDF page to high-resolution image
-  2. Runs OCR on each image
-  3. Combines text from all pages
+- **Processing Method**: Digital-text fast path → otherwise PDF → Image conversion → OCR
+- **Speed**:
+  - Digital PDFs (with embedded text): Fast (1-5 seconds)
+  - Scanned PDFs (no embedded text): Medium (4-12 seconds depending on pages)
+- **Accuracy**:
+  - Digital PDFs: 95-99% (native text extraction)
+  - Scanned PDFs: 85-95% (depends on scan quality)
+- **What Happens**:
+  1. Fast path (PyMuPDF): Try extracting embedded text directly from pages
+  2. If embedded text is insufficient, fallback to OCR
+  3. Fallback OCR is optimized: convert pages at 150 DPI and process pages in parallel
+  4. Combine text from all pages
 
 #### **Image Files (.png, .jpg, .jpeg, .bmp, .tiff)**
 - **Processing Method**: Direct OCR processing
@@ -71,7 +76,8 @@ The system automatically detects the document language and applies specialized p
   - Recognizes Finnish business terms (työtodistus, harjoittelu, työpaikka)
   - Handles Finnish date formats (1.1.2024, 1. tammikuuta)
   - Optimized for Finnish company names and addresses
-- **Processing Time**: Same as other languages
+- **Performance Optimizations**: Early-exit OCR strategy for Finnish (stops after a strong first pass), fewer fallback configs
+- **Processing Time**: Generally faster than before due to early-exit and parallel page processing
 - **Accuracy**: 5-10% better than generic OCR for Finnish text
 
 #### **English Documents**
@@ -97,6 +103,7 @@ Based on the detected language and file type:
 2. **Word Correction**: Finnish-specific spell checking and correction
 3. **Business Term Recognition**: Identifies Finnish work certificate terminology
 4. **Format Handling**: Recognizes Finnish business document formats
+5. **Performance**: Uses an early-exit heuristic—if the first Finnish OCR pass produces sufficiently good text, later, slower passes are skipped
 
 #### **For English Documents:**
 1. **Standard OCR**: Uses English language optimization
@@ -132,13 +139,16 @@ The system evaluates the quality of extracted text:
 
 ### 🎯 Smart Processing
 - **Automatic language detection** - No need to specify language
-- **File type optimization** - Each file type gets the best processing method
+- **Digital-PDF fast path** - Skips OCR entirely when PDFs contain embedded text (PyMuPDF)
+- **Parallelized page conversion** - Faster PDF→image conversion with multiple CPU cores
+- **Optimized DPI** - 150 DPI conversion balances speed and accuracy
 - **Quality scoring** - System picks the best result automatically
 
 ### 🇫🇮 Finnish Language Support
 - **Finnish character recognition** (ä, ö, å)
 - **Finnish word detection** (työtodistus, harjoittelu, etc.)
 - **Finnish error correction** (fixes common OCR mistakes)
+- **Early-exit OCR for Finnish** (returns early when the first pass is strong)
 
 ### 📊 Accuracy Levels
 - **Word documents**: 95-99% accurate (native text)
@@ -204,10 +214,11 @@ When using the API, OCR results are stored in the database:
 - Logs errors for debugging
 
 ### Q: How fast is OCR processing?
-**A:** Processing speed depends on file type:
+**A:** Processing speed depends on file type and whether the PDF has embedded text:
 - Word documents: Very fast (1-3 seconds, no OCR needed)
-- PDFs: Medium speed (5-15 seconds, depends on page count)
-- Images: Medium speed (3-10 seconds, direct OCR)
+- Digital PDFs (with embedded text): Fast (1-5 seconds)
+- Scanned PDFs: Medium (4-12 seconds, optimized 150 DPI + parallel)
+- Images: Medium (3-10 seconds, direct OCR)
 
 ### Q: Can I process files through the API?
 **A:** Yes! The system provides OCR-specific endpoints:
@@ -241,6 +252,11 @@ The OCR system is the **first step** in a larger AI pipeline:
 5. **Provides recommendations** (for rejected cases)
 
 **The OCR provides the text input** that the AI system uses to evaluate work certificates and determine academic credits. Without good OCR results, the AI cannot make accurate decisions.
+
+### Implementation Notes (for developers)
+- Digital PDF fast path uses PyMuPDF (`fitz`) to extract embedded text when available
+- Fallback OCR uses `pdf2image` with `dpi=150` and `thread_count` set to use available CPU cores
+- Finnish OCR uses an early-exit strategy with fewer Tesseract config passes for faster results
 
 ## OCR Database Storage
 
