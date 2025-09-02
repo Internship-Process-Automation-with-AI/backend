@@ -21,6 +21,16 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+DO $$ BEGIN
+    CREATE TYPE work_type AS ENUM ('REGULAR', 'SELF_PACED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE document_type AS ENUM ('HOUR_DOCUMENTATION', 'PROJECT_DETAILS');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- Create reviewer_decision enum (PASS / FAIL)
 DO $$ BEGIN
     CREATE TYPE reviewer_decision AS ENUM ('PASS','FAIL');
@@ -55,6 +65,7 @@ CREATE TABLE IF NOT EXISTS certificates (
     certificate_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     student_id UUID NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
     training_type training_type NOT NULL,
+    work_type work_type NOT NULL DEFAULT 'REGULAR',
     filename VARCHAR(255) NOT NULL,
     filetype VARCHAR(50) NOT NULL,
     file_content BYTEA, -- Store the actual file content in the database
@@ -97,6 +108,22 @@ CREATE TABLE IF NOT EXISTS decisions (
 CONSTRAINT decisions_ai_justification_check CHECK (LENGTH(ai_justification) > 0)
 );
 
+-- Create Additional Documents table for self-paced work
+CREATE TABLE IF NOT EXISTS additional_documents (
+    document_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    certificate_id UUID NOT NULL REFERENCES certificates(certificate_id) ON DELETE CASCADE,
+    document_type document_type NOT NULL,
+    filename VARCHAR(255) NOT NULL,
+    filetype VARCHAR(50) NOT NULL,
+    file_content BYTEA, -- Store the actual file content in the database
+    ocr_output TEXT,
+    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+-- Constraints
+CONSTRAINT additional_documents_filename_check CHECK (LENGTH(filename) > 0),
+    CONSTRAINT additional_documents_filetype_check CHECK (LENGTH(filetype) > 0)
+);
+
 -- Create indexes for better performance (only if they don't exist)
 CREATE INDEX IF NOT EXISTS idx_students_email ON students (email);
 
@@ -105,6 +132,8 @@ CREATE INDEX IF NOT EXISTS idx_students_degree ON students (degree);
 CREATE INDEX IF NOT EXISTS idx_certificates_student_id ON certificates (student_id);
 
 CREATE INDEX IF NOT EXISTS idx_certificates_training_type ON certificates (training_type);
+
+CREATE INDEX IF NOT EXISTS idx_certificates_work_type ON certificates (work_type);
 
 CREATE INDEX IF NOT EXISTS idx_certificates_uploaded_at ON certificates (uploaded_at);
 
@@ -124,3 +153,10 @@ CREATE INDEX IF NOT EXISTS idx_decisions_reviewer_id ON decisions (reviewer_id);
 
 -- Company validation index
 CREATE INDEX IF NOT EXISTS idx_decisions_company_validation_status ON decisions (company_validation_status);
+
+-- Additional documents indexes
+CREATE INDEX IF NOT EXISTS idx_additional_documents_certificate_id ON additional_documents (certificate_id);
+
+CREATE INDEX IF NOT EXISTS idx_additional_documents_document_type ON additional_documents (document_type);
+
+CREATE INDEX IF NOT EXISTS idx_additional_documents_uploaded_at ON additional_documents (uploaded_at);

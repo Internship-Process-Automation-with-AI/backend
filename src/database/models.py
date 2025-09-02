@@ -19,6 +19,20 @@ class TrainingType(str, enum.Enum):
     PROFESSIONAL = "PROFESSIONAL"
 
 
+class WorkType(str, enum.Enum):
+    """Enumeration for work types."""
+
+    REGULAR = "REGULAR"
+    SELF_PACED = "SELF_PACED"
+
+
+class DocumentType(str, enum.Enum):
+    """Enumeration for additional document types."""
+
+    HOUR_DOCUMENTATION = "HOUR_DOCUMENTATION"
+    PROJECT_DETAILS = "PROJECT_DETAILS"
+
+
 class DecisionStatus(str, enum.Enum):
     """Enumeration for AI decision statuses."""
 
@@ -104,6 +118,7 @@ class Certificate:
         certificate_id: Unique identifier for the certificate (UUID)
         student_id: Foreign key to the student who uploaded the certificate
         training_type: Type of training requested (GENERAL/PROFESSIONAL)
+        work_type: Type of work (REGULAR/SELF_PACED)
         filename: Original filename of the uploaded certificate
         filetype: File type/extension of the certificate
         uploaded_at: Timestamp when the certificate was uploaded
@@ -117,6 +132,7 @@ class Certificate:
     filename: str
     filetype: str
     uploaded_at: datetime
+    work_type: WorkType = WorkType.REGULAR
     file_content: Optional[bytes] = None
     ocr_output: Optional[str] = None
 
@@ -313,4 +329,41 @@ class DetailedApplication:
             "decision": self.decision.to_dict(),
             "certificate": self.certificate.to_dict(),
             "student": self.student.to_dict(),
+        }
+
+
+@dataclass
+class AdditionalDocument:
+    """
+    Additional document data class for self-paced work documentation.
+
+    Attributes:
+        document_id: Unique identifier for the document (UUID)
+        certificate_id: Foreign key to the certificate this document belongs to
+        document_type: Type of document (HOUR_DOCUMENTATION/PROJECT_DETAILS)
+        filename: Original filename of the uploaded document
+        filetype: File type/extension of the document
+        uploaded_at: Timestamp when the document was uploaded
+        file_content: Actual file content stored as bytes in the database
+        ocr_output: OCR extracted text from the document
+    """
+
+    document_id: UUID
+    certificate_id: UUID
+    document_type: DocumentType
+    filename: str
+    filetype: str
+    uploaded_at: datetime
+    file_content: Optional[bytes] = None
+    ocr_output: Optional[str] = None
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "document_id": str(self.document_id),
+            "certificate_id": str(self.certificate_id),
+            "document_type": self.document_type.value,
+            "filename": self.filename,
+            "filetype": self.filetype,
+            "uploaded_at": self.uploaded_at.isoformat(),
         }

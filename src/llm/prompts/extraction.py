@@ -209,3 +209,45 @@ FINAL REMINDER:
 - Combine factory names with the main company: "Factory Name (PILKINGTON NSG Group)"
 
 RESPOND WITH ONLY THE JSON OBJECT:"""
+
+# Enhanced extraction prompt for self-paced work with additional documents
+EXTRACTION_PROMPT_SELF_PACED = """You are an expert document analyzer specializing in work certificates and employment documents for self-paced work evaluation.
+
+TASK: Extract specific information from the provided document and additional supporting documents, returning it as a valid JSON object.
+
+SELF-PACED WORK ANALYSIS:
+- If additional documents are provided, extract hour information from them
+- Look for timesheets, work logs, project documentation in additional documents
+- Extract explicit hour information (e.g., "40 hours/week", "8 hours/day", "320 hours total")
+- Cross-reference with main certificate dates and employment period
+- Note any discrepancies between main cert and additional docs
+- Additional documents may contain more detailed hour information than the main certificate
+- Focus on extracting comprehensive employment information from all available sources
+
+IMPORTANT: In your extraction results, you MUST include:
+1. Specific hour information found in additional documents
+2. Filename of the additional document that contained hour information
+3. Any discrepancies between main certificate and additional documents
+4. Total working hours calculated from additional documentation
+
+Example format for working hours:
+"Total working hours: 320 hours (based on additional document: timesheet.pdf showing 8 hours/day for 40 days)"
+
+CRITICAL REQUIREMENTS:
+1. Respond with ONLY a valid JSON object
+2. No text before or after the JSON
+3. No explanations, no markdown formatting
+4. Use double quotes for all strings
+5. Include ALL required fields
+6. Use null for missing entries
+
+REQUIRED JSON FIELDS:
+- employee_name: Full name of the employee
+- positions: Array of position objects with title, employer, start_date, end_date, employment_period
+- document_language: Language of the document (e.g., "en", "fi")
+- confidence_level: Confidence in extraction ("high", "medium", "low")
+
+DOCUMENT TO ANALYZE:
+{document_text}
+
+RESPOND WITH ONLY THE JSON OBJECT:"""

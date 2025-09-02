@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
@@ -10,9 +10,11 @@ from starlette.responses import Response
 from src.database.database import (
     add_student_comment,
     add_student_comment_and_reviewer,
+    create_additional_document,
     create_certificate,
     create_decision,
     delete_certificate,
+    get_additional_documents,
     get_all_reviewers,
     get_certificate_by_id,
     get_certificates_by_reviewer_id,
@@ -27,8 +29,10 @@ from src.database.database import (
 )
 from src.database.models import (
     DecisionStatus,
+    DocumentType,
     ReviewerDecision,
     TrainingType,
+    WorkType,
 )
 from src.utils.logger import get_logger
 from src.workflow.ai_workflow import LLMOrchestrator
@@ -195,7 +199,9 @@ async def get_student_applications(email: str):
 async def upload_certificate(
     student_id: UUID,
     training_type: str = Form(...),
+    work_type: str = Form(default="REGULAR"),
     file: UploadFile = File(...),
+    additional_documents: List[UploadFile] = File(default=[]),
 ):
     """Upload a working certificate file for a student (by id)."""
     student = get_student_by_id(student_id)
@@ -205,6 +211,11 @@ async def upload_certificate(
         training_type_enum = TrainingType(training_type.upper())
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid training type")
+
+    try:
+        work_type_enum = WorkType(work_type.upper())
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid work type")
 
     # Validate filename
     if not file.filename:
@@ -257,12 +268,71 @@ async def upload_certificate(
         certificate = create_certificate(
             student_id=student.student_id,
             training_type=training_type_enum,
+            work_type=work_type_enum,
             filename=file.filename,
             filetype=filetype,
             file_content=file_content,
         )
 
         logger.info(f"Certificate created with ID: {certificate.certificate_id}")
+
+        # Handle additional documents for self-paced work
+        if work_type_enum == WorkType.SELF_PACED and additional_documents:
+            logger.info(
+                f"Processing {len(additional_documents)} additional documents for self-paced work"
+            )
+            for doc in additional_documents:
+                if not doc.filename:
+                    continue
+
+                # Validate additional document file type
+                doc_extension = os.path.splitext(doc.filename)[1]
+                if not doc_extension:
+                    logger.warning(
+                        f"Additional document {doc.filename} has no extension, skipping"
+                    )
+                    continue
+
+                doc_filetype = doc_extension[1:].lower()
+                if doc_extension.lower() not in allowed_extensions:
+                    logger.warning(
+                        f"Additional document {doc.filename} has unsupported type {doc_filetype}, skipping"
+                    )
+                    continue
+
+                # Read additional document content
+                doc_content = await doc.read()
+
+                # Validate additional document size (10MB limit)
+                if len(doc_content) > 10 * 1024 * 1024:  # 10MB
+                    logger.warning(
+                        f"Additional document {doc.filename} too large ({len(doc_content)} bytes), skipping"
+                    )
+                    continue
+
+                # Validate that we actually have content
+                if len(doc_content) == 0:
+                    logger.warning(
+                        f"Additional document {doc.filename} is empty, skipping"
+                    )
+                    continue
+
+                # Create additional document record
+                try:
+                    additional_doc = create_additional_document(
+                        certificate_id=certificate.certificate_id,
+                        document_type=DocumentType.HOUR_DOCUMENTATION,
+                        filename=doc.filename,
+                        filetype=doc_filetype,
+                        file_content=doc_content,
+                    )
+                    logger.info(
+                        f"Additional document created: {additional_doc.document_id}"
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Failed to create additional document {doc.filename}: {e}"
+                    )
 
         # Verify the certificate was created correctly
         verification_cert = get_certificate_by_id(certificate.certificate_id)
@@ -271,6 +341,7 @@ async def upload_certificate(
                 f"Verification - File content size: {len(verification_cert.file_content) if verification_cert.file_content else 0} bytes"
             )
             logger.info(f"Verification - File type: {verification_cert.filetype}")
+            logger.info(f"Verification - Work type: {verification_cert.work_type}")
         else:
             logger.error("Failed to retrieve certificate after creation")
 
@@ -338,20 +409,162 @@ async def process_certificate(certificate_id: UUID):
                 )
                 conn.commit()
 
+        # Process additional documents if self-paced work
+        additional_doc_results = []
+        if cert.work_type == WorkType.SELF_PACED:
+            logger.info("Processing additional documents for self-paced work")
+            additional_docs = get_additional_documents(certificate_id)
+
+            if additional_docs:
+                logger.info(
+                    f"Found {len(additional_docs)} additional documents to process"
+                )
+
+                for doc in additional_docs:
+                    try:
+                        logger.info(f"Processing additional document: {doc.filename}")
+
+                        # Convert memoryview to bytes if necessary
+                        if hasattr(doc.file_content, "tobytes"):
+                            doc_file_content = doc.file_content.tobytes()
+                        else:
+                            doc_file_content = doc.file_content
+
+                        # Create temporary file for additional document OCR
+                        with tempfile.NamedTemporaryFile(
+                            delete=False, suffix=f".{doc.filetype}"
+                        ) as doc_temp_file:
+                            doc_temp_file.write(doc_file_content)
+                            doc_temp_file_path = doc_temp_file.name
+
+                        try:
+                            # Run OCR on additional document
+                            doc_ocr_result = ocr_workflow.process_document(
+                                Path(doc_temp_file_path)
+                            )
+
+                            if doc_ocr_result.get("success"):
+                                # Update additional_documents table with OCR output
+                                with get_db_connection() as conn:
+                                    with conn.cursor() as cur:
+                                        cur.execute(
+                                            "UPDATE additional_documents SET ocr_output=%s WHERE document_id=%s",
+                                            (
+                                                doc_ocr_result.get(
+                                                    "extracted_text", ""
+                                                ),
+                                                str(doc.document_id),
+                                            ),
+                                        )
+                                        conn.commit()
+
+                                # Store OCR result for LLM processing
+                                additional_doc_results.append(
+                                    {
+                                        "filename": doc.filename,
+                                        "ocr_text": doc_ocr_result.get(
+                                            "extracted_text", ""
+                                        ),
+                                        "document_type": doc.document_type.value,
+                                        "ocr_result": doc_ocr_result,
+                                    }
+                                )
+
+                                logger.info(
+                                    f"✅ Successfully processed additional document: {doc.filename}"
+                                )
+                                logger.info(
+                                    f"   Extracted {len(doc_ocr_result.get('extracted_text', ''))} characters"
+                                )
+                            else:
+                                logger.warning(
+                                    f"❌ OCR failed for additional document: {doc.filename}"
+                                )
+                                logger.warning(
+                                    f"   Error: {doc_ocr_result.get('error', 'Unknown error')}"
+                                )
+
+                                # Still add to results with empty text for LLM processing
+                                additional_doc_results.append(
+                                    {
+                                        "filename": doc.filename,
+                                        "ocr_text": "",
+                                        "document_type": doc.document_type.value,
+                                        "ocr_result": doc_ocr_result,
+                                    }
+                                )
+
+                        finally:
+                            # Clean up temporary file
+                            try:
+                                os.unlink(doc_temp_file_path)
+                            except Exception as e:
+                                logger.warning(
+                                    f"Failed to clean up temporary file {doc_temp_file_path}: {e}"
+                                )
+
+                    except Exception as e:
+                        logger.error(
+                            f"Failed to process additional document {doc.filename}: {e}"
+                        )
+                        # Continue processing other documents
+                        continue
+
+                logger.info(
+                    f"Completed processing {len(additional_doc_results)} additional documents"
+                )
+            else:
+                logger.info("No additional documents found for self-paced work")
+        else:
+            logger.info("Regular work type - no additional documents to process")
+
         # Run LLM evaluation
         cleaned_text = ocr_result.get("extracted_text", "")
 
         try:
-            llm_result = llm_orchestrator.process_work_certificate(
-                cleaned_text,
-                student_degree=student.degree,
-                requested_training_type=cert.training_type.value.lower(),
-            )
+            # Enhanced LLM processing for self-paced work with additional documents
+            if cert.work_type == WorkType.SELF_PACED and additional_doc_results:
+                logger.info("Running enhanced LLM evaluation with additional documents")
+                logger.info(
+                    f"Additional documents count: {len(additional_doc_results)}"
+                )
+                logger.info(f"Combined text length: {len(cleaned_text)} characters")
+
+                try:
+                    llm_result = llm_orchestrator.process_work_certificate(
+                        cleaned_text,
+                        student_degree=student.degree,
+                        requested_training_type=cert.training_type.value.lower(),
+                        work_type=cert.work_type.value,
+                        additional_documents=additional_doc_results,
+                    )
+                    if llm_result is None:
+                        logger.error("Enhanced LLM processing returned None result")
+                        raise Exception("LLM processing returned None result")
+                    logger.info(
+                        f"Enhanced LLM processing completed. Success: {llm_result.get('success', False)}"
+                    )
+                except Exception as llm_error:
+                    logger.error(f"Enhanced LLM processing failed: {llm_error}")
+                    logger.error(f"LLM error type: {type(llm_error)}")
+                    logger.error(f"LLM error details: {str(llm_error)}")
+                    raise llm_error
+            else:
+                logger.info("Running standard LLM evaluation")
+                llm_result = llm_orchestrator.process_work_certificate(
+                    cleaned_text,
+                    student_degree=student.degree,
+                    requested_training_type=cert.training_type.value.lower(),
+                )
 
         except Exception as e:
             logger.error(f"LLM processing failed: {e}")
+            logger.error(f"Error type: {type(e)}")
+            logger.error(f"Error details: {str(e)}")
             # Return OCR results with LLM error
             return {
+                "success": False,
+                "error": f"LLM processing failed: {str(e)}",
                 "ocr_results": ocr_result,
                 "llm_results": {
                     "success": False,
@@ -585,9 +798,11 @@ async def process_certificate(certificate_id: UUID):
         except Exception as e:
             logger.warning(f"Failed to clean up temporary file {temp_file_path}: {e}")
 
-        return {
+        # Prepare response with additional document information
+        response = {
             "success": True,
             "certificate_id": str(certificate_id),
+            "work_type": cert.work_type.value,
             "ocr_results": ocr_result,
             "llm_results": llm_result,
             "decision": {
@@ -599,8 +814,34 @@ async def process_certificate(certificate_id: UUID):
                 "training_institution": decision.training_institution,
                 "company_validation_status": decision.company_validation_status,
                 "company_validation_justification": decision.company_validation_justification,
+                "calculation_method": "enhanced_with_additional_documents"
+                if (cert.work_type == WorkType.SELF_PACED and additional_doc_results)
+                else "standard",
             },
         }
+
+        # Add additional document information if self-paced work
+        if cert.work_type == WorkType.SELF_PACED and additional_doc_results:
+            response["additional_documents"] = {
+                "count": len(additional_doc_results),
+                "documents": [
+                    {
+                        "filename": doc["filename"],
+                        "document_type": doc["document_type"],
+                        "ocr_success": doc["ocr_result"].get("success", False),
+                        "text_length": len(doc["ocr_text"]),
+                        "ocr_error": doc["ocr_result"].get("error")
+                        if not doc["ocr_result"].get("success")
+                        else None,
+                    }
+                    for doc in additional_doc_results
+                ],
+            }
+            logger.info(
+                f"Added {len(additional_doc_results)} additional documents to response"
+            )
+
+        return response
 
     except Exception as e:
         # Clean up temporary file on error

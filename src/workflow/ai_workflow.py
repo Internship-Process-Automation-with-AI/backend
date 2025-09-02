@@ -8,7 +8,7 @@ import logging
 import re
 import time
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import google.generativeai as genai
 
@@ -25,6 +25,8 @@ from src.llm.prompts import (
     VALIDATION_PROMPT,
 )
 from src.llm.prompts.company_validation import COMPANY_VALIDATION_PROMPT
+from src.llm.prompts.evaluation import EVALUATION_PROMPT_SELF_PACED
+from src.llm.prompts.extraction import EXTRACTION_PROMPT_SELF_PACED
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +152,8 @@ class LLMOrchestrator:
         text: str,
         student_degree: str = "Business Administration",
         requested_training_type: str = None,
+        work_type: str = "REGULAR",
+        additional_documents: List[Dict] = None,
     ) -> Dict[str, Any]:
         """
         Process a work certificate using the 4-stage LLM approach.
@@ -158,6 +162,8 @@ class LLMOrchestrator:
             text: Cleaned OCR text from the work certificate
             student_degree: Student's degree program
             requested_training_type: Student's requested training type (general or professional)
+            work_type: Type of work (REGULAR/SELF_PACED)
+            additional_documents: List of additional document OCR results for self-paced work
 
         Returns:
             Dictionary with both extraction and evaluation results
@@ -176,12 +182,33 @@ class LLMOrchestrator:
                 f"Unsupported degree program: {student_degree}, using general criteria"
             )
 
+        # Enhanced processing for self-paced work with additional documents
+        is_self_paced = work_type == "SELF_PACED"
+        has_additional_docs = additional_documents and len(additional_documents) > 0
+
+        if is_self_paced and has_additional_docs:
+            logger.info(
+                f"Processing self-paced work with {len(additional_documents)} additional documents"
+            )
+            # Combine main certificate with additional documents for comprehensive analysis
+            combined_text = self._combine_documents(text, additional_documents)
+            logger.info(f"Combined text length: {len(combined_text)} characters")
+        else:
+            logger.info("Processing regular work certificate")
+            combined_text = text
+
         start_time = time.time()
 
         try:
-            # Stage 1: Information Extraction
-            sanitized_text = self._sanitize_text(text)
-            extraction_result = self._extract_information(sanitized_text)
+            # Stage 1: Information Extraction (enhanced for self-paced work)
+            sanitized_text = self._sanitize_text(combined_text)
+
+            if is_self_paced and has_additional_docs:
+                extraction_result = self._extract_information_with_additional_docs(
+                    sanitized_text, additional_documents
+                )
+            else:
+                extraction_result = self._extract_information(sanitized_text)
 
             if not extraction_result.get("success", False):
                 return self._error_response(
@@ -210,13 +237,22 @@ class LLMOrchestrator:
                     )
                 # Continue processing but log the issues
 
-            # Stage 2: Academic Evaluation
-            evaluation_result = self._evaluate_academically(
-                sanitized_text,
-                extraction_result["results"],
-                student_degree,
-                requested_training_type,
-            )
+            # Stage 2: Academic Evaluation (enhanced for self-paced work)
+            if is_self_paced and has_additional_docs:
+                evaluation_result = self._evaluate_academically_with_additional_docs(
+                    sanitized_text,
+                    extraction_result["results"],
+                    student_degree,
+                    requested_training_type,
+                    additional_documents,
+                )
+            else:
+                evaluation_result = self._evaluate_academically(
+                    sanitized_text,
+                    extraction_result["results"],
+                    student_degree,
+                    requested_training_type,
+                )
 
             # Stage 2.5: Structural Validation of Evaluation Results
             if evaluation_result.get("success", False):
@@ -1230,6 +1266,164 @@ class LLMOrchestrator:
             "stages": ["extraction", "evaluation", "validation", "correction"],
             "company_validation": "LLM-based",
         }
+
+    def _combine_documents(self, main_text: str, additional_docs: List[Dict]) -> str:
+        """
+        Combine main certificate with additional documents for comprehensive analysis.
+
+        Args:
+            main_text: OCR text from the main certificate
+            additional_docs: List of additional document OCR results
+
+        Returns:
+            Combined text with clear document separation
+        """
+        combined = f"MAIN CERTIFICATE:\n{main_text}\n\n"
+
+        for i, doc in enumerate(additional_docs, 1):
+            doc_type = doc.get("document_type", "ADDITIONAL_DOCUMENT")
+            filename = doc.get("filename", f"document_{i}")
+            ocr_text = doc.get("ocr_text", "")
+
+            combined += (
+                f"ADDITIONAL DOCUMENT {i} ({doc_type} - {filename}):\n{ocr_text}\n\n"
+            )
+
+        return combined
+
+    def _extract_information_with_additional_docs(
+        self, text: str, additional_docs: List[Dict]
+    ) -> Dict[str, Any]:
+        """
+        Enhanced information extraction that considers additional documents for self-paced work.
+
+        Args:
+            text: Combined text from main certificate and additional documents
+            additional_docs: List of additional document information
+
+        Returns:
+            Extraction results with enhanced context
+        """
+
+        stage_start = time.time()
+
+        try:
+            # Use the dedicated self-paced extraction prompt
+            response = self._call_llm_with_fallback(
+                EXTRACTION_PROMPT_SELF_PACED.format(document_text=text),
+                "extraction_with_additional_docs",
+            )
+            results = self._parse_llm_response(response)
+
+            # Clean up extraction results to prevent validation errors
+            if results and isinstance(results, dict):
+                results = self._clean_extraction_results(results)
+
+            return {
+                "success": True,
+                "processing_time": time.time() - stage_start,
+                "results": results,
+                "raw_response": response,
+            }
+
+        except Exception as e:
+            logger.error(f"Error in enhanced extraction stage: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "processing_time": time.time() - stage_start,
+                "results": None,
+            }
+
+    def _evaluate_academically_with_additional_docs(
+        self,
+        text: str,
+        extraction_results: Dict[str, Any],
+        student_degree: str,
+        requested_training_type: str,
+        additional_docs: List[Dict],
+    ) -> Dict[str, Any]:
+        """
+        Enhanced academic evaluation that verifies hours using additional documents.
+
+        Args:
+            text: Combined text from main certificate and additional documents
+            extraction_results: Results from information extraction
+            student_degree: Student's degree program
+            requested_training_type: Student's requested training type
+            additional_docs: List of additional document information
+
+        Returns:
+            Enhanced evaluation results with hour verification
+        """
+
+        stage_start = time.time()
+
+        try:
+            # Use the dedicated self-paced evaluation prompt
+            formatted_prompt = EVALUATION_PROMPT_SELF_PACED.format(
+                current_date=datetime.now().strftime("%Y-%m-%d"),
+                degree_specific_guidelines=self.degree_evaluator.get_degree_specific_guidelines(
+                    student_degree
+                ),
+                student_degree=student_degree,
+                requested_training_type=requested_training_type,
+                extracted_info=json.dumps(extraction_results, indent=2),
+                document_text=text,
+            )
+
+            response = self._call_llm_with_fallback(
+                formatted_prompt, "evaluation_with_additional_docs"
+            )
+            results = self._parse_llm_response(response)
+
+            # Clean up evaluation results to prevent validation errors
+            if results and isinstance(results, dict):
+                results = self._clean_evaluation_results(results)
+
+            # Only ensure credit calculations are correct, don't override LLM decisions
+            if results:
+                # Store the requested training type in the results
+                results["requested_training_type"] = requested_training_type
+
+                total_hours = results.get("total_working_hours", 0)
+                base_credits = int(total_hours / 27)
+
+                # Store the actual calculated credits (before capping)
+                results["credits_calculated"] = float(base_credits)
+
+                # Use requested_training_type for capping
+                training_type = requested_training_type or results.get(
+                    "training_type", ""
+                )
+                if training_type == "professional" and base_credits > 30:
+                    results["credits_qualified"] = 30.0
+                    results["calculation_breakdown"] = (
+                        f"{total_hours} hours / 27 hours per ECTS = {base_credits}.0 credits, capped at 30.0 maximum for professional training"
+                    )
+                elif training_type == "general" and base_credits > 10:
+                    results["credits_qualified"] = 10.0
+                    results["calculation_breakdown"] = (
+                        f"{total_hours} hours / 27 hours per ECTS = {base_credits}.0 credits, capped at 10.0 maximum for general training"
+                    )
+                else:
+                    results["credits_qualified"] = float(base_credits)
+
+            return {
+                "success": True,
+                "processing_time": time.time() - stage_start,
+                "results": results,
+                "raw_response": response,
+            }
+
+        except Exception as e:
+            logger.error(f"Error in enhanced evaluation stage: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "processing_time": time.time() - stage_start,
+                "results": None,
+            }
 
     def get_prompt_info(self) -> Dict[str, Any]:
         """Get information about the prompts being used."""
