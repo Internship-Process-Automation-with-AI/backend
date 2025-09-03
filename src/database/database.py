@@ -497,6 +497,9 @@ def create_decision(
     ai_workflow_json: Optional[str] = None,
     company_validation_status: Optional[str] = None,
     company_validation_justification: Optional[str] = None,
+    # Name validation parameter
+    name_validation_match_result: Optional[str] = None,
+    name_validation_explanation: Optional[str] = None,
 ) -> Decision:
     """
     Create a new decision record.
@@ -516,6 +519,7 @@ def create_decision(
         ai_workflow_json: Complete AI workflow JSON output
         company_validation_status: Overall company validation status
         company_validation_justification: Company validation details and evidence
+        name_validation_*: Name validation results from LLM
 
     Returns:
         Decision: Created decision object
@@ -531,9 +535,10 @@ def create_decision(
                     decision_id, certificate_id, ai_justification, ai_decision, created_at,
                     total_working_hours, credits_awarded, training_duration, training_institution,
                     degree_relevance, supporting_evidence, challenging_evidence, recommendation, ai_workflow_json,
-                    company_validation_status, company_validation_justification
+                    company_validation_status, company_validation_justification,
+                    name_validation_match_result, name_validation_explanation
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     str(decision_id),
@@ -552,6 +557,8 @@ def create_decision(
                     ai_workflow_json,
                     company_validation_status,
                     company_validation_justification,
+                    name_validation_match_result,
+                    name_validation_explanation,
                 ),
             )
             conn.commit()
@@ -576,6 +583,8 @@ def create_decision(
                 ai_workflow_json=ai_workflow_json,
                 company_validation_status=company_validation_status,
                 company_validation_justification=company_validation_justification,
+                name_validation_match_result=name_validation_match_result,
+                name_validation_explanation=name_validation_explanation,
             )
 
 
@@ -787,7 +796,8 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
                        student_comment, reviewer_decision, reviewer_comment, reviewed_at,
                        total_working_hours, credits_awarded, training_duration, training_institution,
                        degree_relevance, supporting_evidence, challenging_evidence, recommendation,
-                       company_validation_status, company_validation_justification
+                       company_validation_status, company_validation_justification,
+                       name_validation_match_result, name_validation_explanation
                 FROM decisions WHERE certificate_id = %s
                 """,
                 (str(certificate_id),),
@@ -842,6 +852,12 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
                 recommendation=decision_row[16],
                 company_validation_status=decision_row[17],
                 company_validation_justification=decision_row[18],
+                name_validation_match_result=(
+                    decision_row[19] if len(decision_row) > 19 else None
+                ),
+                name_validation_explanation=(
+                    decision_row[20] if len(decision_row) > 20 else None
+                ),
             )
 
             certificate = Certificate(

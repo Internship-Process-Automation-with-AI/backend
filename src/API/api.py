@@ -562,6 +562,26 @@ async def process_certificate(certificate_id: UUID):
             f"Final justification preview: {company_validation_justification[:200]}..."
         )
 
+        # Extract name validation results from LLM validation results
+        name_validation_match_result = None
+        name_validation_explanation = None
+
+        # Get name validation from LLM validation results
+        if llm_result.get("success") and "validation_results" in llm_result:
+            validation_results = llm_result["validation_results"]
+            if "results" in validation_results:
+                validation_results_data = validation_results["results"]
+                if "name_validation" in validation_results_data:
+                    name_validation = validation_results_data["name_validation"]
+                    logger.info(f"✅ Found name validation results: {name_validation}")
+
+                    name_validation_match_result = name_validation.get("match_result")
+                    name_validation_explanation = name_validation.get("explanation")
+
+                    logger.info(
+                        f"📝 Name validation - Match result: {name_validation_match_result}"
+                    )
+
         # Create decision record - store LLM results directly
         decision = create_decision(
             certificate_id=certificate_id,
@@ -578,6 +598,8 @@ async def process_certificate(certificate_id: UUID):
             ai_workflow_json=ai_workflow_json_string,
             company_validation_status=company_validation_status,
             company_validation_justification=company_validation_justification,
+            name_validation_match_result=name_validation_match_result,
+            name_validation_explanation=name_validation_explanation,
         )
 
         # Clean up temporary file

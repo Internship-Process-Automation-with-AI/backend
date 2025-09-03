@@ -181,7 +181,7 @@ class LLMOrchestrator:
         start_time = time.time()
 
         try:
-            # Stage 1: Information Extraction
+            # Stage 1: Information Extraction (moved before name validation)
             sanitized_text = self._sanitize_text(text)
             extraction_result = self._extract_information(sanitized_text)
 
@@ -191,6 +191,69 @@ class LLMOrchestrator:
                     extraction_results=extraction_result,
                     processing_time=time.time() - start_time,
                 )
+
+            # Stage 1.5: Name Validation using LLM extraction results
+            name_validation_result = self._validate_student_name_from_extraction(
+                extraction_result["results"], certificate_id
+            )
+
+            if not name_validation_result.get("name_match", True):
+                # Names don't match - reject immediately
+                return {
+                    "success": True,
+                    "processing_time": time.time() - start_time,
+                    "extraction_results": extraction_result,
+                    "evaluation_results": {
+                        "success": True,
+                        "results": {
+                            "decision": "REJECTED",
+                            "justification": f"Certificate rejected due to name mismatch: {name_validation_result.get('explanation', 'Student name does not match certificate')}",
+                            "total_working_hours": 0,
+                            "credits_qualified": 0.0,
+                            "degree_relevance": "low",
+                            "relevance_explanation": "Not evaluated due to name mismatch",
+                            "calculation_breakdown": "Not calculated due to name mismatch",
+                            "summary_justification": f"Certificate rejected: {name_validation_result.get('explanation', 'Student name does not match certificate')}",
+                            "requested_training_type": requested_training_type
+                            or "general",
+                            "recommendation": "REJECT - Name validation failed",
+                        },
+                    },
+                    "validation_results": {
+                        "success": True,
+                        "results": {
+                            "validation_passed": False,
+                            "overall_accuracy_score": 0.0,
+                            "name_validation": name_validation_result,
+                            "issues_found": [
+                                {
+                                    "type": "name_mismatch",
+                                    "severity": "critical",
+                                    "description": f"Student name mismatch: {name_validation_result.get('explanation', 'Names do not match')}",
+                                    "field_affected": "name_validation",
+                                    "suggestion": "Verify student identity and certificate authenticity",
+                                }
+                            ],
+                            "summary": "Certificate rejected due to name validation failure",
+                            "requires_correction": False,
+                        },
+                    },
+                    "correction_results": None,
+                    "structural_validation": {
+                        "extraction": None,
+                        "evaluation": None,
+                        "correction": None,
+                    },
+                    "student_degree": student_degree,
+                    "model_used": self.model_name,
+                    "stages_completed": {
+                        "extraction": True,
+                        "name_validation": True,
+                        "evaluation": True,  # We created evaluation results for rejection
+                        "validation": True,
+                        "correction": False,
+                    },
+                }
 
             # Stage 1.5: Structural Validation of Extraction Results
             structural_validation_extraction = validate_extraction_results(
@@ -239,7 +302,7 @@ class LLMOrchestrator:
                         )
                     # Continue processing but log the issues
 
-            # Stage 3: Validation
+            # Stage 3: Validation (without name validation now)
             validation_result = self._validate_results(
                 sanitized_text,
                 extraction_result["results"],
@@ -247,6 +310,7 @@ class LLMOrchestrator:
                 student_degree,
                 requested_training_type,
                 certificate_id,
+                name_validation_result,  # Pass the name validation result
             )
 
             # Stage 4: Correction (if needed)
@@ -351,6 +415,7 @@ class LLMOrchestrator:
                 "student_degree": student_degree,
                 "model_used": self.model_name,
                 "stages_completed": {
+                    "name_validation": True,
                     "extraction": extraction_result.get("success", False),
                     "evaluation": evaluation_result.get("success", False),
                     "validation": validation_result.get("success", False),
@@ -378,6 +443,213 @@ class LLMOrchestrator:
             return "Text appears to be JSON, not document content"
 
         return None
+
+    def _validate_student_name_from_extraction(
+        self, extraction_results: Dict[str, Any], certificate_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Validate student name using LLM extraction results.
+
+        Args:
+            extraction_results: Results from LLM extraction stage
+            certificate_id: Certificate ID for student identity lookup
+
+        Returns:
+            Dictionary with name validation results
+        """
+        try:
+            # Get student identity for name validation if certificate_id is provided
+            student_identity = None
+            if certificate_id:
+                try:
+                    from uuid import UUID
+
+                    student_identity = get_student_identity_by_certificate(
+                        UUID(certificate_id)
+                    )
+                    if student_identity:
+                        logger.info(
+                            f"Retrieved student identity for name validation: {student_identity['full_name']}"
+                        )
+                    else:
+                        logger.warning(
+                            f"Could not retrieve student identity for certificate: {certificate_id}"
+                        )
+                except Exception as e:
+                    logger.error(f"Error retrieving student identity: {e}")
+                    student_identity = None
+
+            # Set default values if student identity is not available
+            if not student_identity:
+                logger.warning(
+                    "No student identity available - skipping name validation"
+                )
+                return {
+                    "name_match": True,  # Skip validation if no student data
+                    "db_student_first_name": "Unknown",
+                    "db_student_last_name": "Unknown",
+                    "db_student_full_name": "Unknown",
+                    "extracted_employee_name": extraction_results.get(
+                        "employee_name", "Unknown"
+                    ),
+                    "match_result": "unknown",
+                    "match_confidence": 0.5,
+                    "explanation": "Student identity not available - name validation skipped",
+                }
+
+            # Use the employee name extracted by the LLM
+            extracted_name = extraction_results.get("employee_name", "Unknown Employee")
+
+            # Perform name matching
+            match_result = self._compare_names(
+                student_identity["first_name"],
+                student_identity["last_name"],
+                extracted_name,
+            )
+
+            return {
+                "name_match": match_result["match_result"]
+                in ["match", "partial_match"],
+                "db_student_first_name": student_identity["first_name"],
+                "db_student_last_name": student_identity["last_name"],
+                "db_student_full_name": student_identity["full_name"],
+                "extracted_employee_name": extracted_name,
+                "match_result": match_result["match_result"],
+                "match_confidence": match_result["confidence"],
+                "explanation": match_result["explanation"],
+            }
+
+        except Exception as e:
+            logger.error(f"Error in name validation: {e}")
+            return {
+                "name_match": False,
+                "db_student_first_name": "Unknown",
+                "db_student_last_name": "Unknown",
+                "db_student_full_name": "Unknown",
+                "extracted_employee_name": extraction_results.get(
+                    "employee_name", "Unknown"
+                ),
+                "match_result": "unknown",
+                "match_confidence": 0.0,
+                "explanation": f"Name validation failed due to error: {str(e)}",
+            }
+
+    def _compare_names(
+        self, db_first: str, db_last: str, extracted_name: str
+    ) -> Dict[str, Any]:
+        """
+        Compare database student name with extracted employee name.
+
+        Args:
+            db_first: Database student first name
+            db_last: Database student last name
+            extracted_name: Extracted employee name from certificate
+
+        Returns:
+            Dictionary with match result, confidence, and explanation
+        """
+
+        def normalize_name(name: str) -> str:
+            """Normalize name for comparison."""
+            if not name:
+                return ""
+            # Convert to lowercase, remove punctuation, normalize Finnish characters
+            name = name.lower().strip()
+            name = name.replace("ä", "a").replace("ö", "o").replace("å", "a")
+            name = re.sub(r"[^\w\s]", "", name)  # Remove punctuation
+            name = re.sub(r"\s+", " ", name)  # Normalize spaces
+            return name
+
+        # Normalize all names
+        norm_first = normalize_name(db_first or "")
+        norm_last = normalize_name(db_last or "")
+        norm_full_db = f"{norm_first} {norm_last}".strip()
+        norm_extracted = normalize_name(extracted_name or "")
+
+        # Handle unknown cases
+        if not norm_extracted or norm_extracted in ["unknown", "unknown employee"]:
+            return {
+                "match_result": "unknown",
+                "confidence": 0.0,
+                "explanation": "Could not extract employee name from certificate",
+            }
+
+        if not norm_first and not norm_last:
+            return {
+                "match_result": "unknown",
+                "confidence": 0.0,
+                "explanation": "Student name not available in database",
+            }
+
+        # Exact match
+        if norm_extracted == norm_full_db:
+            return {
+                "match_result": "match",
+                "confidence": 1.0,
+                "explanation": f"Exact match: '{extracted_name}' matches '{db_first} {db_last}'",
+            }
+
+        # Check reversed order (Last First vs First Last)
+        norm_reversed_db = f"{norm_last} {norm_first}".strip()
+        if norm_extracted == norm_reversed_db:
+            return {
+                "match_result": "match",
+                "confidence": 0.95,
+                "explanation": f"Name order match: '{extracted_name}' matches '{db_last} {db_first}' (reversed order)",
+            }
+
+        # Check if extracted contains both first and last name
+        if norm_first in norm_extracted and norm_last in norm_extracted:
+            return {
+                "match_result": "match",
+                "confidence": 0.9,
+                "explanation": f"Partial match: '{extracted_name}' contains both '{db_first}' and '{db_last}'",
+            }
+
+        # Check partial matches
+        if norm_first in norm_extracted or norm_last in norm_extracted:
+            matched_part = norm_first if norm_first in norm_extracted else norm_last
+            return {
+                "match_result": "partial_match",
+                "confidence": 0.6,
+                "explanation": f"Partial match: '{extracted_name}' contains '{matched_part}'",
+            }
+
+        # Check for similar names (basic similarity)
+        def similarity_score(s1: str, s2: str) -> float:
+            """Calculate basic similarity score."""
+            if not s1 or not s2:
+                return 0.0
+            longer = max(len(s1), len(s2))
+            if longer == 0:
+                return 1.0
+            # Count matching characters
+            matches = sum(1 for a, b in zip(s1, s2) if a == b)
+            return matches / longer
+
+        similarity = max(
+            similarity_score(norm_extracted, norm_full_db),
+            similarity_score(norm_extracted, norm_reversed_db),
+        )
+
+        if similarity > 0.7:
+            return {
+                "match_result": "partial_match",
+                "confidence": similarity,
+                "explanation": f"Similar names: '{extracted_name}' is {similarity:.0%} similar to '{db_first} {db_last}'",
+            }
+        elif similarity > 0.4:
+            return {
+                "match_result": "mismatch",
+                "confidence": 1.0 - similarity,
+                "explanation": f"Names appear different: '{extracted_name}' vs '{db_first} {db_last}' (similarity: {similarity:.0%})",
+            }
+        else:
+            return {
+                "match_result": "mismatch",
+                "confidence": 1.0,
+                "explanation": f"Names do not match: '{extracted_name}' vs '{db_first} {db_last}'",
+            }
 
     def _error_response(self, error: str, **kwargs) -> Dict[str, Any]:
         """Create standardized error response."""
@@ -500,38 +772,23 @@ class LLMOrchestrator:
         student_degree: str,
         requested_training_type: str = None,
         certificate_id: Optional[str] = None,
+        name_validation_result: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
         """Stage 3: Validate LLM results against original document."""
         stage_start = time.time()
 
         try:
-            # Get student identity for name validation if certificate_id is provided
-            student_identity = None
-            if certificate_id:
-                try:
-                    from uuid import UUID
-
-                    student_identity = get_student_identity_by_certificate(
-                        UUID(certificate_id)
-                    )
-                    if student_identity:
-                        logger.info(
-                            f"Retrieved student identity for validation: {student_identity['full_name']}"
-                        )
-                    else:
-                        logger.warning(
-                            f"Could not retrieve student identity for certificate: {certificate_id}"
-                        )
-                except Exception as e:
-                    logger.error(f"Error retrieving student identity: {e}")
-                    student_identity = None
-
-            # Set default values if student identity is not available
-            if not student_identity:
-                student_identity = {
-                    "first_name": "Unknown",
-                    "last_name": "Unknown",
-                    "full_name": "Unknown",
+            # Use the pre-computed name validation result instead of computing it again
+            if not name_validation_result:
+                logger.warning("No name validation result provided - using default")
+                name_validation_result = {
+                    "db_student_first_name": "Unknown",
+                    "db_student_last_name": "Unknown",
+                    "db_student_full_name": "Unknown",
+                    "extracted_employee_name": "Unknown",
+                    "match_result": "unknown",
+                    "match_confidence": 0.5,
+                    "explanation": "Name validation not performed",
                 }
 
             # Validate company information using LLM
@@ -552,7 +809,7 @@ class LLMOrchestrator:
                     )
                 # Continue processing but log the issues
 
-            # Format data for validation prompt
+            # Format data for validation prompt (without name validation)
             extraction_str = json.dumps(extracted_info, indent=2, ensure_ascii=False)
             evaluation_str = json.dumps(
                 evaluation_results, indent=2, ensure_ascii=False
@@ -563,28 +820,116 @@ class LLMOrchestrator:
                 company_validation_result, indent=2, ensure_ascii=False
             )
 
-            prompt = VALIDATION_PROMPT.format(
-                ocr_text=text,
-                extraction_results=extraction_str,
-                evaluation_results=evaluation_str,
-                student_degree=student_degree,
-                requested_training_type=requested_training_type or "general",
-                db_student_first_name=student_identity["first_name"],
-                db_student_last_name=student_identity["last_name"],
-                db_student_full_name=student_identity["full_name"],
-            )
+            # Create validation prompt without name validation (since it's done in Stage 0)
+            prompt = f"""You are an expert document validation specialist. Your task is to validate the accuracy of LLM-generated results against the original document text.
 
-            # Add company validation information to the prompt
-            prompt += f"\n\nCOMPANY VALIDATION RESULTS:\n{company_validation_str}"
+TASK: Compare the LLM output with the original OCR text and identify any inaccuracies, missing information, or incorrect assumptions.
+
+IMPORTANT: The STUDENT DEGREE provided is the correct degree to use for validation. Do NOT try to determine or extract the student's degree from the document content.
+
+VALIDATION CRITERIA:
+1. **Extraction Accuracy**: Are the extracted facts (names, dates, companies, positions) correct according to the OCR text?
+2. **Information Completeness**: Is all available information from the OCR text properly extracted?
+3. **Assumption Validation**: Are any assumptions made by the LLM justified by the available information?
+4. **Justification Accuracy**: Does the justification accurately reflect what can and cannot be determined from the document?
+5. **Calculation Accuracy**: Are hours and credit calculations mathematically correct?
+6. **Training Type Consistency**: Does the AI's recommendation align with the requested training type and provide appropriate evidence?
+7. **Company Validation**: Review the provided company validation results to identify any suspicious company names that require attention.
+
+CRITICAL VALIDATION RULES:
+- **Use the provided STUDENT DEGREE**: The student degree provided is the correct degree for evaluation.
+- **Validate factual accuracy**: Check if extracted information matches the original document
+- **Validate calculations**: Verify hours and credit calculations are mathematically correct
+- **Allow reasonable hour calculations**: If employment dates are provided, hours can be calculated using standard assumptions (40 hours/week, 8 hours/day)
+- **Allow certificate issue date as end date**: When no explicit end date is provided, using the certificate issue date as the end date is a valid assumption
+- **Validate credit limits**: Ensure appropriate limits are applied (10 ECTS for general, 30 ECTS for professional)
+- **Focus on factual and logical errors**: Flag issues where the LLM contradicts document content
+- **RESPECT REQUESTED TRAINING TYPE**: The REQUESTED_TRAINING_TYPE is the user's choice and should be respected
+- **CREDIT CAPS ARE CORRECT**: The 30 ECTS maximum for professional training and 10 ECTS maximum for general training are established business rules
+- **CRITICAL: FUTURE DATE VALIDATION**: If ANY date is in the future, this MUST be flagged as a CRITICAL error and the decision MUST be changed to "REJECTED"
+
+VALIDATION OUTPUT FORMAT:
+Respond with ONLY a valid JSON object:
+
+{{
+    "validation_passed": true/false,
+    "overall_accuracy_score": 0.0-1.0,
+    "issues_found": [
+        {{
+            "type": "extraction_error|missing_information|incorrect_assumption|justification_error|company_validation_error",
+            "severity": "low|medium|high|critical",
+            "description": "Detailed description of the issue",
+            "field_affected": "extraction|evaluation|justification|company_validation",
+            "suggestion": "How to fix this issue"
+        }}
+    ],
+    "extraction_validation": {{
+        "employee_name_correct": true/false,
+        "job_title_correct": true/false,
+        "company_correct": true/false,
+        "dates_correct": true/false,
+        "missing_information": ["list of information present in OCR but not extracted"]
+    }},
+    "evaluation_validation": {{
+        "hours_calculation_correct": true/false,
+        "training_type_justified": true/false,
+        "credits_calculation_correct": true/false,
+        "degree_relevance_assessment_accurate": true/false,
+        "recommendation_consistent": true/false,
+        "evidence_alignment": "consistent|inconsistent"
+    }},
+    "justification_validation": {{
+        "accurately_reflects_available_information": true/false,
+        "no_unjustified_assumptions": true/false,
+        "clearly_states_limitations": true/false
+    }},
+    "company_validation": {{
+        "status": "LEGITIMATE|NOT_LEGITIMATE|PARTIALLY_LEGITIMATE|UNVERIFIED",
+        "companies": [
+            {{
+                "name": "Company Name",
+                "status": "LEGITIMATE|NOT_LEGITIMATE|UNVERIFIED",
+                "confidence": "high|medium|low",
+                "risk_level": "very_low|low|medium|high|very_high",
+                "justification": "Detailed explanation of validation result",
+                "supporting_evidence": ["list of supporting evidence"],
+                "requires_review": true/false
+            }}
+        ]
+    }},
+    "summary": "Overall assessment of LLM output accuracy and company validation results",
+    "requires_correction": true/false
+}}
+
+OCR TEXT:
+{text}
+
+LLM EXTRACTION RESULTS:
+{extraction_str}
+
+LLM EVALUATION RESULTS:
+{evaluation_str}
+
+STUDENT DEGREE:
+{student_degree}
+
+REQUESTED TRAINING TYPE:
+{requested_training_type or "general"}
+
+COMPANY VALIDATION RESULTS:
+{company_validation_str}"""
 
             response = self._call_llm_with_fallback(prompt, "validation")
             results = self._parse_llm_response(response)
 
-            # Merge company validation results with LLM validation results
+            # Merge company validation results and name validation results with LLM validation results
             if results and isinstance(results, dict):
                 results["company_validation"] = company_validation_result.get(
                     "company_validation", {}
                 )
+                # Add the pre-computed name validation result
+                results["name_validation"] = name_validation_result
+
                 # Add company validation issues to overall issues if any
                 if company_validation_result.get("issues_found"):
                     if "issues_found" not in results:

@@ -9,36 +9,18 @@ TASK: Compare the LLM output with the original OCR text and identify any inaccur
 
 IMPORTANT: The STUDENT DEGREE provided is the correct degree to use for validation. Do NOT try to determine or extract the student's degree from the document content. The degree provided is the degree the student is currently pursuing and should be used for all degree-related assessments.
 
-ADDITIONAL DATABASE CONTEXT:
-- DB_STUDENT_FIRST_NAME: {db_student_first_name}
-- DB_STUDENT_LAST_NAME: {db_student_last_name}
-- DB_STUDENT_FULL_NAME: {db_student_full_name}
-
 VALIDATION CRITERIA:
 1. **Extraction Accuracy**: Are the extracted facts (names, dates, companies, positions) correct according to the OCR text?
 2. **Information Completeness**: Is all available information from the OCR text properly extracted?
-3. **Student Name Validation**: Does the extracted employee name match the database student name?
-4. **Assumption Validation**: Are any assumptions made by the LLM justified by the available information?
-5. **Justification Accuracy**: Does the justification accurately reflect what can and cannot be determined from the document?
-6. **Calculation Accuracy**: Are hours and credit calculations mathematically correct?
-7. **Training Type Consistency**: Does the AI's recommendation align with the requested training type and provide appropriate evidence?
-8. **Company Validation**: Review the provided company validation results to identify any suspicious company names that require attention.
-
-STUDENT NAME VALIDATION RULES:
-- Compare the extracted "employee_name" with the database student names
-- Normalize both names for comparison: lowercase, trim whitespace, remove punctuation, normalize diacritics (ä->a, ö->o, å->a)
-- Consider these match types:
-  * "match": Names are identical or very close (minor spelling differences, diacritics, or order)
-  * "partial_match": Significant overlap (e.g., first name matches, last name similar)
-  * "mismatch": Names are clearly different people
-  * "unknown": Unable to determine due to insufficient information
-- Account for cultural name variations (Finnish names, different name orders, nicknames)
-- Consider that certificates may use formal names while database may have preferred names
+3. **Assumption Validation**: Are any assumptions made by the LLM justified by the available information?
+4. **Justification Accuracy**: Does the justification accurately reflect what can and cannot be determined from the document?
+5. **Calculation Accuracy**: Are hours and credit calculations mathematically correct?
+6. **Training Type Consistency**: Does the AI's recommendation align with the requested training type and provide appropriate evidence?
+7. **Company Validation**: Review the provided company validation results to identify any suspicious company names that require attention.
 
 CRITICAL VALIDATION RULES:
 - **Use the provided STUDENT DEGREE**: The student degree provided is the correct degree for evaluation. Do not try to determine the degree from the document content.
 - **Validate factual accuracy**: Check if extracted information matches the original document
-- **Validate name matching**: Check if the employee name matches the database student name
 - **Validate calculations**: Verify hours and credit calculations are mathematically correct
 - **Allow reasonable hour calculations**: If employment dates are provided, hours can be calculated using standard assumptions (40 hours/week, 8 hours/day)
 - **Allow certificate issue date as end date**: When no explicit end date is provided, using the certificate issue date as the end date is a valid and reasonable assumption
@@ -59,21 +41,12 @@ Respond with ONLY a valid JSON object containing validation results:
 {{
     "validation_passed": true/false,
     "overall_accuracy_score": 0.0-1.0,
-    "name_validation": {{
-        "db_student_first_name": "{db_student_first_name}",
-        "db_student_last_name": "{db_student_last_name}",
-        "db_student_full_name": "{db_student_full_name}",
-        "extracted_employee_name": "value from extraction_results",
-        "match_result": "match|partial_match|mismatch|unknown",
-        "match_confidence": 0.0-1.0,
-        "explanation": "Short explanation for the match decision with specific reasoning"
-    }},
     "issues_found": [
         {{
-            "type": "extraction_error|missing_information|incorrect_assumption|justification_error|company_validation_error|name_mismatch",
+            "type": "extraction_error|missing_information|incorrect_assumption|justification_error|company_validation_error",
             "severity": "low|medium|high|critical",
             "description": "Detailed description of the issue",
-            "field_affected": "extraction|evaluation|justification|company_validation|name_validation",
+            "field_affected": "extraction|evaluation|justification|company_validation",
             "suggestion": "How to fix this issue"
         }}
     ],
@@ -111,7 +84,7 @@ Respond with ONLY a valid JSON object containing validation results:
             }}
         ]
     }},
-    "summary": "Overall assessment of LLM output accuracy, name validation, and company validation results",
+    "summary": "Overall assessment of LLM output accuracy and company validation results",
     "requires_correction": true/false
 }}
 
@@ -135,6 +108,6 @@ SPECIAL VALIDATION CHECK:
 - If the summary_justification mentions "fulfills the requirements for professional training" but the AI recommends against professional training without clear evidence, this may be flagged as inconsistent reasoning
 - The AI's recommendation should be based on evidence from the document, not just degree relevance alone
 - Review the company validation results provided and flag any companies requiring manual review based on risk levels and confidence scores
-- **CRITICAL**: If the employee name does not match the database student name (mismatch), this MUST be flagged as a critical error and may require manual review
+- **CRITICAL**: If ANY date is in the future, this MUST be flagged as a critical error and the decision must be REJECTED
 
 Respond with ONLY the JSON object, no additional text, no explanations, no markdown formatting."""
