@@ -93,7 +93,9 @@ async def get_student_applications(email: str):
                     d.supporting_evidence,
                     d.challenging_evidence,
                     d.recommendation,
-                    d.student_comment
+                    d.student_comment,
+                    d.name_validation_match_result,
+                    d.name_validation_explanation
                 FROM certificates c
                 LEFT JOIN decisions d ON c.certificate_id = d.certificate_id
                 LEFT JOIN reviewers r ON d.reviewer_id = r.reviewer_id
@@ -130,6 +132,8 @@ async def get_student_applications(email: str):
                     challenging_evidence,
                     recommendation,
                     student_comment,
+                    name_validation_match_result,
+                    name_validation_explanation,
                 ) = row
 
                 # Determine status and credits
@@ -168,7 +172,7 @@ async def get_student_applications(email: str):
                         if decision_created_at
                         else None,
                         "ai_decision": ai_decision,
-                        "justification": ai_justification,
+                        "ai_justification": ai_justification,
                         "reviewer_name": reviewer_name,
                         "reviewer_decision": reviewer_decision,
                         "reviewer_comment": reviewer_comment,
@@ -185,6 +189,9 @@ async def get_student_applications(email: str):
                         "challenging_evidence": challenging_evidence,
                         "recommendation": recommendation,
                         "student_comment": student_comment,
+                        # Name validation
+                        "name_validation_match_result": name_validation_match_result,
+                        "name_validation_explanation": name_validation_explanation,
                     }
                 )
 
@@ -622,6 +629,8 @@ async def process_certificate(certificate_id: UUID):
                 "training_institution": decision.training_institution,
                 "company_validation_status": decision.company_validation_status,
                 "company_validation_justification": decision.company_validation_justification,
+                "name_validation_match_result": decision.name_validation_match_result,
+                "name_validation_explanation": decision.name_validation_explanation,
             },
         }
 
