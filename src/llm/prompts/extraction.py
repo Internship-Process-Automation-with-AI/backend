@@ -9,6 +9,23 @@ TASK: Extract specific information from the provided document and return it as a
 
 CRITICAL: When you see a document header like "PILKINGTON NSG Group Flat Glass Business", this is the MAIN COMPANY. All factory names like "Tampereen Tehdas", "Ylöjärven Tehdas" are FACTORIES of this main company, not separate companies.
 
+CRITICAL EMPLOYEE NAME IDENTIFICATION:
+1. **Look for phrases like**: "This is to certify that [NAME]", "hereby certify that [NAME]", "[NAME] has been employed", "Mr./Ms./Mrs. [NAME]"
+2. **Finnish patterns**: "että [NAME] on työskennellyt", "Tämä todistaa, että [NAME]", "[NAME] on toiminut"
+3. **Company headers are NOT employee names**: "HUS Helsinki University Hospital", "PILKINGTON NSG Group", "Digia Oy" are company names, not employee names
+4. **Employee names typically appear**: After "certify that", after titles like "Mr./Ms./Mrs.", in employment statements, after "että" in Finnish
+5. **Common patterns**:
+   - "This is to certify that Mr. Bob Johnson has been employed..."
+   - "We hereby certify that Anna Korhonen worked..."
+   - "Tämä todistaa, että Eve Davis on työskennellyt..." (Finnish)
+   - "että Pekka Virtanen on toiminut..." (Finnish)
+   - "Employee: John Smith"
+   - "Työntekijä: Maria Virtanen"
+6. **Avoid company identifiers**: Skip text that contains "Oy", "Ab", "Ltd", "Inc", "Group", "Hospital", "University" when looking for employee names
+7. **Look for personal titles**: Mr., Mrs., Ms., Herra, Rouva, Neiti often precede employee names
+8. **Finnish company indicators**: "Oy", "Ab", "Oyj" are company suffixes, not part of personal names
+9. **Context clues**: Employee names appear in the middle of sentences about employment, not at document headers
+
 CRITICAL REQUIREMENTS:
 1. Respond with ONLY a valid JSON object
 2. No text before or after the JSON
@@ -19,7 +36,7 @@ CRITICAL REQUIREMENTS:
 
 REQUIRED JSON FIELDS:
 {{
-    "employee_name": "Full name of the person employed",
+    "employee_name": "Full name of the person employed (NOT the company name)",
     "employer": "Company or organization name (use null if not specified)",
     "employer_address": "Address of the employer (use null if not specified)",
     "employer_business_id": "Business ID of the employer (use null if not specified)",
@@ -97,11 +114,11 @@ EXAMPLE JSON RESPONSE:
 {{
     "employee_name": "Ari Tapani Valtamo",
     "employer": "Yritys",
-    "employer_address": "Address of the employer (use null if not specified)",
-    "employer_business_id": "Business ID of the employer (use null if not specified)",
-    "employer_phone": "Phone number of the employer (use null if not specified)",
-    "employer_email": "Email of the employer (use null if not specified)",
-    "employer_website": "Website of the employer (use null if not specified)",
+    "employer_address": null,
+    "employer_business_id": null,
+    "employer_phone": null,
+    "employer_email": null,
+    "employer_website": null,
     "certificate_issue_date": "2009-11-27",
     "positions": [
         {{
@@ -123,7 +140,69 @@ EXAMPLE JSON RESPONSE:
     ],
     "total_employment_period": "25 years, 7 months",
     "document_language": "fi",
-    "confidence_level": "high(>75%)"
+    "confidence_level": "high"
+}}
+
+EXAMPLE WITH ENGLISH CERTIFICATE:
+For a document like:
+"HUS Helsinki University Hospital
+Certificate of Employment
+This is to certify that Mr. Bob Johnson has been employed at Helsinki City Hospital as a Nursing Assistant from March 1, 2022 to August 30, 2023."
+
+The JSON should be:
+{{
+    "employee_name": "Bob Johnson",
+    "employer": "Helsinki University Hospital",
+    "employer_address": null,
+    "employer_business_id": null,
+    "employer_phone": null,
+    "employer_email": null,
+    "employer_website": null,
+    "certificate_issue_date": "2023-09-05",
+    "positions": [
+        {{
+            "title": "Nursing Assistant",
+            "employer": "Helsinki City Hospital",
+            "start_date": "2022-03-01",
+            "end_date": "2023-08-30",
+            "duration": "1 year, 5 months",
+            "responsibilities": "Patient care, assisted in medical procedures, maintained professional nursing standards"
+        }}
+    ],
+    "total_employment_period": "1 year, 5 months",
+    "document_language": "en",
+    "confidence_level": "high"
+}}
+
+EXAMPLE WITH FINNISH CERTIFICATE:
+For a document like:
+"Digia Oy
+Kasarmintie 21, 90130 Oulu
+Tämä todistaa, että Eve Davis on työskennellyt yrityksessä Digia Oy tehtävässä Ohjelmistokehittäjä harjoittelija ajalla 1.2.2022 - 31.7.2022."
+
+The JSON should be:
+{{
+    "employee_name": "Eve Davis",
+    "employer": "Digia Oy",
+    "employer_address": "Kasarmintie 21, 90130 Oulu",
+    "employer_business_id": null,
+    "employer_phone": null,
+    "employer_email": null,
+    "employer_website": null,
+    "certificate_issue_date": "2022-08-05",
+    "positions": [
+        {{
+            "title": "Ohjelmistokehittäjä harjoittelija",
+            "employer": "Digia Oy",
+            "start_date": "2022-02-01",
+            "end_date": "2022-07-31",
+            "duration": "6 months",
+            "responsibilities": "Ohjelmistojen kehitykseen, testaukseen sekä tietokantaylläpitoon"
+        }}
+    ],
+    "total_employment_period": "6 months",
+    "document_language": "fi",
+    "confidence_level": "high"
 }}
 
 EXAMPLE WITH PARENT COMPANY AND SUBSIDIARIES:
@@ -207,10 +286,21 @@ Then the JSON should be:
 DOCUMENT TO ANALYZE:
 {document_text}
 
+CRITICAL NAME EXTRACTION RULES:
+- **EMPLOYEE NAME IS NOT THE COMPANY NAME**: "HUS Helsinki" is a company, not an employee name
+- **Look for certification phrases**: "This is to certify that [EMPLOYEE NAME]", "hereby certify that [NAME]"
+- **Look for titles**: "Mr. Bob Johnson", "Ms. Anna Smith", "Herra Pekka Virtanen"
+- **Employee names appear in employment statements**: "[NAME] has been employed", "[NAME] worked as"
+- **Skip organizational headers**: The first few lines are usually company information, not employee names
+- **Personal names vs organizational names**: 
+  * Personal: "Bob Johnson", "Anna Virtanen", "Pekka Korhonen"
+  * Organizational: "HUS Helsinki", "University Hospital", "NSG Group"
+
 FINAL REMINDER:
 - If you see "PILKINGTON NSG Group Flat Glass Business" in the header, this is the MAIN COMPANY
 - All factory names like "Tampereen Tehdas", "Ylöjärven Tehdas" are FACTORIES of PILKINGTON, not separate companies
 - NEVER use "Unknown Employer" - always provide a company name
 - Combine factory names with the main company: "Factory Name (PILKINGTON NSG Group)"
+- **MOST IMPORTANT**: The employee_name field should contain the PERSON'S name, not the company name
 
 RESPOND WITH ONLY THE JSON OBJECT:"""

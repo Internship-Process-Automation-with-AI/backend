@@ -164,6 +164,7 @@ class Decision:
         reviewer_comment: Reviewer's comments (optional)
         reviewed_at: Timestamp when the review was completed
         ai_workflow_json: Complete AI workflow JSON output (like the old aiworkflow_output files)
+        name_validation_*: Name validation results from LLM
     """
 
     decision_id: UUID
@@ -190,6 +191,11 @@ class Decision:
     # Company validation
     company_validation_status: Optional[str] = None
     company_validation_justification: Optional[str] = None
+    # Name validation
+    name_validation_match_result: Optional[str] = (
+        None  # match, partial_match, mismatch, unknown
+    )
+    name_validation_explanation: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -218,6 +224,17 @@ class Decision:
             "ai_workflow_json": self.ai_workflow_json,
             "company_validation_status": self.company_validation_status,
             "company_validation_justification": self.company_validation_justification,
+            # Name validation
+            "name_validation": {
+                "match_result": self.name_validation_match_result,
+                "explanation": self.name_validation_explanation,
+            }
+            if any(
+                [
+                    self.name_validation_match_result,
+                ]
+            )
+            else None,
         }
 
 

@@ -103,6 +103,9 @@ CREATE TABLE IF NOT EXISTS decisions (
     -- Company validation
     company_validation_status VARCHAR(20) DEFAULT 'UNVERIFIED' CHECK (company_validation_status IN ('LEGITIMATE', 'NOT_LEGITIMATE', 'PARTIALLY_LEGITIMATE', 'UNVERIFIED')),
     company_validation_justification TEXT, -- Detailed explanation of company validation results
+    -- Name validation fields
+    name_validation_match_result VARCHAR(20) CHECK (name_validation_match_result IN ('match', 'partial_match', 'mismatch', 'unknown')), -- Match result
+    name_validation_explanation TEXT, -- Explanation of the name validation result
 
 -- Constraints
 CONSTRAINT decisions_ai_justification_check CHECK (LENGTH(ai_justification) > 0)
@@ -160,3 +163,6 @@ CREATE INDEX IF NOT EXISTS idx_additional_documents_certificate_id ON additional
 CREATE INDEX IF NOT EXISTS idx_additional_documents_document_type ON additional_documents (document_type);
 
 CREATE INDEX IF NOT EXISTS idx_additional_documents_uploaded_at ON additional_documents (uploaded_at);
+
+-- Name validation indexes
+CREATE INDEX IF NOT EXISTS idx_decisions_name_validation_match_result ON decisions (name_validation_match_result);

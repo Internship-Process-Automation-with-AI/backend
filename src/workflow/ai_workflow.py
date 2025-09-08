@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 import google.generativeai as genai
 
 from src.config import settings
+from src.database.database import get_student_identity_by_certificate
 from src.llm.degree_evaluator import DegreeEvaluator
 from src.llm.models import (
     validate_evaluation_results,
@@ -153,6 +154,7 @@ class LLMOrchestrator:
         requested_training_type: str = None,
         work_type: str = "REGULAR",
         additional_documents: List[Dict] = None,
+        certificate_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Process a work certificate using the 4-stage LLM approach.
@@ -163,6 +165,7 @@ class LLMOrchestrator:
             requested_training_type: Student's requested training type (general or professional)
             work_type: Type of work (REGULAR/SELF_PACED)
             additional_documents: List of additional document OCR results for self-paced work
+            certificate_id: Certificate ID for student identity validation (optional)
 
         Returns:
             Dictionary with both extraction and evaluation results
@@ -199,7 +202,7 @@ class LLMOrchestrator:
         start_time = time.time()
 
         try:
-            # Stage 1: Information Extraction
+            # Stage 1: Information Extraction (moved before name validation)
             sanitized_text = self._sanitize_text(combined_text)
             extraction_result = self._extract_information(sanitized_text)
 
@@ -270,6 +273,7 @@ class LLMOrchestrator:
                 evaluation_result["results"],
                 student_degree,
                 requested_training_type,
+                certificate_id,
             )
 
             # Stage 4: Correction (if needed)
@@ -374,6 +378,7 @@ class LLMOrchestrator:
                 "student_degree": student_degree,
                 "model_used": self.model_name,
                 "stages_completed": {
+                    "name_validation": True,
                     "extraction": extraction_result.get("success", False),
                     "evaluation": evaluation_result.get("success", False),
                     "validation": validation_result.get("success", False),
@@ -401,6 +406,213 @@ class LLMOrchestrator:
             return "Text appears to be JSON, not document content"
 
         return None
+
+    def _validate_student_name_from_extraction(
+        self, extraction_results: Dict[str, Any], certificate_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Validate student name using LLM extraction results.
+
+        Args:
+            extraction_results: Results from LLM extraction stage
+            certificate_id: Certificate ID for student identity lookup
+
+        Returns:
+            Dictionary with name validation results
+        """
+        try:
+            # Get student identity for name validation if certificate_id is provided
+            student_identity = None
+            if certificate_id:
+                try:
+                    from uuid import UUID
+
+                    student_identity = get_student_identity_by_certificate(
+                        UUID(certificate_id)
+                    )
+                    if student_identity:
+                        logger.info(
+                            f"Retrieved student identity for name validation: {student_identity['full_name']}"
+                        )
+                    else:
+                        logger.warning(
+                            f"Could not retrieve student identity for certificate: {certificate_id}"
+                        )
+                except Exception as e:
+                    logger.error(f"Error retrieving student identity: {e}")
+                    student_identity = None
+
+            # Set default values if student identity is not available
+            if not student_identity:
+                logger.warning(
+                    "No student identity available - skipping name validation"
+                )
+                return {
+                    "name_match": True,  # Skip validation if no student data
+                    "db_student_first_name": "Unknown",
+                    "db_student_last_name": "Unknown",
+                    "db_student_full_name": "Unknown",
+                    "extracted_employee_name": extraction_results.get(
+                        "employee_name", "Unknown"
+                    ),
+                    "match_result": "unknown",
+                    "match_confidence": 0.5,
+                    "explanation": "Student identity not available - name validation skipped",
+                }
+
+            # Use the employee name extracted by the LLM
+            extracted_name = extraction_results.get("employee_name", "Unknown Employee")
+
+            # Perform name matching
+            match_result = self._compare_names(
+                student_identity["first_name"],
+                student_identity["last_name"],
+                extracted_name,
+            )
+
+            return {
+                "name_match": match_result["match_result"]
+                in ["match", "partial_match"],
+                "db_student_first_name": student_identity["first_name"],
+                "db_student_last_name": student_identity["last_name"],
+                "db_student_full_name": student_identity["full_name"],
+                "extracted_employee_name": extracted_name,
+                "match_result": match_result["match_result"],
+                "match_confidence": match_result["confidence"],
+                "explanation": match_result["explanation"],
+            }
+
+        except Exception as e:
+            logger.error(f"Error in name validation: {e}")
+            return {
+                "name_match": False,
+                "db_student_first_name": "Unknown",
+                "db_student_last_name": "Unknown",
+                "db_student_full_name": "Unknown",
+                "extracted_employee_name": extraction_results.get(
+                    "employee_name", "Unknown"
+                ),
+                "match_result": "unknown",
+                "match_confidence": 0.0,
+                "explanation": f"Name validation failed due to error: {str(e)}",
+            }
+
+    def _compare_names(
+        self, db_first: str, db_last: str, extracted_name: str
+    ) -> Dict[str, Any]:
+        """
+        Compare database student name with extracted employee name.
+
+        Args:
+            db_first: Database student first name
+            db_last: Database student last name
+            extracted_name: Extracted employee name from certificate
+
+        Returns:
+            Dictionary with match result, confidence, and explanation
+        """
+
+        def normalize_name(name: str) -> str:
+            """Normalize name for comparison."""
+            if not name:
+                return ""
+            # Convert to lowercase, remove punctuation, normalize Finnish characters
+            name = name.lower().strip()
+            name = name.replace("ä", "a").replace("ö", "o").replace("å", "a")
+            name = re.sub(r"[^\w\s]", "", name)  # Remove punctuation
+            name = re.sub(r"\s+", " ", name)  # Normalize spaces
+            return name
+
+        # Normalize all names
+        norm_first = normalize_name(db_first or "")
+        norm_last = normalize_name(db_last or "")
+        norm_full_db = f"{norm_first} {norm_last}".strip()
+        norm_extracted = normalize_name(extracted_name or "")
+
+        # Handle unknown cases
+        if not norm_extracted or norm_extracted in ["unknown", "unknown employee"]:
+            return {
+                "match_result": "unknown",
+                "confidence": 0.0,
+                "explanation": "Could not extract employee name from certificate",
+            }
+
+        if not norm_first and not norm_last:
+            return {
+                "match_result": "unknown",
+                "confidence": 0.0,
+                "explanation": "Student name not available in database",
+            }
+
+        # Exact match
+        if norm_extracted == norm_full_db:
+            return {
+                "match_result": "match",
+                "confidence": 1.0,
+                "explanation": f"Exact match: '{extracted_name}' matches '{db_first} {db_last}'",
+            }
+
+        # Check reversed order (Last First vs First Last)
+        norm_reversed_db = f"{norm_last} {norm_first}".strip()
+        if norm_extracted == norm_reversed_db:
+            return {
+                "match_result": "match",
+                "confidence": 0.95,
+                "explanation": f"Name order match: '{extracted_name}' matches '{db_last} {db_first}' (reversed order)",
+            }
+
+        # Check if extracted contains both first and last name
+        if norm_first in norm_extracted and norm_last in norm_extracted:
+            return {
+                "match_result": "match",
+                "confidence": 0.9,
+                "explanation": f"Partial match: '{extracted_name}' contains both '{db_first}' and '{db_last}'",
+            }
+
+        # Check partial matches
+        if norm_first in norm_extracted or norm_last in norm_extracted:
+            matched_part = norm_first if norm_first in norm_extracted else norm_last
+            return {
+                "match_result": "partial_match",
+                "confidence": 0.6,
+                "explanation": f"Partial match: '{extracted_name}' contains '{matched_part}'",
+            }
+
+        # Check for similar names (basic similarity)
+        def similarity_score(s1: str, s2: str) -> float:
+            """Calculate basic similarity score."""
+            if not s1 or not s2:
+                return 0.0
+            longer = max(len(s1), len(s2))
+            if longer == 0:
+                return 1.0
+            # Count matching characters
+            matches = sum(1 for a, b in zip(s1, s2) if a == b)
+            return matches / longer
+
+        similarity = max(
+            similarity_score(norm_extracted, norm_full_db),
+            similarity_score(norm_extracted, norm_reversed_db),
+        )
+
+        if similarity > 0.7:
+            return {
+                "match_result": "partial_match",
+                "confidence": similarity,
+                "explanation": f"Similar names: '{extracted_name}' is {similarity:.0%} similar to '{db_first} {db_last}'",
+            }
+        elif similarity > 0.4:
+            return {
+                "match_result": "mismatch",
+                "confidence": 1.0 - similarity,
+                "explanation": f"Names appear different: '{extracted_name}' vs '{db_first} {db_last}' (similarity: {similarity:.0%})",
+            }
+        else:
+            return {
+                "match_result": "mismatch",
+                "confidence": 1.0,
+                "explanation": f"Names do not match: '{extracted_name}' vs '{db_first} {db_last}'",
+            }
 
     def _error_response(self, error: str, **kwargs) -> Dict[str, Any]:
         """Create standardized error response."""
@@ -522,6 +734,7 @@ class LLMOrchestrator:
         evaluation_results: Dict[str, Any],
         student_degree: str,
         requested_training_type: str = None,
+        certificate_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Stage 3: Validate LLM results against original document."""
         stage_start = time.time()
@@ -545,7 +758,7 @@ class LLMOrchestrator:
                     )
                 # Continue processing but log the issues
 
-            # Format data for validation prompt
+            # Format data for validation prompt (without name validation)
             extraction_str = json.dumps(extracted_info, indent=2, ensure_ascii=False)
             evaluation_str = json.dumps(
                 evaluation_results, indent=2, ensure_ascii=False
@@ -572,11 +785,12 @@ class LLMOrchestrator:
             response = self._call_llm_with_fallback(prompt, "validation")
             results = self._parse_llm_response(response)
 
-            # Merge company validation results with LLM validation results
+            # Merge company validation results and name validation results with LLM validation results
             if results and isinstance(results, dict):
                 results["company_validation"] = company_validation_result.get(
                     "company_validation", {}
                 )
+
                 # Add company validation issues to overall issues if any
                 if company_validation_result.get("issues_found"):
                     if "issues_found" not in results:
