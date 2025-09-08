@@ -108,5 +108,6 @@ SPECIAL VALIDATION CHECK:
 - If the summary_justification mentions "fulfills the requirements for professional training" but the AI recommends against professional training without clear evidence, this may be flagged as inconsistent reasoning
 - The AI's recommendation should be based on evidence from the document, not just degree relevance alone
 - Review the company validation results provided and flag any companies requiring manual review based on risk levels and confidence scores
+- **CRITICAL**: If ANY date is in the future, this MUST be flagged as a critical error and the decision must be REJECTED
 
 Respond with ONLY the JSON object, no additional text, no explanations, no markdown formatting."""

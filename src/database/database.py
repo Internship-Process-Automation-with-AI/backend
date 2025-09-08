@@ -497,6 +497,9 @@ def create_decision(
     ai_workflow_json: Optional[str] = None,
     company_validation_status: Optional[str] = None,
     company_validation_justification: Optional[str] = None,
+    # Name validation parameter
+    name_validation_match_result: Optional[str] = None,
+    name_validation_explanation: Optional[str] = None,
 ) -> Decision:
     """
     Create a new decision record.
@@ -516,6 +519,7 @@ def create_decision(
         ai_workflow_json: Complete AI workflow JSON output
         company_validation_status: Overall company validation status
         company_validation_justification: Company validation details and evidence
+        name_validation_*: Name validation results from LLM
 
     Returns:
         Decision: Created decision object
@@ -531,9 +535,10 @@ def create_decision(
                     decision_id, certificate_id, ai_justification, ai_decision, created_at,
                     total_working_hours, credits_awarded, training_duration, training_institution,
                     degree_relevance, supporting_evidence, challenging_evidence, recommendation, ai_workflow_json,
-                    company_validation_status, company_validation_justification
+                    company_validation_status, company_validation_justification,
+                    name_validation_match_result, name_validation_explanation
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     str(decision_id),
@@ -552,6 +557,8 @@ def create_decision(
                     ai_workflow_json,
                     company_validation_status,
                     company_validation_justification,
+                    name_validation_match_result,
+                    name_validation_explanation,
                 ),
             )
             conn.commit()
@@ -576,6 +583,8 @@ def create_decision(
                 ai_workflow_json=ai_workflow_json,
                 company_validation_status=company_validation_status,
                 company_validation_justification=company_validation_justification,
+                name_validation_match_result=name_validation_match_result,
+                name_validation_explanation=name_validation_explanation,
             )
 
 
@@ -787,7 +796,8 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
                        student_comment, reviewer_decision, reviewer_comment, reviewed_at,
                        total_working_hours, credits_awarded, training_duration, training_institution,
                        degree_relevance, supporting_evidence, challenging_evidence, recommendation,
-                       company_validation_status, company_validation_justification
+                       company_validation_status, company_validation_justification,
+                       name_validation_match_result, name_validation_explanation
                 FROM decisions WHERE certificate_id = %s
                 """,
                 (str(certificate_id),),
@@ -842,6 +852,12 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
                 recommendation=decision_row[16],
                 company_validation_status=decision_row[17],
                 company_validation_justification=decision_row[18],
+                name_validation_match_result=(
+                    decision_row[19] if len(decision_row) > 19 else None
+                ),
+                name_validation_explanation=(
+                    decision_row[20] if len(decision_row) > 20 else None
+                ),
             )
 
             certificate = Certificate(
@@ -1382,3 +1398,65 @@ def get_student_comment_by_certificate_id(certificate_id: UUID) -> Optional[str]
             if not row:
                 return None
             return row[0]
+
+
+def get_student_identity_by_certificate(certificate_id: UUID) -> Optional[dict]:
+    """
+    Get student identity information by certificate ID for name validation.
+
+    Args:
+        certificate_id: UUID of the certificate
+
+    Returns:
+        Dictionary with student identity info or None if not found
+        {
+            "first_name": str,
+            "last_name": str,
+            "email": str,
+            "full_name": str  # Best-effort full name combination
+        }
+    """
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # Join certificates and students tables to get student info
+                cur.execute(
+                    """
+                    SELECT s.first_name, s.last_name, s.email
+                    FROM students s
+                    INNER JOIN certificates c ON s.student_id = c.student_id
+                    WHERE c.certificate_id = %s
+                    """,
+                    (str(certificate_id),),
+                )
+
+                result = cur.fetchone()
+                if not result:
+                    logger.warning(
+                        f"No student found for certificate ID: {certificate_id}"
+                    )
+                    return None
+
+                first_name, last_name, email = result
+
+                # Create best-effort full name
+                name_parts = []
+                if first_name and first_name.strip():
+                    name_parts.append(first_name.strip())
+                if last_name and last_name.strip():
+                    name_parts.append(last_name.strip())
+
+                full_name = " ".join(name_parts) if name_parts else "Unknown"
+
+                return {
+                    "first_name": first_name or "",
+                    "last_name": last_name or "",
+                    "email": email or "",
+                    "full_name": full_name,
+                }
+
+    except Exception as e:
+        logger.error(
+            f"Error getting student identity for certificate {certificate_id}: {e}"
+        )
+        return None
