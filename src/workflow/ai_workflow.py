@@ -25,8 +25,7 @@ from src.llm.prompts import (
     VALIDATION_PROMPT,
 )
 from src.llm.prompts.company_validation import COMPANY_VALIDATION_PROMPT
-from src.llm.prompts.evaluation import EVALUATION_PROMPT_SELF_PACED
-from src.llm.prompts.extraction import EXTRACTION_PROMPT_SELF_PACED
+from src.utils.date_parser import parse_finnish_date
 
 logger = logging.getLogger(__name__)
 
@@ -200,15 +199,9 @@ class LLMOrchestrator:
         start_time = time.time()
 
         try:
-            # Stage 1: Information Extraction (enhanced for self-paced work)
+            # Stage 1: Information Extraction
             sanitized_text = self._sanitize_text(combined_text)
-
-            if is_self_paced and has_additional_docs:
-                extraction_result = self._extract_information_with_additional_docs(
-                    sanitized_text, additional_documents
-                )
-            else:
-                extraction_result = self._extract_information(sanitized_text)
+            extraction_result = self._extract_information(sanitized_text)
 
             if not extraction_result.get("success", False):
                 return self._error_response(
@@ -216,6 +209,11 @@ class LLMOrchestrator:
                     extraction_results=extraction_result,
                     processing_time=time.time() - start_time,
                 )
+
+            # Post-process extraction results to fix date parsing
+            extraction_result["results"] = self._post_process_extraction_dates(
+                extraction_result["results"]
+            )
 
             # Stage 1.5: Structural Validation of Extraction Results
             structural_validation_extraction = validate_extraction_results(
@@ -237,22 +235,14 @@ class LLMOrchestrator:
                     )
                 # Continue processing but log the issues
 
-            # Stage 2: Academic Evaluation (enhanced for self-paced work)
-            if is_self_paced and has_additional_docs:
-                evaluation_result = self._evaluate_academically_with_additional_docs(
-                    sanitized_text,
-                    extraction_result["results"],
-                    student_degree,
-                    requested_training_type,
-                    additional_documents,
-                )
-            else:
-                evaluation_result = self._evaluate_academically(
-                    sanitized_text,
-                    extraction_result["results"],
-                    student_degree,
-                    requested_training_type,
-                )
+            # Stage 2: Academic Evaluation
+            evaluation_result = self._evaluate_academically(
+                sanitized_text,
+                extraction_result["results"],
+                student_degree,
+                requested_training_type,
+                additional_documents if is_self_paced and has_additional_docs else None,
+            )
 
             # Stage 2.5: Structural Validation of Evaluation Results
             if evaluation_result.get("success", False):
@@ -675,6 +665,7 @@ class LLMOrchestrator:
         extracted_info: Dict[str, Any],
         student_degree: str,
         requested_training_type: str = None,
+        additional_documents: List[Dict] = None,
     ) -> Dict[str, Any]:
         """Stage 2: Evaluate the certificate for academic credits with degree-specific criteria and requested training type."""
         stage_start = time.time()
@@ -690,13 +681,31 @@ class LLMOrchestrator:
 
             # Create evaluation prompt with current date
             current_date = datetime.now().strftime("%Y-%m-%d")
+
+            # Prepare additional documents section if present
+            if additional_documents:
+                additional_docs_section = """
+ADDITIONAL DOCUMENTS FOR SELF-PACED WORK:
+- Additional documents are provided for hour verification
+- Use working hours from these documents instead of calculating from employment dates
+- Additional documents take precedence over date-based calculations
+"""
+                additional_docs_text = self._prepare_additional_doc_info(
+                    additional_documents
+                )
+            else:
+                additional_docs_section = ""
+                additional_docs_text = ""
+
             prompt = EVALUATION_PROMPT.format(
                 current_date=current_date,
+                additional_documents_section=additional_docs_section,
                 extracted_info=extracted_info_str,
                 document_text=text,
                 student_degree=student_degree,
                 degree_specific_guidelines=degree_guidelines,
                 requested_training_type=requested_training_type or "general",
+                additional_documents_text=additional_docs_text,
             )
 
             response = self._call_llm_with_fallback(prompt, "evaluation")
@@ -1217,12 +1226,157 @@ class LLMOrchestrator:
         if not results:
             return results
 
+        # Map LLM field names to expected field names
+        field_mapping = {
+            "Total Working Hours": "total_working_hours",
+            "Academic Credits": "credits_calculated",
+            "credits_calculated": "credits_calculated",
+            "total_working_hours": "total_working_hours",
+            "Justification": "justification",
+            "justification": "justification",
+            "Degree Relevance": "relevance_explanation",  # Map to explanation, not categorical
+            "degree_relevance": "relevance_explanation",  # Also handle lowercase version
+            "Relevance Explanation": "relevance_explanation",
+            "relevance_explanation": "relevance_explanation",
+            "Calculation Breakdown": "calculation_breakdown",
+            "Summary Justification": "summary_justification",
+            "Recommendation": "justification",
+            "recommendation": "justification",  # Also handle lowercase version
+            "Nature of Tasks": "nature_of_tasks",
+            "nature_of_tasks": "nature_of_tasks",
+            "Training Type Analysis": "training_type_analysis",
+            "training_type_analysis": "training_type_analysis",
+            "Evidence Analysis": "evidence_analysis",
+            "evidence_analysis": "evidence_analysis",  # Also handle lowercase version
+            "Hour Verification Details": "hour_verification_details",
+            "Hour Verification Method": "hour_verification_method",
+            "Additional Documents Used": "additional_documents_used",
+            "Additional Document Hours": "additional_document_hours",
+            "Hour Calculation": "hour_calculation",
+            "Discrepancies Found": "discrepancies_found",
+            "Reason for Using Additional Documents": "reason_for_using_additional_documents",
+        }
+
+        # Apply field mapping
+        for llm_field, expected_field in field_mapping.items():
+            if llm_field in results and expected_field not in results:
+                results[expected_field] = results[llm_field]
+
+        # Extract degree_relevance from Degree Relevance description
+        degree_relevance_source = None
+        if "Degree Relevance" in results:
+            degree_relevance_source = results["Degree Relevance"]
+        elif "degree_relevance" in results:
+            degree_relevance_source = results["degree_relevance"]
+
+        if degree_relevance_source and "degree_relevance" not in results:
+            degree_desc = degree_relevance_source.lower()
+            if (
+                "not directly related" in degree_desc
+                or "not related" in degree_desc
+                or "falls outside" in degree_desc
+                or "does not align" in degree_desc
+            ):
+                results["degree_relevance"] = "low"
+            elif (
+                "high" in degree_desc
+                or "directly related" in degree_desc
+                or "closely related" in degree_desc
+            ):
+                results["degree_relevance"] = "high"
+            elif (
+                "medium" in degree_desc
+                or "somewhat related" in degree_desc
+                or "partially related" in degree_desc
+            ):
+                results["degree_relevance"] = "medium"
+            else:
+                results["degree_relevance"] = "low"
+
+        # Extract supporting and challenging evidence from evidence_analysis
+        evidence_source = None
+        if "Evidence Analysis" in results:
+            evidence_source = results["Evidence Analysis"]
+        elif "evidence_analysis" in results:
+            evidence_source = results["evidence_analysis"]
+
+        if evidence_source and isinstance(evidence_source, dict):
+            if "for_professional_training" in evidence_source:
+                results["supporting_evidence"] = evidence_source[
+                    "for_professional_training"
+                ]
+            if "against_professional_training" in evidence_source:
+                results["challenging_evidence"] = evidence_source[
+                    "against_professional_training"
+                ]
+
+        # Map decision field names
+        decision_mapping = {
+            "Decision": "decision",
+            "decision": "decision",
+        }
+
+        for llm_field, expected_field in decision_mapping.items():
+            if llm_field in results and expected_field not in results:
+                results[expected_field] = results[llm_field]
+
+        # Extract decision from recommendation if no explicit decision
+        recommendation_source = None
+        if "Recommendation" in results:
+            recommendation_source = results["Recommendation"]
+        elif "recommendation" in results:
+            recommendation_source = results["recommendation"]
+
+        if recommendation_source and "decision" not in results:
+            recommendation = recommendation_source.lower()
+
+            # Check if this is professional training application
+            requested_training_type = results.get("requested_training_type", "").lower()
+
+            if "general training" in recommendation:
+                # If LLM recommends general training but user requested professional training, REJECT
+                if requested_training_type == "professional":
+                    results["decision"] = "REJECTED"
+                else:
+                    results["decision"] = "ACCEPTED"
+            elif "professional training" in recommendation:
+                results["decision"] = "ACCEPTED"
+            elif "reject" in recommendation or "deny" in recommendation:
+                results["decision"] = "REJECTED"
+            elif "accept" in recommendation or "approve" in recommendation:
+                results["decision"] = "ACCEPTED"
+            else:
+                # Default based on training type match
+                if (
+                    requested_training_type == "professional"
+                    and "general" in recommendation
+                ):
+                    results["decision"] = "REJECTED"
+                else:
+                    results["decision"] = "ACCEPTED"
+
         # Ensure required fields have valid values
         if results.get("decision") is None:
             results["decision"] = "REJECTED"
 
-        if results.get("justification") is None:
-            results["justification"] = "No justification provided"
+        # Handle justification field - convert dict to string if needed
+        justification = results.get("justification")
+        if justification is None or justification == "No justification provided":
+            # Use recommendation as justification if available
+            if "recommendation" in results:
+                results["justification"] = results["recommendation"]
+            elif "Recommendation" in results:
+                results["justification"] = results["Recommendation"]
+            else:
+                results["justification"] = "No justification provided"
+        elif isinstance(justification, dict):
+            # Convert dict to readable string
+            if "justification" in justification:
+                results["justification"] = str(justification["justification"])
+            else:
+                results["justification"] = str(justification)
+        elif not isinstance(justification, str):
+            results["justification"] = str(justification)
 
         if results.get("degree_relevance") is None:
             results["degree_relevance"] = "low"
@@ -1236,7 +1390,7 @@ class LLMOrchestrator:
         if results.get("summary_justification") is None:
             results["summary_justification"] = "No summary justification provided"
 
-        # Ensure numeric fields are valid
+        # Ensure numeric fields are valid - only set defaults if truly missing
         if results.get("total_working_hours") is None:
             results["total_working_hours"] = 0
 
@@ -1291,139 +1445,89 @@ class LLMOrchestrator:
 
         return combined
 
-    def _extract_information_with_additional_docs(
-        self, text: str, additional_docs: List[Dict]
+    def _post_process_extraction_dates(
+        self, extraction_results: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Enhanced information extraction that considers additional documents for self-paced work.
+        Post-process extraction results to fix Finnish date parsing.
 
         Args:
-            text: Combined text from main certificate and additional documents
+            extraction_results: Raw extraction results from LLM
+
+        Returns:
+            Processed extraction results with corrected dates
+        """
+        if not extraction_results or "positions" not in extraction_results:
+            return extraction_results
+
+        processed_results = extraction_results.copy()
+
+        # Process certificate issue date
+        if "certificate_issue_date" in processed_results:
+            original_date = processed_results["certificate_issue_date"]
+            if original_date:
+                parsed_date = parse_finnish_date(original_date)
+                if parsed_date:
+                    processed_results["certificate_issue_date"] = parsed_date
+                    logger.info(
+                        f"Fixed certificate issue date: '{original_date}' -> '{parsed_date}'"
+                    )
+
+        # Process positions dates
+        if "positions" in processed_results and isinstance(
+            processed_results["positions"], list
+        ):
+            for position in processed_results["positions"]:
+                if isinstance(position, dict):
+                    # Process start_date
+                    if "start_date" in position and position["start_date"]:
+                        original_date = position["start_date"]
+                        parsed_date = parse_finnish_date(original_date)
+                        if parsed_date:
+                            position["start_date"] = parsed_date
+                            logger.info(
+                                f"Fixed start date: '{original_date}' -> '{parsed_date}'"
+                            )
+
+                    # Process end_date
+                    if "end_date" in position and position["end_date"]:
+                        original_date = position["end_date"]
+                        parsed_date = parse_finnish_date(original_date)
+                        if parsed_date:
+                            position["end_date"] = parsed_date
+                            logger.info(
+                                f"Fixed end date: '{original_date}' -> '{parsed_date}'"
+                            )
+
+        return processed_results
+
+    def _prepare_additional_doc_info(self, additional_docs: List[Dict]) -> str:
+        """
+        Prepare additional document information for the self-paced evaluation prompt.
+
+        Args:
             additional_docs: List of additional document information
 
         Returns:
-            Extraction results with enhanced context
+            Formatted string with additional document information
         """
+        if not additional_docs:
+            return "No additional documents provided."
 
-        stage_start = time.time()
+        doc_info = []
+        for i, doc in enumerate(additional_docs, 1):
+            filename = doc.get("filename", f"Document {i}")
+            text = doc.get("ocr_text", "")
+            doc_type = doc.get("document_type", "Unknown")
 
-        try:
-            # Use the dedicated self-paced extraction prompt
-            response = self._call_llm_with_fallback(
-                EXTRACTION_PROMPT_SELF_PACED.format(document_text=text),
-                "extraction_with_additional_docs",
-            )
-            results = self._parse_llm_response(response)
+            doc_info.append(f"""
+Additional Document {i}:
+- Filename: {filename}
+- Type: {doc_type}
+- Content: {text[:500]}{'...' if len(text) > 500 else ''}
+""")
 
-            # Clean up extraction results to prevent validation errors
-            if results and isinstance(results, dict):
-                results = self._clean_extraction_results(results)
-
-            return {
-                "success": True,
-                "processing_time": time.time() - stage_start,
-                "results": results,
-                "raw_response": response,
-            }
-
-        except Exception as e:
-            logger.error(f"Error in enhanced extraction stage: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "processing_time": time.time() - stage_start,
-                "results": None,
-            }
-
-    def _evaluate_academically_with_additional_docs(
-        self,
-        text: str,
-        extraction_results: Dict[str, Any],
-        student_degree: str,
-        requested_training_type: str,
-        additional_docs: List[Dict],
-    ) -> Dict[str, Any]:
-        """
-        Enhanced academic evaluation that verifies hours using additional documents.
-
-        Args:
-            text: Combined text from main certificate and additional documents
-            extraction_results: Results from information extraction
-            student_degree: Student's degree program
-            requested_training_type: Student's requested training type
-            additional_docs: List of additional document information
-
-        Returns:
-            Enhanced evaluation results with hour verification
-        """
-
-        stage_start = time.time()
-
-        try:
-            # Use the dedicated self-paced evaluation prompt
-            formatted_prompt = EVALUATION_PROMPT_SELF_PACED.format(
-                current_date=datetime.now().strftime("%Y-%m-%d"),
-                degree_specific_guidelines=self.degree_evaluator.get_degree_specific_guidelines(
-                    student_degree
-                ),
-                student_degree=student_degree,
-                requested_training_type=requested_training_type,
-                extracted_info=json.dumps(extraction_results, indent=2),
-                document_text=text,
-            )
-
-            response = self._call_llm_with_fallback(
-                formatted_prompt, "evaluation_with_additional_docs"
-            )
-            results = self._parse_llm_response(response)
-
-            # Clean up evaluation results to prevent validation errors
-            if results and isinstance(results, dict):
-                results = self._clean_evaluation_results(results)
-
-            # Only ensure credit calculations are correct, don't override LLM decisions
-            if results:
-                # Store the requested training type in the results
-                results["requested_training_type"] = requested_training_type
-
-                total_hours = results.get("total_working_hours", 0)
-                base_credits = int(total_hours / 27)
-
-                # Store the actual calculated credits (before capping)
-                results["credits_calculated"] = float(base_credits)
-
-                # Use requested_training_type for capping
-                training_type = requested_training_type or results.get(
-                    "training_type", ""
-                )
-                if training_type == "professional" and base_credits > 30:
-                    results["credits_qualified"] = 30.0
-                    results["calculation_breakdown"] = (
-                        f"{total_hours} hours / 27 hours per ECTS = {base_credits}.0 credits, capped at 30.0 maximum for professional training"
-                    )
-                elif training_type == "general" and base_credits > 10:
-                    results["credits_qualified"] = 10.0
-                    results["calculation_breakdown"] = (
-                        f"{total_hours} hours / 27 hours per ECTS = {base_credits}.0 credits, capped at 10.0 maximum for general training"
-                    )
-                else:
-                    results["credits_qualified"] = float(base_credits)
-
-            return {
-                "success": True,
-                "processing_time": time.time() - stage_start,
-                "results": results,
-                "raw_response": response,
-            }
-
-        except Exception as e:
-            logger.error(f"Error in enhanced evaluation stage: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "processing_time": time.time() - stage_start,
-                "results": None,
-            }
+        return "\n".join(doc_info)
 
     def get_prompt_info(self) -> Dict[str, Any]:
         """Get information about the prompts being used."""

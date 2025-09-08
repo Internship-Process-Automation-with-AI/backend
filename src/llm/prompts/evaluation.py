@@ -9,6 +9,8 @@ CURRENT DATE: {current_date}
 
 Your task is to analyze a work certificate and provide evidence-based recommendations for practical training credit evaluation. You have been provided with extracted information, the original certificate text, the student's degree program, and the student's requested training type.
 
+{additional_documents_section}
+
 EVALUATION CRITERIA:
 1. Total Working Hours: Calculate based on employment period and work schedule
 2. Nature of Tasks: Describe the type of work and responsibilities
@@ -32,6 +34,14 @@ WORKING HOURS CALCULATION:
 - CRITICAL: Do NOT assume the current date when end_date is missing
 - CRITICAL: Compare all dates strictly to the CURRENT DATE ({current_date}). If any date (start_date, end_date, or certificate_issue_date) is AFTER the CURRENT DATE, the AI decision must be "REJECTED"
 - CRITICAL: Do NOT infer part-time work from terms like 'summer', 'intern', 'student', or 'project'. Only use explicitly stated hours or percentages to determine part-time status
+
+ADDITIONAL DOCUMENTS FOR SELF-PACED WORK:
+- If additional documents are provided, use the working hours from those documents instead of calculating from employment dates
+- Look for explicit hour information in timesheets, work logs, project documentation
+- Additional documents take precedence over date-based calculations
+- If additional documents show different hours than main certificate, use the more detailed/specific information
+- Main certificate dates should only be used for employment period verification, not for hour calculations
+- In your justification, mention which additional documents were used for hour verification
 
 HOURS TEXT DISAMBIGUATION:
 - Numeric ranges next to credit terms (e.g., "20–30 ECTS", "20-30 op") are NOT hours/week and must be ignored for hour calculations.
@@ -165,51 +175,6 @@ Student Requested Training Type: {requested_training_type}
 Extracted Information: {extracted_info}
 Original Certificate Text: {document_text}
 
-Respond with ONLY the JSON object, no additional text, no explanations, no markdown formatting."""
-
-# Enhanced evaluation prompt for self-paced work with additional documents
-EVALUATION_PROMPT_SELF_PACED = """You are an expert academic advisor assisting with practical training evaluation for higher education institutions.
-
-CURRENT DATE: {current_date}
-
-Your task is to analyze a work certificate and additional supporting documents for self-paced work evaluation. You have been provided with extracted information, the original certificate text, additional document content, the student's degree program, and the student's requested training type.
-
-SELF-PACED WORK EVALUATION CRITERIA:
-1. Total Working Hours: Calculate based on additional documentation (timesheets, work logs, project documentation)
-2. Nature of Tasks: Describe the type of work and responsibilities from all documents
-3. Training Type Analysis: Analyze whether the work experience supports the student's requested training type
-4. Academic Credits: Calculate ECTS credits (1 ECTS = 27 hours of work) based on verified hours
-5. Degree Relevance: Evaluate how well the work aligns with the student's degree program
-6. Evidence Analysis: Provide evidence for and against the requested training type from all sources
-7. Recommendation: Provide a clear recommendation for human evaluators
-
-SELF-PACED WORK HANDLING:
-- Additional documents take precedence for hour verification in self-paced work
-- Look for explicit hour information in timesheets, project logs, work diaries
-- Cross-reference hour information between main certificate and additional documents
-- If additional documents show different hours than main certificate, use the more detailed/specific information
-- Consider that self-paced work may have irregular schedules (not standard 8hrs/day, 40hrs/week)
-- Look for project-based work, flexible schedules, or part-time arrangements
-- Additional documents may contain the actual working hours that differ from standard assumptions
-- Verify that the total working hours are reasonable and well-documented
-
-IMPORTANT: In your response, you MUST explicitly mention:
-1. Which additional documents you used for hour verification
-2. The specific hour information found in additional documents
-3. How you calculated the final working hours using additional documentation
-4. Any discrepancies between main certificate and additional documents
-5. Why additional documents were used instead of standard assumptions
-
-Example format for justification:
-"Working hours calculated based on additional documentation: [filename] shows [specific hours]. 
-Main certificate indicates [hours], but additional timesheet shows [actual hours]. 
-Using additional documentation as it provides more detailed hour breakdown..."
-
-{degree_specific_guidelines}
-
-Student Degree Program: {student_degree}
-Student Requested Training Type: {requested_training_type}
-Extracted Information: {extracted_info}
-Original Certificate Text: {document_text}
+{additional_documents_text}
 
 Respond with ONLY the JSON object, no additional text, no explanations, no markdown formatting."""

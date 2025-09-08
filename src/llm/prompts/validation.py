@@ -35,6 +35,7 @@ CRITICAL VALIDATION RULES:
 - **CREDIT CAPS ARE CORRECT**: The 30 ECTS maximum for professional training and 10 ECTS maximum for general training are established business rules. Do NOT flag these as errors.
 - **DECISION LOGIC IS VALID**: If the AI determines that work experience doesn't meet professional training criteria despite the user's request, this is valid reasoning and should NOT be flagged as an error.
 - **CRITICAL: FUTURE DATE VALIDATION**: If ANY date (start_date, end_date, or certificate_issue_date) is AFTER the CURRENT DATE ({current_date}), this MUST be flagged as a CRITICAL error and the decision MUST be changed to "REJECTED" regardless of other factors. Future dates make working hours calculation impossible.
+- **IMPORTANT**: Only flag dates as future if they are actually after the current date. Past dates should NOT be flagged as future dates.
 - **COMPANY VALIDATION**: Review the provided company validation results and flag any companies that require manual review based on the risk assessment.
 - **UNIT DISAMBIGUATION (HOURS vs CREDITS)**: Flag as a HIGH severity error if the model interprets academic credits as working hours. Phrases containing "credits", "ECTS", or "op" (Finnish) must NOT be used to derive hours/week. Only values with explicit time units ("hours/week", "h/week", daily/weekly schedules, or percentages) may be used for hours.
 

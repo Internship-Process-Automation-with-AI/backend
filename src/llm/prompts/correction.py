@@ -40,6 +40,8 @@ CRITICAL CORRECTION RULES:
 - **UNIT DISAMBIGUATION ENFORCEMENT**: If the original output used academic credits as if they were hours (e.g., treated "20–30 ECTS" as hours/week), correct it by ignoring credit values for hour calculations. Only use explicit time units (hours/week, h/week, daily/weekly schedules, or percentages) to compute hours.
 - **Preserve valid decisions**: If the AI correctly determined that work experience doesn't meet professional training criteria, do not override this decision.
 - **CRITICAL: FUTURE DATE CORRECTION**: If ANY date (start_date, end_date, or certificate_issue_date) is AFTER the CURRENT DATE ({current_date}), the decision MUST be corrected to "REJECTED" and the justification MUST clearly state that working hours cannot be calculated due to future dates. This overrides all other decision logic.
+- **IMPORTANT**: Only correct dates as future if they are actually after the current date. Past dates should NOT be corrected as future dates.
+
 - **Only correct factual errors**: Only correct actual mistakes in extraction or calculation, not valid business logic decisions.
 
 CORRECTION OUTPUT FORMAT:
