@@ -869,10 +869,14 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
                 last_name=student_row[4],
             )
 
+            # Get additional documents for self-paced work
+            additional_docs = get_additional_documents(certificate_id)
+
             return DetailedApplication(
                 decision=decision,
                 certificate=certificate,
                 student=student,
+                additional_documents=additional_docs if additional_docs else None,
             )
 
 

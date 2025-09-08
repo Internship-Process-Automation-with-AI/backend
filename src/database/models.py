@@ -317,11 +317,13 @@ class DetailedApplication:
         decision: The decision record
         certificate: The certificate record
         student: The student record
+        additional_documents: List of additional documents for self-paced work
     """
 
     decision: Decision
     certificate: Certificate
     student: Student
+    additional_documents: Optional[List["AdditionalDocument"]] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -329,6 +331,9 @@ class DetailedApplication:
             "decision": self.decision.to_dict(),
             "certificate": self.certificate.to_dict(),
             "student": self.student.to_dict(),
+            "additional_documents": [doc.to_dict() for doc in self.additional_documents]
+            if self.additional_documents
+            else [],
         }
 
 
@@ -366,4 +371,5 @@ class AdditionalDocument:
             "filename": self.filename,
             "filetype": self.filetype,
             "uploaded_at": self.uploaded_at.isoformat(),
+            "ocr_output": self.ocr_output,
         }

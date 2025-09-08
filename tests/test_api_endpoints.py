@@ -98,6 +98,7 @@ class TestStudentEndpoints:
             (
                 uuid4(),  # cert_id
                 TrainingType.GENERAL.value,  # training_type
+                "REGULAR",  # work_type (added missing column)
                 "file.pdf",  # filename
                 uploaded_at,  # uploaded_at
                 DecisionStatus.ACCEPTED.value,  # ai_decision

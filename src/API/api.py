@@ -78,6 +78,7 @@ async def get_student_applications(email: str):
                 SELECT 
                     c.certificate_id,
                     c.training_type,
+                    c.work_type,
                     c.filename,
                     c.uploaded_at,
                     d.ai_decision,
@@ -114,6 +115,7 @@ async def get_student_applications(email: str):
                 (
                     cert_id,
                     training_type,
+                    work_type,
                     filename,
                     uploaded_at,
                     ai_decision,
@@ -158,10 +160,21 @@ async def get_student_applications(email: str):
                 elif reviewer_last_name:
                     reviewer_name = reviewer_last_name
 
+                # Get additional documents for self-paced work
+                additional_documents = []
+                if work_type == "SELF_PACED":
+                    additional_docs = get_additional_documents(cert_id)
+                    additional_documents = (
+                        [doc.to_dict() for doc in additional_docs]
+                        if additional_docs
+                        else []
+                    )
+
                 applications.append(
                     {
                         "certificate_id": str(cert_id),
                         "training_type": training_type,
+                        "work_type": work_type,
                         "filename": filename,
                         "status": status,
                         "credits": credits,
@@ -189,6 +202,8 @@ async def get_student_applications(email: str):
                         "challenging_evidence": challenging_evidence,
                         "recommendation": recommendation,
                         "student_comment": student_comment,
+                        # Additional documents for self-paced work
+                        "additional_documents": additional_documents,
                     }
                 )
 
@@ -1208,6 +1223,56 @@ async def get_certificate_details(certificate_id: UUID):
     if not application:
         raise HTTPException(status_code=404, detail="Certificate not found")
     return {"success": True, "application": application.to_dict()}
+
+
+@router.get(
+    "/certificate/{certificate_id}/additional-document/{document_id}/preview",
+    tags=["reviewer"],
+)
+async def preview_additional_document(certificate_id: UUID, document_id: UUID):
+    """Preview an additional document for a certificate."""
+    # Get the additional document
+    additional_docs = get_additional_documents(certificate_id)
+    document = None
+
+    for doc in additional_docs:
+        if doc.document_id == document_id:
+            document = doc
+            break
+
+    if not document:
+        raise HTTPException(status_code=404, detail="Additional document not found")
+
+    if not document.file_content:
+        raise HTTPException(status_code=404, detail="Document content not available")
+
+    # Convert memoryview to bytes if necessary (same logic as main certificate preview)
+    if hasattr(document.file_content, "tobytes"):
+        file_content = document.file_content.tobytes()
+    else:
+        file_content = document.file_content
+
+    # Determine content type based on file extension
+    file_extension = document.filetype.lower()
+    media_type = "application/octet-stream"  # default
+
+    if file_extension in ["pdf"]:
+        media_type = "application/pdf"
+    elif file_extension in ["jpg", "jpeg"]:
+        media_type = "image/jpeg"
+    elif file_extension in ["png"]:
+        media_type = "image/png"
+    elif file_extension in ["doc", "docx"]:
+        media_type = (
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+
+    # For preview, we want to serve the file inline without forcing download
+    return Response(
+        content=file_content,
+        media_type=media_type,
+        headers={"Content-Disposition": f"inline; filename={document.filename}"},
+    )
 
 
 class ReviewUpdateRequest(BaseModel):
