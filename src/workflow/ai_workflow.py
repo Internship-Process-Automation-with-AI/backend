@@ -218,6 +218,69 @@ class LLMOrchestrator:
                 extraction_result["results"]
             )
 
+            # Stage 1.5: Name Validation using LLM extraction results
+            name_validation_result = self._validate_student_name_from_extraction(
+                extraction_result["results"], certificate_id
+            )
+
+            if not name_validation_result.get("name_match", True):
+                # Names don't match - reject immediately
+                return {
+                    "success": True,
+                    "processing_time": time.time() - start_time,
+                    "extraction_results": extraction_result,
+                    "evaluation_results": {
+                        "success": True,
+                        "results": {
+                            "decision": "REJECTED",
+                            "justification": f"Certificate rejected due to name mismatch: {name_validation_result.get('explanation', 'Student name does not match certificate')}",
+                            "total_working_hours": 0,
+                            "credits_qualified": 0.0,
+                            "degree_relevance": "low",
+                            "relevance_explanation": "Not evaluated due to name mismatch",
+                            "calculation_breakdown": "Not calculated due to name mismatch",
+                            "summary_justification": f"Certificate rejected: {name_validation_result.get('explanation', 'Student name does not match certificate')}",
+                            "requested_training_type": requested_training_type
+                            or "general",
+                            "recommendation": "REJECT - Name validation failed",
+                        },
+                    },
+                    "validation_results": {
+                        "success": True,
+                        "results": {
+                            "validation_passed": False,
+                            "overall_accuracy_score": 0.0,
+                            "name_validation": name_validation_result,
+                            "issues_found": [
+                                {
+                                    "type": "name_mismatch",
+                                    "severity": "critical",
+                                    "description": f"Student name mismatch: {name_validation_result.get('explanation', 'Names do not match')}",
+                                    "field_affected": "name_validation",
+                                    "suggestion": "Verify student identity and certificate authenticity",
+                                }
+                            ],
+                            "summary": "Certificate rejected due to name validation failure",
+                            "requires_correction": False,
+                        },
+                    },
+                    "correction_results": None,
+                    "structural_validation": {
+                        "extraction": None,
+                        "evaluation": None,
+                        "correction": None,
+                    },
+                    "student_degree": student_degree,
+                    "model_used": self.model_name,
+                    "stages_completed": {
+                        "extraction": True,
+                        "name_validation": True,
+                        "evaluation": True,  # We created evaluation results for rejection
+                        "validation": True,
+                        "correction": False,
+                    },
+                }
+
             # Stage 1.5: Structural Validation of Extraction Results
             structural_validation_extraction = validate_extraction_results(
                 extraction_result["results"]
@@ -237,22 +300,6 @@ class LLMOrchestrator:
                         f"  Extraction Issue {i}: {issue.type} ({issue.severity}) - {issue.description}"
                     )
                 # Continue processing but log the issues
-
-            # Stage 1.5: Name Validation
-            name_validation_result = self._validate_student_name_from_extraction(
-                extraction_result["results"], certificate_id
-            )
-
-            # Check name validation result - stop workflow if names don't match
-            if not name_validation_result.get("name_match", True):
-                logger.error(
-                    f"Name validation failed: {name_validation_result.get('explanation', 'Unknown error')}"
-                )
-                return self._error_response(
-                    f"Certificate rejected: {name_validation_result.get('explanation', 'Name validation failed')}",
-                    extraction_results=extraction_result,
-                    processing_time=time.time() - start_time,
-                )
 
             # Stage 2: Academic Evaluation
             evaluation_result = self._evaluate_academically(
@@ -282,7 +329,7 @@ class LLMOrchestrator:
                         )
                     # Continue processing but log the issues
 
-            # Stage 3: Validation
+            # Stage 3: Validation (without name validation now)
             validation_result = self._validate_results(
                 sanitized_text,
                 extraction_result["results"],
@@ -290,7 +337,7 @@ class LLMOrchestrator:
                 student_degree,
                 requested_training_type,
                 certificate_id,
-                name_validation_result,
+                name_validation_result,  # Pass the name validation result
             )
 
             # Stage 4: Correction (if needed)
@@ -461,9 +508,11 @@ class LLMOrchestrator:
 
             # Set default values if student identity is not available
             if not student_identity:
-                logger.warning("No student identity available - cannot validate names")
+                logger.warning(
+                    "No student identity available - skipping name validation"
+                )
                 return {
-                    "name_match": False,  # Fail validation if no student data
+                    "name_match": True,  # Skip validation if no student data
                     "db_student_first_name": "Unknown",
                     "db_student_last_name": "Unknown",
                     "db_student_full_name": "Unknown",
@@ -471,8 +520,8 @@ class LLMOrchestrator:
                         "employee_name", "Unknown"
                     ),
                     "match_result": "unknown",
-                    "match_confidence": 0.0,
-                    "explanation": "Student identity not available - cannot validate names",
+                    "match_confidence": 0.5,
+                    "explanation": "Student identity not available - name validation skipped",
                 }
 
             # Use the employee name extracted by the LLM
@@ -756,6 +805,18 @@ class LLMOrchestrator:
         stage_start = time.time()
 
         try:
+            # Use the pre-computed name validation result instead of computing it again
+            if not name_validation_result:
+                logger.warning("No name validation result provided - using default")
+                name_validation_result = {
+                    "db_student_first_name": "Unknown",
+                    "db_student_last_name": "Unknown",
+                    "db_student_full_name": "Unknown",
+                    "extracted_employee_name": "Unknown",
+                    "match_result": "unknown",
+                    "match_confidence": 0.5,
+                    "explanation": "Name validation not performed",
+                }
             # Validate company information using LLM
             company_validation_result = self._validate_companies_with_llm(
                 extracted_info
