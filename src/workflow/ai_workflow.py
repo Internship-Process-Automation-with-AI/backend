@@ -203,8 +203,9 @@ class LLMOrchestrator:
 
         try:
             # Stage 1: Information Extraction (moved before name validation)
-            sanitized_text = self._sanitize_text(combined_text)
-            extraction_result = self._extract_information(sanitized_text)
+            # For extraction, always use only the main certificate text, not combined text
+            main_certificate_text = self._sanitize_text(text)
+            extraction_result = self._extract_information(main_certificate_text)
 
             if not extraction_result.get("success", False):
                 return self._error_response(
@@ -302,8 +303,10 @@ class LLMOrchestrator:
                 # Continue processing but log the issues
 
             # Stage 2: Academic Evaluation
+            # For evaluation, use main certificate text for job responsibilities,
+            # but pass additional documents for hour verification
             evaluation_result = self._evaluate_academically(
-                sanitized_text,
+                main_certificate_text,
                 extraction_result["results"],
                 student_degree,
                 requested_training_type,
@@ -331,7 +334,7 @@ class LLMOrchestrator:
 
             # Stage 3: Validation (without name validation now)
             validation_result = self._validate_results(
-                sanitized_text,
+                main_certificate_text,
                 extraction_result["results"],
                 evaluation_result["results"],
                 student_degree,
@@ -362,7 +365,7 @@ class LLMOrchestrator:
                     correction_result = None
                 else:
                     correction_result = self._correct_results(
-                        sanitized_text,
+                        main_certificate_text,
                         extraction_result["results"],
                         evaluation_result["results"],
                         validation_result["results"],
@@ -981,9 +984,12 @@ class LLMOrchestrator:
             if additional_documents:
                 additional_docs_section = """
 ADDITIONAL DOCUMENTS FOR SELF-PACED WORK:
-- Additional documents are provided for hour verification
+- Additional documents are provided ONLY for hour verification
 - Use working hours from these documents instead of calculating from employment dates
 - Additional documents take precedence over date-based calculations
+- DO NOT use additional documents for job responsibilities, tasks, or technical skills evaluation
+- Job responsibilities and tasks should be evaluated ONLY from the main certificate
+- Additional documents typically contain only hour logs without detailed job descriptions
 """
                 additional_docs_text = self._prepare_additional_doc_info(
                     additional_documents
