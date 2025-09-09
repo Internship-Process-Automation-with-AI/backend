@@ -559,6 +559,7 @@ async def process_certificate(certificate_id: UUID):
                         requested_training_type=cert.training_type.value.lower(),
                         work_type=cert.work_type.value,
                         additional_documents=additional_doc_results,
+                        certificate_id=str(certificate_id),
                     )
                     if llm_result is None:
                         logger.error("Enhanced LLM processing returned None result")
