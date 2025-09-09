@@ -672,6 +672,15 @@ async def process_certificate(certificate_id: UUID):
         # Let's also log the actual content to see what's there
         logger.info(f"LLM result content preview: {str(llm_result)[:500]}...")
 
+        # Check if LLM processing was successful
+        if not llm_result.get("success", False):
+            logger.error(
+                f"LLM processing failed: {llm_result.get('error', 'Unknown error')}"
+            )
+            raise Exception(
+                f"LLM processing failed: {llm_result.get('error', 'Unknown error')}"
+            )
+
         if llm_result.get("success") and "validation_results" in llm_result:
             validation_results = llm_result["validation_results"]
             logger.info("✅ Found validation_results")

@@ -238,6 +238,22 @@ class LLMOrchestrator:
                     )
                 # Continue processing but log the issues
 
+            # Stage 1.5: Name Validation
+            name_validation_result = self._validate_student_name_from_extraction(
+                extraction_result["results"], certificate_id
+            )
+
+            # Check name validation result - stop workflow if names don't match
+            if not name_validation_result.get("name_match", True):
+                logger.error(
+                    f"Name validation failed: {name_validation_result.get('explanation', 'Unknown error')}"
+                )
+                return self._error_response(
+                    f"Certificate rejected: {name_validation_result.get('explanation', 'Name validation failed')}",
+                    extraction_results=extraction_result,
+                    processing_time=time.time() - start_time,
+                )
+
             # Stage 2: Academic Evaluation
             evaluation_result = self._evaluate_academically(
                 sanitized_text,
@@ -274,6 +290,7 @@ class LLMOrchestrator:
                 student_degree,
                 requested_training_type,
                 certificate_id,
+                name_validation_result,
             )
 
             # Stage 4: Correction (if needed)
@@ -444,11 +461,9 @@ class LLMOrchestrator:
 
             # Set default values if student identity is not available
             if not student_identity:
-                logger.warning(
-                    "No student identity available - skipping name validation"
-                )
+                logger.warning("No student identity available - cannot validate names")
                 return {
-                    "name_match": True,  # Skip validation if no student data
+                    "name_match": False,  # Fail validation if no student data
                     "db_student_first_name": "Unknown",
                     "db_student_last_name": "Unknown",
                     "db_student_full_name": "Unknown",
@@ -456,8 +471,8 @@ class LLMOrchestrator:
                         "employee_name", "Unknown"
                     ),
                     "match_result": "unknown",
-                    "match_confidence": 0.5,
-                    "explanation": "Student identity not available - name validation skipped",
+                    "match_confidence": 0.0,
+                    "explanation": "Student identity not available - cannot validate names",
                 }
 
             # Use the employee name extracted by the LLM
@@ -735,6 +750,7 @@ class LLMOrchestrator:
         student_degree: str,
         requested_training_type: str = None,
         certificate_id: Optional[str] = None,
+        name_validation_result: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
         """Stage 3: Validate LLM results against original document."""
         stage_start = time.time()
@@ -790,6 +806,10 @@ class LLMOrchestrator:
                 results["company_validation"] = company_validation_result.get(
                     "company_validation", {}
                 )
+
+                # Add name validation results
+                if name_validation_result:
+                    results["name_validation"] = name_validation_result
 
                 # Add company validation issues to overall issues if any
                 if company_validation_result.get("issues_found"):
@@ -1305,18 +1325,30 @@ ADDITIONAL DOCUMENTS FOR SELF-PACED WORK:
                 validation_result = self._parse_company_validation_response(response)
 
                 if validation_result and isinstance(validation_result, dict):
-                    # Check if company is suspicious
-                    if validation_result.get("status") == "NOT_LEGITIMATE":
+                    # Check if company is suspicious (NOT_LEGITIMATE or UNVERIFIED)
+                    company_status = validation_result.get("status")
+                    if company_status in ["NOT_LEGITIMATE", "UNVERIFIED"]:
                         suspicious_companies += 1
-                        issues_found.append(
-                            {
-                                "type": "company_validation_error",
-                                "severity": "high",
-                                "description": f"Suspicious company detected: {company_name}",
-                                "field_affected": "company_validation",
-                                "suggestion": f"Review company '{company_name}' for legitimacy",
-                            }
-                        )
+                        if company_status == "NOT_LEGITIMATE":
+                            issues_found.append(
+                                {
+                                    "type": "company_validation_error",
+                                    "severity": "high",
+                                    "description": f"Suspicious company detected: {company_name}",
+                                    "field_affected": "company_validation",
+                                    "suggestion": f"Review company '{company_name}' for legitimacy",
+                                }
+                            )
+                        else:  # UNVERIFIED
+                            issues_found.append(
+                                {
+                                    "type": "company_validation_error",
+                                    "severity": "medium",
+                                    "description": f"Company could not be verified: {company_name}",
+                                    "field_affected": "company_validation",
+                                    "suggestion": f"Manual verification required for company '{company_name}'",
+                                }
+                            )
 
                     # Add to results
                     company_validation_results.append(
