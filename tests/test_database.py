@@ -31,8 +31,10 @@ from src.database.database import (
     get_student_by_id,
     get_student_comment_by_certificate_id,
     get_student_with_certificates,
-    test_database_connection,
     update_decision_review,
+)
+from src.database.database import (
+    test_database_connection as test_db_connection_func,
 )
 from src.database.models import (
     Certificate,
@@ -116,7 +118,7 @@ class TestDatabaseConnection:
         mock_cursor.execute.return_value = None
         mock_connect.return_value = mock_conn
 
-        result = test_database_connection()
+        result = test_db_connection_func()
         assert result is True
 
     @patch("src.database.database.psycopg2.connect")
@@ -124,7 +126,7 @@ class TestDatabaseConnection:
         """Test failed database connection test."""
         mock_connect.side_effect = Exception("Connection failed")
 
-        result = test_database_connection()
+        result = test_db_connection_func()
         assert result is False
 
     @patch("src.database.database.psycopg2.connect")

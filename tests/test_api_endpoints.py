@@ -119,6 +119,8 @@ class TestStudentEndpoints:
                 "Challenge",  # challenging_evidence
                 "Recommend",  # recommendation
                 None,  # student_comment
+                None,  # name_validation_match_result
+                None,  # name_validation_explanation
             )
         ]
 
