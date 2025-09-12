@@ -188,6 +188,20 @@ The AI workflow system uses degree-specific criteria to evaluate work certificat
 - **Examples**: Technical work in the degree field, specialized industry experience
 - **Credit Calculation**: 1 ECTS = 27 working hours
 
+### Work Type Classification
+
+### Regular Work (REGULAR)
+- **Purpose**: Traditional employment with standard work arrangements
+- **Criteria**: Standard employment contracts, regular working hours
+- **Examples**: Full-time employment, part-time work, internships
+- **Documentation**: Standard work certificates, employment contracts
+
+### Self-Paced Work (SELF_PACED)
+- **Purpose**: Independent projects and self-directed work
+- **Criteria**: Self-managed projects, freelance work, independent study
+- **Examples**: Freelance projects, independent research, self-directed learning
+- **Documentation**: Project documentation, additional supporting materials
+
 ## AI Workflow Integration
 
 The degree information is integrated into the AI workflow system:

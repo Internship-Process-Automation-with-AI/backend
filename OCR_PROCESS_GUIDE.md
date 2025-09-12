@@ -248,8 +248,9 @@ The OCR system is the **first step** in a larger AI pipeline:
 1. **Extracts text** (OCR step) - This is what this guide covers
 2. **Analyzes content** (AI evaluation) - Uses the extracted text
 3. **Validates companies** (Company verification) - Based on extracted text
-4. **Makes decisions** (ACCEPTED/REJECTED) - Based on AI analysis
-5. **Provides recommendations** (for rejected cases)
+4. **Validates names** (Name verification) - Based on extracted text
+5. **Makes decisions** (ACCEPTED/REJECTED) - Based on AI analysis
+6. **Provides recommendations** (for rejected cases)
 
 **The OCR provides the text input** that the AI system uses to evaluate work certificates and determine academic credits. Without good OCR results, the AI cannot make accurate decisions.
 

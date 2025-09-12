@@ -243,7 +243,9 @@ result = workflow.process_document("document.pdf", debug=True)
 3. **Finnish OCR**: Optimized text extraction using Finnish language pack
 4. **Text Storage**: Extracted text stored in `ocr_output` field
 5. **AI Processing**: Finnish text sent to LLM for evaluation
-6. **Results**: Finnish-specific analysis and credit evaluation
+6. **Name Validation**: Employee names extracted for identity verification
+7. **Company Validation**: Company information extracted for legitimacy checking
+8. **Results**: Finnish-specific analysis and credit evaluation
 
 ### API Endpoints for Finnish Documents
 ```bash
