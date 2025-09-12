@@ -3,11 +3,13 @@ Extract plain text from scanned internship certificates (PDF, DOCX, DOC, images)
 Supports multi-language processing including Finnish certificates.
 """
 
+import os
 from io import BytesIO
 from pathlib import Path
 
 import cv2
 import docx2txt
+import fitz  # PyMuPDF for digital PDF text extraction
 import numpy as np
 from docx import Document
 from pdf2image import convert_from_path
@@ -137,16 +139,40 @@ def _extract_from_image(
 def _extract_from_pdf(
     pdf_path: Path, language: str = "auto", enhance_finnish: bool = False
 ) -> str:
-    """Extract text from a PDF by converting each page to an image and running OCR."""
+    """Extract text from a PDF - try digital text first, then OCR if needed."""
     try:
-        images = convert_from_path(str(pdf_path))
-        logger.info(f"PDF has {len(images)} pages.")
+        # FAST PATH: Try extracting embedded text first (digital PDFs)
+        try:
+            doc = fitz.open(str(pdf_path))
+            digital_text = "".join(page.get_text("text") for page in doc)
+            doc.close()
+
+            # If we got substantial text, use it (skip OCR entirely)
+            if len(digital_text.strip()) > 500:
+                logger.info(
+                    f"Digital PDF text found ({len(digital_text)} chars) - skipping OCR"
+                )
+                return _clean_text(digital_text)
+        except Exception as e:
+            logger.debug(f"Digital text extraction failed: {e}")
+
+        # SLOW PATH: OCR processing (optimized)
+        logger.info("No digital text found, proceeding with OCR")
+
+        # Use lower DPI and parallel processing for faster conversion
+        images = convert_from_path(
+            str(pdf_path),
+            dpi=150,  # Reduced from default ~200 for speed
+            thread_count=max(1, os.cpu_count() - 1),  # Parallel conversion
+        )
+        logger.info(f"PDF converted to {len(images)} images at 150 DPI")
+
         text_chunks: list[str] = []
 
         for i, image in enumerate(images):
             logger.info(f"Processing page {i + 1}")
 
-            # For Finnish language, use raw extraction to preserve ä, ö, å characters
+            # For Finnish language, use optimized extraction
             if language == "fin" or enhance_finnish:
                 text = ocr_processor.extract_text_raw_finnish(image)
             else:
@@ -180,7 +206,7 @@ def _extract_from_pdf(
 
         return _clean_text("\n".join(text_chunks))
     except Exception as e:
-        logger.exception(f"PDF OCR failed: {e}")
+        logger.exception(f"PDF processing failed: {e}")
         raise
 
 
@@ -244,21 +270,43 @@ def _extract_finnish_from_image(image_path: Path) -> str:
 def _extract_finnish_from_pdf(pdf_path: Path) -> str:
     """Extract Finnish text from a PDF with optimized processing."""
     try:
-        images = convert_from_path(str(pdf_path))
-        logger.info(f"Processing Finnish PDF with {len(images)} pages")
+        # FAST PATH: Try extracting embedded text first (digital PDFs)
+        try:
+            doc = fitz.open(str(pdf_path))
+            digital_text = "".join(page.get_text("text") for page in doc)
+            doc.close()
+
+            # If we got substantial text, use it (skip OCR entirely)
+            if len(digital_text.strip()) > 500:
+                logger.info(
+                    f"Finnish digital PDF text found ({len(digital_text)} chars) - skipping OCR"
+                )
+                return _clean_text(digital_text)
+        except Exception as e:
+            logger.debug(f"Finnish digital text extraction failed: {e}")
+
+        # SLOW PATH: OCR processing (optimized for Finnish)
+        logger.info("No digital text found, proceeding with Finnish OCR")
+
+        # Use optimized settings for Finnish documents
+        images = convert_from_path(
+            str(pdf_path),
+            dpi=150,  # Reduced DPI for speed
+            thread_count=max(1, os.cpu_count() - 1),  # Parallel conversion
+        )
+        logger.info(f"Processing Finnish PDF with {len(images)} pages at 150 DPI")
         text_chunks: list[str] = []
 
         for i, image in enumerate(images):
             logger.info(f"Processing Finnish page {i + 1}")
 
-            # For Finnish text, use raw extraction with absolutely no preprocessing
-            # This preserves ä, ö, å characters perfectly
+            # For Finnish text, use optimized extraction
             text = ocr_processor.extract_text_raw_finnish(image)
             text_chunks.append(text)
 
         return _clean_text("\n".join(text_chunks))
     except Exception as e:
-        logger.exception(f"Finnish PDF OCR failed: {e}")
+        logger.exception(f"Finnish PDF processing failed: {e}")
         raise
 
 

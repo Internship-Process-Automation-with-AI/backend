@@ -70,7 +70,12 @@ IMPORTANT GUIDELINES:
 - If the end date is missing for a role, use the certificate issue date as the end date which is usually at the top of the document or below the document after the signature
 - Always calculate duration if the start date and end date are present
 - CRITICAL: All dates MUST be in YYYY-MM-DD format (e.g., "2009-11-27", not "27.11.2009")
-- Convert any DD.MM.YYYY format dates to YYYY-MM-DD format
+- Convert any Finnish date formats to YYYY-MM-DD format:
+  * "2. 6. 2025" -> "2025-06-02"
+  * "31. 8. 2025" -> "2025-08-31" 
+  * "27.11.2009" -> "2009-11-27"
+  * "13.2.1984" -> "1984-02-13"
+- Always pad single digits with leading zeros (e.g., "2" becomes "02")
 
 CRITICAL POSITION HANDLING:
 - NEVER use "Unknown Employer" for any position

@@ -13,6 +13,7 @@ Pre-commit automatically runs these checks before each commit:
 5. **End-of-file** - Ensures files end with a newline
 6. **YAML validation** - Checks YAML files for syntax errors
 7. **Large file check** - Prevents accidentally committing large files
+8. **Type checking** - Validates type hints and annotations
 
 ## Quick Setup
 

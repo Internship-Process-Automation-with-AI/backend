@@ -67,7 +67,7 @@ def verify_database_schema() -> bool:
     Returns:
         bool: True if all tables exist, False otherwise
     """
-    required_tables = ["students", "certificates", "decisions"]
+    required_tables = ["students", "certificates", "decisions", "additional_documents"]
 
     try:
         with get_db_connection() as conn:
@@ -169,12 +169,15 @@ def reset_database() -> bool:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 # Drop all tables
+                cur.execute("DROP TABLE IF EXISTS additional_documents CASCADE")
                 cur.execute("DROP TABLE IF EXISTS decisions CASCADE")
                 cur.execute("DROP TABLE IF EXISTS certificates CASCADE")
                 cur.execute("DROP TABLE IF EXISTS students CASCADE")
                 cur.execute("DROP TABLE IF EXISTS reviewers CASCADE")
                 cur.execute("DROP TYPE IF EXISTS training_type CASCADE")
                 cur.execute("DROP TYPE IF EXISTS decision_status CASCADE")
+                cur.execute("DROP TYPE IF EXISTS work_type CASCADE")
+                cur.execute("DROP TYPE IF EXISTS document_type CASCADE")
                 conn.commit()
 
                 logger.info("All tables dropped")

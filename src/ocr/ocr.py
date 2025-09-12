@@ -647,22 +647,18 @@ class OCRProcessor:
             # Only normalize format, absolutely no preprocessing
             pil_image = self._normalize_image_format(pil_image)
 
-            # Try multiple Finnish configurations for best results
+            # Try Finnish configurations with early exit for speed
             configs = [
-                # Config 1: Basic Finnish with character preservation
+                # Config 1: Best performing Finnish config (try first)
                 "--oem 3 --psm 6 -c preserve_interword_spaces=1 -c textord_heavy_nr=0",
-                # Config 2: Finnish with minimal noise reduction
-                "--oem 3 --psm 6 -c preserve_interword_spaces=1 -c textord_heavy_nr=0 -c textord_min_linesize=2.0",
-                # Config 3: Finnish with different PSM for better text layout
+                # Config 2: Fallback with different PSM
                 "--oem 3 --psm 8 -c preserve_interword_spaces=1 -c textord_heavy_nr=0",
-                # Config 4: Finnish with auto PSM
-                "--oem 3 --psm 3 -c preserve_interword_spaces=1 -c textord_heavy_nr=0",
             ]
 
             best_text = ""
             best_score = 0
 
-            for config in configs:
+            for i, config in enumerate(configs):
                 try:
                     text = pytesseract.image_to_string(
                         pil_image, lang="fin", config=config
@@ -677,6 +673,15 @@ class OCRProcessor:
                             best_score = score
                             best_text = text
 
+                        # EARLY EXIT: If we get good text on first try, don't waste time on other configs
+                        if (
+                            i == 0 and len(text) > 400
+                        ):  # Substantial text found on best config
+                            logger.info(
+                                f"Early exit - good Finnish text found: {len(text)} chars, score: {score}"
+                            )
+                            return text
+
                 except Exception as e:
                     logger.debug(f"Config {config} failed: {e}")
                     continue
@@ -685,7 +690,7 @@ class OCRProcessor:
                 logger.info(f"Best Finnish extraction score: {best_score}")
                 return best_text
             else:
-                # Fallback to basic Finnish extraction
+                # Quick fallback to basic Finnish extraction
                 fallback_config = "--oem 3 --psm 6"
                 return pytesseract.image_to_string(
                     pil_image, lang="fin", config=fallback_config

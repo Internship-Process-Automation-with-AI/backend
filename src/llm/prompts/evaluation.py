@@ -5,7 +5,11 @@ This prompt focuses on analyzing evidence for/against the student's requested tr
 
 EVALUATION_PROMPT = """You are an expert academic advisor assisting with practical training evaluation for higher education institutions.
 
+CURRENT DATE: {current_date}
+
 Your task is to analyze a work certificate and provide evidence-based recommendations for practical training credit evaluation. You have been provided with extracted information, the original certificate text, the student's degree program, and the student's requested training type.
+
+{additional_documents_section}
 
 EVALUATION CRITERIA:
 1. Total Working Hours: Calculate based on employment period and work schedule
@@ -21,13 +25,27 @@ EVALUATION GUIDELINES:
 WORKING HOURS CALCULATION:
 - Full-time work: 8 hours/day, 40 hours/week
 - Part-time work: Calculate based on stated hours or percentage
+- CRITICAL UNIT RULE: Never interpret academic credits as working hours. Words like "credits", "ECTS", or "op" (Finnish) refer to academic credits, not time. Only treat values explicitly marked with time units (e.g., "hours/week", "h/week", "% schedule") as working time.
 - Consider employment period: start_date to end_date
 - Account for breaks, holidays if specified
 - If end_date is missing, use the certificate_issue_date from the extracted information as the end date
 - If no certificate_issue_date is available, use duration descriptions to estimate hours
 - If no work schedule specified, assume full-time (40 hours/week)
 - CRITICAL: Do NOT assume the current date when end_date is missing
-- CRITICAL: If any date (start_date, end_date, or certificate_issue_date) is in the future, the AI decision must be "REJECTED" and the justification must clearly state that working hours cannot be calculated due to future dates
+- CRITICAL: Compare all dates strictly to the CURRENT DATE ({current_date}). If any date (start_date, end_date, or certificate_issue_date) is AFTER the CURRENT DATE, the AI decision must be "REJECTED"
+- CRITICAL: Do NOT infer part-time work from terms like 'summer', 'intern', 'student', or 'project'. Only use explicitly stated hours or percentages to determine part-time status
+
+ADDITIONAL DOCUMENTS FOR SELF-PACED WORK:
+- If additional documents are provided, use the working hours from those documents instead of calculating from employment dates
+- Look for explicit hour information in timesheets, work logs, project documentation
+- Additional documents take precedence over date-based calculations
+- If additional documents show different hours than main certificate, use the more detailed/specific information
+- Main certificate dates should only be used for employment period verification, not for hour calculations
+- In your justification, mention which additional documents were used for hour verification
+
+HOURS TEXT DISAMBIGUATION:
+- Numeric ranges next to credit terms (e.g., "20–30 ECTS", "20-30 op") are NOT hours/week and must be ignored for hour calculations.
+- If both credits and hours are present, use hours to compute total_hours; use credits only for ECTS caps/requirements, never to infer hours.
 
 TRAINING TYPE ANALYSIS:
 - "Professional Training": Work that demonstrates clear alignment with degree-specific criteria, technical skills, specialized knowledge, or industry-specific work relevant to the degree field
@@ -97,14 +115,14 @@ DECISION REQUIREMENTS:
 - If evidence supports the requested training type: "ACCEPTED"
 - If evidence does not support the requested training type: "REJECTED"
 - The decision should be based on whether the work experience meets the criteria for the requested training type
-- CRITICAL: If ANY date (start_date, end_date, or certificate_issue_date) is in the future, the decision MUST be "REJECTED" regardless of other factors
+- CRITICAL: If ANY date (start_date, end_date, or certificate_issue_date) is AFTER the CURRENT DATE ({current_date}), the decision MUST be "REJECTED" regardless of other factors
 
 JUSTIFICATION REQUIREMENTS:
 - Provide clear reasoning for the decision
 - Explain why the work experience was accepted or rejected for the requested training type
 - Include credit calculation and limits explanation
 - Note that this is an advisory decision for human evaluators
-- CRITICAL: For future date rejections, the justification MUST clearly state: "The work experience cannot be evaluated because it contains future dates (start_date, end_date, or certificate_issue_date). Working hours cannot be calculated for employment periods that have not yet occurred. The certificate must be corrected to show valid past dates before it can be processed."
+- CRITICAL: For future date rejections, the justification MUST clearly state: "The work experience cannot be evaluated because it contains dates after the current date ({current_date}). Working hours cannot be calculated for employment periods that have not yet occurred. The certificate must be corrected to show valid past dates before it can be processed."
 
 RECOMMENDATION REQUIREMENTS:
 - Provide a clear recommendation for the student on what to do next
@@ -156,5 +174,7 @@ Student Degree Program: {student_degree}
 Student Requested Training Type: {requested_training_type}
 Extracted Information: {extracted_info}
 Original Certificate Text: {document_text}
+
+{additional_documents_text}
 
 Respond with ONLY the JSON object, no additional text, no explanations, no markdown formatting."""

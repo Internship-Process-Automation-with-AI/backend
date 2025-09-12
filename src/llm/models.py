@@ -11,6 +11,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
+from src.utils.date_parser import parse_finnish_date
+
 logger = logging.getLogger(__name__)
 
 
@@ -63,6 +65,11 @@ class Position(BaseModel):
     def validate_dates(cls, v):
         """Validate that dates are not in the future."""
         if v:
+            # First try to parse Finnish date format
+            parsed_date = parse_finnish_date(v)
+            if parsed_date:
+                v = parsed_date  # Update the value with parsed date
+
             try:
                 date_obj = datetime.strptime(v, "%Y-%m-%d").date()
                 if date_obj > date.today():
@@ -81,10 +88,15 @@ class Position(BaseModel):
         """Validate that end date is after start date."""
         if v and "start_date" in info.data and info.data["start_date"]:
             try:
-                end_date = datetime.strptime(v, "%Y-%m-%d").date()
-                start_date = datetime.strptime(
-                    info.data["start_date"], "%Y-%m-%d"
-                ).date()
+                # Parse both dates using Finnish date parser
+                end_date_str = parse_finnish_date(v) or v
+                start_date_str = (
+                    parse_finnish_date(info.data["start_date"])
+                    or info.data["start_date"]
+                )
+
+                end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+                start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
                 if end_date < start_date:
                     logger.warning(
                         f"End date {v} is before start date {info.data['start_date']}. This may indicate extraction errors but processing will continue."
