@@ -58,6 +58,7 @@ The AI workflow system is now primarily accessed through the **FastAPI applicati
 │ • Upload        │───▶│ • API Endpoints │───▶│ • OCR Service   │
 │ • Process       │    │ • File Storage  │    │ • LLM Pipeline  │
 │ • View Results  │    │ • Database      │    │ • 4-Stage Proc. │
+│ • Validation    │    │ • Validation    │    │ • Name Valid.   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                                                        │
                                                        ▼
@@ -67,6 +68,7 @@ The AI workflow system is now primarily accessed through the **FastAPI applicati
                                               │ • File Storage  │
                                               │ • AI Results    │
                                               │ • Decisions     │
+                                              │ • Validation    │
                                               └─────────────────┘
 ```
 
@@ -173,6 +175,8 @@ async def process_certificate(certificate_id: UUID):
 **Output**: Credit calculation, decision (ACCEPTED/REJECTED), and justification
 
 **Degree-Specific Guidelines**: Uses degree-specific criteria from `degree_programs_data.py`
+**Name Validation**: Verifies employee name matches student identity
+**Company Validation**: Checks company legitimacy and business registration
 ```json
 {
   "total_working_hours": 1040,

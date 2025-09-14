@@ -31,8 +31,10 @@ from src.database.database import (
     get_student_by_id,
     get_student_comment_by_certificate_id,
     get_student_with_certificates,
-    test_database_connection,
     update_decision_review,
+)
+from src.database.database import (
+    test_database_connection as test_db_connection_func,
 )
 from src.database.models import (
     Certificate,
@@ -116,7 +118,7 @@ class TestDatabaseConnection:
         mock_cursor.execute.return_value = None
         mock_connect.return_value = mock_conn
 
-        result = test_database_connection()
+        result = test_db_connection_func()
         assert result is True
 
     @patch("src.database.database.psycopg2.connect")
@@ -124,7 +126,7 @@ class TestDatabaseConnection:
         """Test failed database connection test."""
         mock_connect.side_effect = Exception("Connection failed")
 
-        result = test_database_connection()
+        result = test_db_connection_func()
         assert result is False
 
     @patch("src.database.database.psycopg2.connect")
@@ -447,6 +449,7 @@ class TestCertificateOperations:
             str(certificate_id),
             str(student_id),
             "GENERAL",
+            "REGULAR",  # work_type should be a valid WorkType enum value
             "test.pdf",
             "pdf",
             b"file content",
@@ -512,8 +515,11 @@ class TestDecisionOperations:
         mock_cursor.execute.assert_called_once()
         mock_conn.commit.assert_called_once()
 
+    @patch("src.database.database.get_additional_documents")
     @patch("src.database.database.get_db_connection")
-    def test_get_detailed_application_found(self, mock_get_connection):
+    def test_get_detailed_application_found(
+        self, mock_get_connection, mock_get_additional_docs
+    ):
         """Test getting detailed application when found."""
         mock_conn = Mock()
         mock_cursor = Mock()
@@ -527,6 +533,9 @@ class TestDecisionOperations:
         decision_id = uuid4()
         uploaded_at = datetime.now()
         created_at = datetime.now()
+
+        # Mock additional documents to return empty list
+        mock_get_additional_docs.return_value = []
 
         # Mock the complex query result - this matches the actual SQL structure
         # The function expects separate rows for decision, certificate, and student
@@ -553,7 +562,7 @@ class TestDecisionOperations:
                 "UNVERIFIED",  # company_validation_status (17)
                 None,  # company_validation_justification (18)
             ),
-            # Certificate row
+            # Certificate row - matches the actual query: certificate_id, student_id, training_type, filename, filetype, uploaded_at
             (
                 str(certificate_id),
                 str(student_id),

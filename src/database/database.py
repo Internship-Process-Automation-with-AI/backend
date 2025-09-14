@@ -15,16 +15,19 @@ import psycopg2
 from src.config import settings
 
 from .models import (
+    AdditionalDocument,
     ApplicationSummary,
     Certificate,
     Decision,
     DecisionStatus,
     DetailedApplication,
+    DocumentType,
     Reviewer,
     ReviewerDecision,
     Student,
     StudentWithCertificates,
     TrainingType,
+    WorkType,
 )
 
 logger = logging.getLogger(__name__)
@@ -324,6 +327,7 @@ def create_certificate(
     filename: str,
     filetype: str,
     file_content: bytes,
+    work_type: WorkType = WorkType.REGULAR,
 ) -> Certificate:
     """
     Create a new certificate record.
@@ -334,6 +338,7 @@ def create_certificate(
         filename: Original filename
         filetype: File type/extension
         file_content: File content as bytes
+        work_type: Type of work (REGULAR/SELF_PACED)
 
     Returns:
         Certificate: Created certificate object
@@ -345,13 +350,14 @@ def create_certificate(
 
             cur.execute(
                 """
-                INSERT INTO certificates (certificate_id, student_id, training_type, filename, filetype, file_content, uploaded_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO certificates (certificate_id, student_id, training_type, work_type, filename, filetype, file_content, uploaded_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     str(certificate_id),
                     str(student_id),
                     training_type.value,
+                    work_type.value,
                     filename,
                     filetype,
                     file_content,
@@ -363,6 +369,7 @@ def create_certificate(
                 certificate_id=certificate_id,
                 student_id=student_id,
                 training_type=training_type,
+                work_type=work_type,
                 filename=filename,
                 filetype=filetype,
                 uploaded_at=now,
@@ -384,7 +391,7 @@ def get_certificate_by_id(certificate_id: UUID) -> Optional[Certificate]:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT certificate_id, student_id, training_type, filename, filetype, file_content, ocr_output, uploaded_at
+                SELECT certificate_id, student_id, training_type, work_type, filename, filetype, file_content, ocr_output, uploaded_at
                 FROM certificates WHERE certificate_id = %s
                 """,
                 (str(certificate_id),),
@@ -396,11 +403,12 @@ def get_certificate_by_id(certificate_id: UUID) -> Optional[Certificate]:
                 certificate_id=UUID(row[0]),
                 student_id=UUID(row[1]),
                 training_type=TrainingType(row[2]),
-                filename=row[3],
-                filetype=row[4],
-                file_content=row[5],
-                ocr_output=row[6],
-                uploaded_at=row[7],
+                work_type=WorkType(row[3]),
+                filename=row[4],
+                filetype=row[5],
+                file_content=row[6],
+                ocr_output=row[7],
+                uploaded_at=row[8],
             )
 
 
@@ -877,10 +885,14 @@ def get_detailed_application(certificate_id: UUID) -> Optional[DetailedApplicati
                 last_name=student_row[4],
             )
 
+            # Get additional documents for self-paced work
+            additional_docs = get_additional_documents(certificate_id)
+
             return DetailedApplication(
                 decision=decision,
                 certificate=certificate,
                 student=student,
+                additional_documents=additional_docs if additional_docs else None,
             )
 
 
@@ -1398,6 +1410,99 @@ def get_student_comment_by_certificate_id(certificate_id: UUID) -> Optional[str]
             if not row:
                 return None
             return row[0]
+
+
+# Raw SQL operations for Additional Documents
+def create_additional_document(
+    certificate_id: UUID,
+    document_type: DocumentType,
+    filename: str,
+    filetype: str,
+    file_content: bytes,
+) -> AdditionalDocument:
+    """
+    Create a new additional document record.
+
+    Args:
+        certificate_id: Certificate's UUID this document belongs to
+        document_type: Type of document (HOUR_DOCUMENTATION/PROJECT_DETAILS)
+        filename: Original filename
+        filetype: File type/extension
+        file_content: File content as bytes
+
+    Returns:
+        AdditionalDocument: Created additional document object
+    """
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            document_id = uuid4()
+            now = datetime.now()
+
+            cur.execute(
+                """
+                INSERT INTO additional_documents (document_id, certificate_id, document_type, filename, filetype, file_content, uploaded_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    str(document_id),
+                    str(certificate_id),
+                    document_type.value,
+                    filename,
+                    filetype,
+                    file_content,
+                    now,
+                ),
+            )
+            conn.commit()
+            return AdditionalDocument(
+                document_id=document_id,
+                certificate_id=certificate_id,
+                document_type=document_type,
+                filename=filename,
+                filetype=filetype,
+                uploaded_at=now,
+                file_content=file_content,
+            )
+
+
+def get_additional_documents(certificate_id: UUID) -> List[AdditionalDocument]:
+    """
+    Get all additional documents for a certificate.
+
+    Args:
+        certificate_id: Certificate's UUID
+
+    Returns:
+        List[AdditionalDocument]: List of additional document objects
+    """
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT document_id, certificate_id, document_type, filename, filetype, file_content, ocr_output, uploaded_at
+                FROM additional_documents WHERE certificate_id = %s
+                ORDER BY uploaded_at
+                """,
+                (str(certificate_id),),
+            )
+            rows = cur.fetchall()
+
+            documents = []
+            for row in rows:
+                documents.append(
+                    AdditionalDocument(
+                        document_id=UUID(row[0]),
+                        certificate_id=UUID(row[1]),
+                        document_type=DocumentType(row[2]),
+                        filename=row[3],
+                        filetype=row[4],
+                        file_content=row[5],
+                        ocr_output=row[6],
+                        uploaded_at=row[7],
+                    )
+                )
+
+            return documents
 
 
 def get_student_identity_by_certificate(certificate_id: UUID) -> Optional[dict]:

@@ -7,7 +7,8 @@ import json
 import logging
 import re
 import time
-from typing import Any, Dict, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 import google.generativeai as genai
 
@@ -25,6 +26,7 @@ from src.llm.prompts import (
     VALIDATION_PROMPT,
 )
 from src.llm.prompts.company_validation import COMPANY_VALIDATION_PROMPT
+from src.utils.date_parser import parse_finnish_date
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +152,8 @@ class LLMOrchestrator:
         text: str,
         student_degree: str = "Business Administration",
         requested_training_type: str = None,
+        work_type: str = "REGULAR",
+        additional_documents: List[Dict] = None,
         certificate_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
@@ -159,6 +163,8 @@ class LLMOrchestrator:
             text: Cleaned OCR text from the work certificate
             student_degree: Student's degree program
             requested_training_type: Student's requested training type (general or professional)
+            work_type: Type of work (REGULAR/SELF_PACED)
+            additional_documents: List of additional document OCR results for self-paced work
             certificate_id: Certificate ID for student identity validation (optional)
 
         Returns:
@@ -178,12 +184,28 @@ class LLMOrchestrator:
                 f"Unsupported degree program: {student_degree}, using general criteria"
             )
 
+        # Enhanced processing for self-paced work with additional documents
+        is_self_paced = work_type == "SELF_PACED"
+        has_additional_docs = additional_documents and len(additional_documents) > 0
+
+        if is_self_paced and has_additional_docs:
+            logger.info(
+                f"Processing self-paced work with {len(additional_documents)} additional documents"
+            )
+            # Combine main certificate with additional documents for comprehensive analysis
+            combined_text = self._combine_documents(text, additional_documents)
+            logger.info(f"Combined text length: {len(combined_text)} characters")
+        else:
+            logger.info("Processing regular work certificate")
+            combined_text = text
+
         start_time = time.time()
 
         try:
             # Stage 1: Information Extraction (moved before name validation)
-            sanitized_text = self._sanitize_text(text)
-            extraction_result = self._extract_information(sanitized_text)
+            # For extraction, always use only the main certificate text, not combined text
+            main_certificate_text = self._sanitize_text(text)
+            extraction_result = self._extract_information(main_certificate_text)
 
             if not extraction_result.get("success", False):
                 return self._error_response(
@@ -191,6 +213,11 @@ class LLMOrchestrator:
                     extraction_results=extraction_result,
                     processing_time=time.time() - start_time,
                 )
+
+            # Post-process extraction results to fix date parsing
+            extraction_result["results"] = self._post_process_extraction_dates(
+                extraction_result["results"]
+            )
 
             # Stage 1.5: Name Validation using LLM extraction results
             name_validation_result = self._validate_student_name_from_extraction(
@@ -276,11 +303,14 @@ class LLMOrchestrator:
                 # Continue processing but log the issues
 
             # Stage 2: Academic Evaluation
+            # For evaluation, use main certificate text for job responsibilities,
+            # but pass additional documents for hour verification
             evaluation_result = self._evaluate_academically(
-                sanitized_text,
+                main_certificate_text,
                 extraction_result["results"],
                 student_degree,
                 requested_training_type,
+                additional_documents if is_self_paced and has_additional_docs else None,
             )
 
             # Stage 2.5: Structural Validation of Evaluation Results
@@ -304,7 +334,7 @@ class LLMOrchestrator:
 
             # Stage 3: Validation (without name validation now)
             validation_result = self._validate_results(
-                sanitized_text,
+                main_certificate_text,
                 extraction_result["results"],
                 evaluation_result["results"],
                 student_degree,
@@ -335,7 +365,7 @@ class LLMOrchestrator:
                     correction_result = None
                 else:
                     correction_result = self._correct_results(
-                        sanitized_text,
+                        main_certificate_text,
                         extraction_result["results"],
                         evaluation_result["results"],
                         validation_result["results"],
@@ -790,7 +820,6 @@ class LLMOrchestrator:
                     "match_confidence": 0.5,
                     "explanation": "Name validation not performed",
                 }
-
             # Validate company information using LLM
             company_validation_result = self._validate_companies_with_llm(
                 extracted_info
@@ -820,104 +849,18 @@ class LLMOrchestrator:
                 company_validation_result, indent=2, ensure_ascii=False
             )
 
-            # Create validation prompt without name validation (since it's done in Stage 0)
-            prompt = f"""You are an expert document validation specialist. Your task is to validate the accuracy of LLM-generated results against the original document text.
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            prompt = VALIDATION_PROMPT.format(
+                current_date=current_date,
+                ocr_text=text,
+                extraction_results=extraction_str,
+                evaluation_results=evaluation_str,
+                student_degree=student_degree,
+                requested_training_type=requested_training_type or "general",
+            )
 
-TASK: Compare the LLM output with the original OCR text and identify any inaccuracies, missing information, or incorrect assumptions.
-
-IMPORTANT: The STUDENT DEGREE provided is the correct degree to use for validation. Do NOT try to determine or extract the student's degree from the document content.
-
-VALIDATION CRITERIA:
-1. **Extraction Accuracy**: Are the extracted facts (names, dates, companies, positions) correct according to the OCR text?
-2. **Information Completeness**: Is all available information from the OCR text properly extracted?
-3. **Assumption Validation**: Are any assumptions made by the LLM justified by the available information?
-4. **Justification Accuracy**: Does the justification accurately reflect what can and cannot be determined from the document?
-5. **Calculation Accuracy**: Are hours and credit calculations mathematically correct?
-6. **Training Type Consistency**: Does the AI's recommendation align with the requested training type and provide appropriate evidence?
-7. **Company Validation**: Review the provided company validation results to identify any suspicious company names that require attention.
-
-CRITICAL VALIDATION RULES:
-- **Use the provided STUDENT DEGREE**: The student degree provided is the correct degree for evaluation.
-- **Validate factual accuracy**: Check if extracted information matches the original document
-- **Validate calculations**: Verify hours and credit calculations are mathematically correct
-- **Allow reasonable hour calculations**: If employment dates are provided, hours can be calculated using standard assumptions (40 hours/week, 8 hours/day)
-- **Allow certificate issue date as end date**: When no explicit end date is provided, using the certificate issue date as the end date is a valid assumption
-- **Validate credit limits**: Ensure appropriate limits are applied (10 ECTS for general, 30 ECTS for professional)
-- **Focus on factual and logical errors**: Flag issues where the LLM contradicts document content
-- **RESPECT REQUESTED TRAINING TYPE**: The REQUESTED_TRAINING_TYPE is the user's choice and should be respected
-- **CREDIT CAPS ARE CORRECT**: The 30 ECTS maximum for professional training and 10 ECTS maximum for general training are established business rules
-- **CRITICAL: FUTURE DATE VALIDATION**: If ANY date is in the future, this MUST be flagged as a CRITICAL error and the decision MUST be changed to "REJECTED"
-
-VALIDATION OUTPUT FORMAT:
-Respond with ONLY a valid JSON object:
-
-{{
-    "validation_passed": true/false,
-    "overall_accuracy_score": 0.0-1.0,
-    "issues_found": [
-        {{
-            "type": "extraction_error|missing_information|incorrect_assumption|justification_error|company_validation_error",
-            "severity": "low|medium|high|critical",
-            "description": "Detailed description of the issue",
-            "field_affected": "extraction|evaluation|justification|company_validation",
-            "suggestion": "How to fix this issue"
-        }}
-    ],
-    "extraction_validation": {{
-        "employee_name_correct": true/false,
-        "job_title_correct": true/false,
-        "company_correct": true/false,
-        "dates_correct": true/false,
-        "missing_information": ["list of information present in OCR but not extracted"]
-    }},
-    "evaluation_validation": {{
-        "hours_calculation_correct": true/false,
-        "training_type_justified": true/false,
-        "credits_calculation_correct": true/false,
-        "degree_relevance_assessment_accurate": true/false,
-        "recommendation_consistent": true/false,
-        "evidence_alignment": "consistent|inconsistent"
-    }},
-    "justification_validation": {{
-        "accurately_reflects_available_information": true/false,
-        "no_unjustified_assumptions": true/false,
-        "clearly_states_limitations": true/false
-    }},
-    "company_validation": {{
-        "status": "LEGITIMATE|NOT_LEGITIMATE|PARTIALLY_LEGITIMATE|UNVERIFIED",
-        "companies": [
-            {{
-                "name": "Company Name",
-                "status": "LEGITIMATE|NOT_LEGITIMATE|UNVERIFIED",
-                "confidence": "high|medium|low",
-                "risk_level": "very_low|low|medium|high|very_high",
-                "justification": "Detailed explanation of validation result",
-                "supporting_evidence": ["list of supporting evidence"],
-                "requires_review": true/false
-            }}
-        ]
-    }},
-    "summary": "Overall assessment of LLM output accuracy and company validation results",
-    "requires_correction": true/false
-}}
-
-OCR TEXT:
-{text}
-
-LLM EXTRACTION RESULTS:
-{extraction_str}
-
-LLM EVALUATION RESULTS:
-{evaluation_str}
-
-STUDENT DEGREE:
-{student_degree}
-
-REQUESTED TRAINING TYPE:
-{requested_training_type or "general"}
-
-COMPANY VALIDATION RESULTS:
-{company_validation_str}"""
+            # Add company validation information to the prompt
+            prompt += f"\n\nCOMPANY VALIDATION RESULTS:\n{company_validation_str}"
 
             response = self._call_llm_with_fallback(prompt, "validation")
             results = self._parse_llm_response(response)
@@ -927,8 +870,10 @@ COMPANY VALIDATION RESULTS:
                 results["company_validation"] = company_validation_result.get(
                     "company_validation", {}
                 )
-                # Add the pre-computed name validation result
-                results["name_validation"] = name_validation_result
+
+                # Add name validation results
+                if name_validation_result:
+                    results["name_validation"] = name_validation_result
 
                 # Add company validation issues to overall issues if any
                 if company_validation_result.get("issues_found"):
@@ -977,7 +922,9 @@ COMPANY VALIDATION RESULTS:
                 validation_results, indent=2, ensure_ascii=False
             )
 
+            current_date = datetime.now().strftime("%Y-%m-%d")
             prompt = CORRECTION_PROMPT.format(
+                current_date=current_date,
                 ocr_text=text,
                 original_llm_output=original_str,
                 validation_results=validation_str,
@@ -1016,6 +963,7 @@ COMPANY VALIDATION RESULTS:
         extracted_info: Dict[str, Any],
         student_degree: str,
         requested_training_type: str = None,
+        additional_documents: List[Dict] = None,
     ) -> Dict[str, Any]:
         """Stage 2: Evaluate the certificate for academic credits with degree-specific criteria and requested training type."""
         stage_start = time.time()
@@ -1029,13 +977,36 @@ COMPANY VALIDATION RESULTS:
                 student_degree
             )
 
-            # Create evaluation prompt
+            # Create evaluation prompt with current date
+            current_date = datetime.now().strftime("%Y-%m-%d")
+
+            # Prepare additional documents section if present
+            if additional_documents:
+                additional_docs_section = """
+ADDITIONAL DOCUMENTS FOR SELF-PACED WORK:
+- Additional documents are provided ONLY for hour verification
+- Use working hours from these documents instead of calculating from employment dates
+- Additional documents take precedence over date-based calculations
+- DO NOT use additional documents for job responsibilities, tasks, or technical skills evaluation
+- Job responsibilities and tasks should be evaluated ONLY from the main certificate
+- Additional documents typically contain only hour logs without detailed job descriptions
+"""
+                additional_docs_text = self._prepare_additional_doc_info(
+                    additional_documents
+                )
+            else:
+                additional_docs_section = ""
+                additional_docs_text = ""
+
             prompt = EVALUATION_PROMPT.format(
+                current_date=current_date,
+                additional_documents_section=additional_docs_section,
                 extracted_info=extracted_info_str,
                 document_text=text,
                 student_degree=student_degree,
                 degree_specific_guidelines=degree_guidelines,
                 requested_training_type=requested_training_type or "general",
+                additional_documents_text=additional_docs_text,
             )
 
             response = self._call_llm_with_fallback(prompt, "evaluation")
@@ -1421,18 +1392,30 @@ COMPANY VALIDATION RESULTS:
                 validation_result = self._parse_company_validation_response(response)
 
                 if validation_result and isinstance(validation_result, dict):
-                    # Check if company is suspicious
-                    if validation_result.get("status") == "NOT_LEGITIMATE":
+                    # Check if company is suspicious (NOT_LEGITIMATE or UNVERIFIED)
+                    company_status = validation_result.get("status")
+                    if company_status in ["NOT_LEGITIMATE", "UNVERIFIED"]:
                         suspicious_companies += 1
-                        issues_found.append(
-                            {
-                                "type": "company_validation_error",
-                                "severity": "high",
-                                "description": f"Suspicious company detected: {company_name}",
-                                "field_affected": "company_validation",
-                                "suggestion": f"Review company '{company_name}' for legitimacy",
-                            }
-                        )
+                        if company_status == "NOT_LEGITIMATE":
+                            issues_found.append(
+                                {
+                                    "type": "company_validation_error",
+                                    "severity": "high",
+                                    "description": f"Suspicious company detected: {company_name}",
+                                    "field_affected": "company_validation",
+                                    "suggestion": f"Review company '{company_name}' for legitimacy",
+                                }
+                            )
+                        else:  # UNVERIFIED
+                            issues_found.append(
+                                {
+                                    "type": "company_validation_error",
+                                    "severity": "medium",
+                                    "description": f"Company could not be verified: {company_name}",
+                                    "field_affected": "company_validation",
+                                    "suggestion": f"Manual verification required for company '{company_name}'",
+                                }
+                            )
 
                     # Add to results
                     company_validation_results.append(
@@ -1556,12 +1539,157 @@ COMPANY VALIDATION RESULTS:
         if not results:
             return results
 
+        # Map LLM field names to expected field names
+        field_mapping = {
+            "Total Working Hours": "total_working_hours",
+            "Academic Credits": "credits_calculated",
+            "credits_calculated": "credits_calculated",
+            "total_working_hours": "total_working_hours",
+            "Justification": "justification",
+            "justification": "justification",
+            "Degree Relevance": "relevance_explanation",  # Map to explanation, not categorical
+            "degree_relevance": "relevance_explanation",  # Also handle lowercase version
+            "Relevance Explanation": "relevance_explanation",
+            "relevance_explanation": "relevance_explanation",
+            "Calculation Breakdown": "calculation_breakdown",
+            "Summary Justification": "summary_justification",
+            "Recommendation": "justification",
+            "recommendation": "justification",  # Also handle lowercase version
+            "Nature of Tasks": "nature_of_tasks",
+            "nature_of_tasks": "nature_of_tasks",
+            "Training Type Analysis": "training_type_analysis",
+            "training_type_analysis": "training_type_analysis",
+            "Evidence Analysis": "evidence_analysis",
+            "evidence_analysis": "evidence_analysis",  # Also handle lowercase version
+            "Hour Verification Details": "hour_verification_details",
+            "Hour Verification Method": "hour_verification_method",
+            "Additional Documents Used": "additional_documents_used",
+            "Additional Document Hours": "additional_document_hours",
+            "Hour Calculation": "hour_calculation",
+            "Discrepancies Found": "discrepancies_found",
+            "Reason for Using Additional Documents": "reason_for_using_additional_documents",
+        }
+
+        # Apply field mapping
+        for llm_field, expected_field in field_mapping.items():
+            if llm_field in results and expected_field not in results:
+                results[expected_field] = results[llm_field]
+
+        # Extract degree_relevance from Degree Relevance description
+        degree_relevance_source = None
+        if "Degree Relevance" in results:
+            degree_relevance_source = results["Degree Relevance"]
+        elif "degree_relevance" in results:
+            degree_relevance_source = results["degree_relevance"]
+
+        if degree_relevance_source and "degree_relevance" not in results:
+            degree_desc = degree_relevance_source.lower()
+            if (
+                "not directly related" in degree_desc
+                or "not related" in degree_desc
+                or "falls outside" in degree_desc
+                or "does not align" in degree_desc
+            ):
+                results["degree_relevance"] = "low"
+            elif (
+                "high" in degree_desc
+                or "directly related" in degree_desc
+                or "closely related" in degree_desc
+            ):
+                results["degree_relevance"] = "high"
+            elif (
+                "medium" in degree_desc
+                or "somewhat related" in degree_desc
+                or "partially related" in degree_desc
+            ):
+                results["degree_relevance"] = "medium"
+            else:
+                results["degree_relevance"] = "low"
+
+        # Extract supporting and challenging evidence from evidence_analysis
+        evidence_source = None
+        if "Evidence Analysis" in results:
+            evidence_source = results["Evidence Analysis"]
+        elif "evidence_analysis" in results:
+            evidence_source = results["evidence_analysis"]
+
+        if evidence_source and isinstance(evidence_source, dict):
+            if "for_professional_training" in evidence_source:
+                results["supporting_evidence"] = evidence_source[
+                    "for_professional_training"
+                ]
+            if "against_professional_training" in evidence_source:
+                results["challenging_evidence"] = evidence_source[
+                    "against_professional_training"
+                ]
+
+        # Map decision field names
+        decision_mapping = {
+            "Decision": "decision",
+            "decision": "decision",
+        }
+
+        for llm_field, expected_field in decision_mapping.items():
+            if llm_field in results and expected_field not in results:
+                results[expected_field] = results[llm_field]
+
+        # Extract decision from recommendation if no explicit decision
+        recommendation_source = None
+        if "Recommendation" in results:
+            recommendation_source = results["Recommendation"]
+        elif "recommendation" in results:
+            recommendation_source = results["recommendation"]
+
+        if recommendation_source and "decision" not in results:
+            recommendation = recommendation_source.lower()
+
+            # Check if this is professional training application
+            requested_training_type = results.get("requested_training_type", "").lower()
+
+            if "general training" in recommendation:
+                # If LLM recommends general training but user requested professional training, REJECT
+                if requested_training_type == "professional":
+                    results["decision"] = "REJECTED"
+                else:
+                    results["decision"] = "ACCEPTED"
+            elif "professional training" in recommendation:
+                results["decision"] = "ACCEPTED"
+            elif "reject" in recommendation or "deny" in recommendation:
+                results["decision"] = "REJECTED"
+            elif "accept" in recommendation or "approve" in recommendation:
+                results["decision"] = "ACCEPTED"
+            else:
+                # Default based on training type match
+                if (
+                    requested_training_type == "professional"
+                    and "general" in recommendation
+                ):
+                    results["decision"] = "REJECTED"
+                else:
+                    results["decision"] = "ACCEPTED"
+
         # Ensure required fields have valid values
         if results.get("decision") is None:
             results["decision"] = "REJECTED"
 
-        if results.get("justification") is None:
-            results["justification"] = "No justification provided"
+        # Handle justification field - convert dict to string if needed
+        justification = results.get("justification")
+        if justification is None or justification == "No justification provided":
+            # Use recommendation as justification if available
+            if "recommendation" in results:
+                results["justification"] = results["recommendation"]
+            elif "Recommendation" in results:
+                results["justification"] = results["Recommendation"]
+            else:
+                results["justification"] = "No justification provided"
+        elif isinstance(justification, dict):
+            # Convert dict to readable string
+            if "justification" in justification:
+                results["justification"] = str(justification["justification"])
+            else:
+                results["justification"] = str(justification)
+        elif not isinstance(justification, str):
+            results["justification"] = str(justification)
 
         if results.get("degree_relevance") is None:
             results["degree_relevance"] = "low"
@@ -1575,7 +1703,7 @@ COMPANY VALIDATION RESULTS:
         if results.get("summary_justification") is None:
             results["summary_justification"] = "No summary justification provided"
 
-        # Ensure numeric fields are valid
+        # Ensure numeric fields are valid - only set defaults if truly missing
         if results.get("total_working_hours") is None:
             results["total_working_hours"] = 0
 
@@ -1605,6 +1733,114 @@ COMPANY VALIDATION RESULTS:
             "stages": ["extraction", "evaluation", "validation", "correction"],
             "company_validation": "LLM-based",
         }
+
+    def _combine_documents(self, main_text: str, additional_docs: List[Dict]) -> str:
+        """
+        Combine main certificate with additional documents for comprehensive analysis.
+
+        Args:
+            main_text: OCR text from the main certificate
+            additional_docs: List of additional document OCR results
+
+        Returns:
+            Combined text with clear document separation
+        """
+        combined = f"MAIN CERTIFICATE:\n{main_text}\n\n"
+
+        for i, doc in enumerate(additional_docs, 1):
+            doc_type = doc.get("document_type", "ADDITIONAL_DOCUMENT")
+            filename = doc.get("filename", f"document_{i}")
+            ocr_text = doc.get("ocr_text", "")
+
+            combined += (
+                f"ADDITIONAL DOCUMENT {i} ({doc_type} - {filename}):\n{ocr_text}\n\n"
+            )
+
+        return combined
+
+    def _post_process_extraction_dates(
+        self, extraction_results: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Post-process extraction results to fix Finnish date parsing.
+
+        Args:
+            extraction_results: Raw extraction results from LLM
+
+        Returns:
+            Processed extraction results with corrected dates
+        """
+        if not extraction_results or "positions" not in extraction_results:
+            return extraction_results
+
+        processed_results = extraction_results.copy()
+
+        # Process certificate issue date
+        if "certificate_issue_date" in processed_results:
+            original_date = processed_results["certificate_issue_date"]
+            if original_date:
+                parsed_date = parse_finnish_date(original_date)
+                if parsed_date:
+                    processed_results["certificate_issue_date"] = parsed_date
+                    logger.info(
+                        f"Fixed certificate issue date: '{original_date}' -> '{parsed_date}'"
+                    )
+
+        # Process positions dates
+        if "positions" in processed_results and isinstance(
+            processed_results["positions"], list
+        ):
+            for position in processed_results["positions"]:
+                if isinstance(position, dict):
+                    # Process start_date
+                    if "start_date" in position and position["start_date"]:
+                        original_date = position["start_date"]
+                        parsed_date = parse_finnish_date(original_date)
+                        if parsed_date:
+                            position["start_date"] = parsed_date
+                            logger.info(
+                                f"Fixed start date: '{original_date}' -> '{parsed_date}'"
+                            )
+
+                    # Process end_date
+                    if "end_date" in position and position["end_date"]:
+                        original_date = position["end_date"]
+                        parsed_date = parse_finnish_date(original_date)
+                        if parsed_date:
+                            position["end_date"] = parsed_date
+                            logger.info(
+                                f"Fixed end date: '{original_date}' -> '{parsed_date}'"
+                            )
+
+        return processed_results
+
+    def _prepare_additional_doc_info(self, additional_docs: List[Dict]) -> str:
+        """
+        Prepare additional document information for the self-paced evaluation prompt.
+
+        Args:
+            additional_docs: List of additional document information
+
+        Returns:
+            Formatted string with additional document information
+        """
+        if not additional_docs:
+            return "No additional documents provided."
+
+        doc_info = []
+        for i, doc in enumerate(additional_docs, 1):
+            filename = doc.get("filename", f"Document {i}")
+            text = doc.get("ocr_text", "")
+            doc_type = doc.get("document_type", "Unknown")
+
+            doc_info.append(f"""
+Additional Document {i}:
+- Filename: {filename}
+- Type: {doc_type}
+- Content: {text[:500]}{'...' if len(text) > 500 else ''}
+""")
+
+        return "\n".join(doc_info)
 
     def get_prompt_info(self) -> Dict[str, Any]:
         """Get information about the prompts being used."""
